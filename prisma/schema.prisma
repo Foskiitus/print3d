@@ -1,49 +1,220 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"] 
 }
 
 datasource db {
-  provider = "sqlite"
+  provider  = "postgresql"
 }
+
+//////////////////////////////////////////////////////////
+// USERS
+//////////////////////////////////////////////////////////
 
 model User {
   id        Int      @id @default(autoincrement())
-  name      String
+  name      String?
   email     String   @unique
   password  String
-  role      String   @default("viewer")
+  role      String   @default("user")
   createdAt DateTime @default(now())
 }
 
-model Product {
-  id               Int             @id @default(autoincrement())
-  name             String
-  imageUrl         String?
-  productionCost   Float           @default(0)
-  recommendedPrice Float           @default(0)
-  stockLevel       Int             @default(0)
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  productionLogs   ProductionLog[]
-  sales            Sale[]
+//////////////////////////////////////////////////////////
+// FILAMENT TYPES (PLA preto, PETG branco, etc)
+//////////////////////////////////////////////////////////
+
+model FilamentType {
+  id        Int    @id @default(autoincrement())
+  brand     String
+  material  String
+  color     String
+
+  spools    FilamentSpool[]
+  usages    ProductFilamentUsage[]
+
+  createdAt DateTime @default(now())
 }
+
+//////////////////////////////////////////////////////////
+// FILAMENT SPOOLS (inventário real)
+//////////////////////////////////////////////////////////
+
+model FilamentSpool {
+  id             Int      @id @default(autoincrement())
+  filamentTypeId Int
+
+  spoolWeight    Float
+  remaining      Float
+  price          Float
+  purchaseDate   DateTime
+
+  filamentType   FilamentType @relation(fields: [filamentTypeId], references: [id])
+
+  createdAt      DateTime @default(now())
+}
+
+//////////////////////////////////////////////////////////
+// PRINTERS
+//////////////////////////////////////////////////////////
+
+model Printer {
+  id           Int     @id @default(autoincrement())
+  name         String
+  hourlyCost   Float   // desvalorização
+  powerWatts   Int     // consumo energético
+
+  productions  ProductionLog[]
+}
+
+//////////////////////////////////////////////////////////
+// CATEGORIES
+//////////////////////////////////////////////////////////
+
+model Category {
+  id       Int      @id @default(autoincrement())
+  name     String
+
+  products Product[]
+}
+
+//////////////////////////////////////////////////////////
+// PRODUCTS
+//////////////////////////////////////////////////////////
+
+model Product {
+  id              Int      @id @default(autoincrement())
+  name            String
+  description     String?
+
+  categoryId      Int?
+
+  productionTime  Int?     // minutos
+
+  margin          Float    @default(0.3)
+
+  imageUrl        String?
+
+  category        Category? @relation(fields: [categoryId], references: [id])
+
+  filamentUsage   ProductFilamentUsage[]
+  extras          ProductExtra[]
+  printProfiles   PrintProfile[]
+
+  productionLogs  ProductionLog[]
+  sales           Sale[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+//////////////////////////////////////////////////////////
+// FILAMENT USED BY PRODUCT
+//////////////////////////////////////////////////////////
+
+model ProductFilamentUsage {
+  id             Int @id @default(autoincrement())
+
+  productId      Int
+  filamentTypeId Int
+
+  weight         Float
+
+  product        Product      @relation(fields: [productId], references: [id])
+  filamentType   FilamentType @relation(fields: [filamentTypeId], references: [id])
+}
+
+//////////////////////////////////////////////////////////
+// EXTRAS
+//////////////////////////////////////////////////////////
+
+model Extra {
+  id      Int    @id @default(autoincrement())
+  name    String
+  price   Float
+  unit    String?
+
+  usages  ProductExtra[]
+}
+
+//////////////////////////////////////////////////////////
+// EXTRAS USED IN PRODUCT
+//////////////////////////////////////////////////////////
+
+model ProductExtra {
+  id        Int @id @default(autoincrement())
+
+  productId Int
+  extraId   Int
+
+  quantity  Float
+
+  product   Product @relation(fields: [productId], references: [id])
+  extra     Extra   @relation(fields: [extraId], references: [id])
+}
+
+//////////////////////////////////////////////////////////
+// PRINT PROFILES (.3MF FILES)
+//////////////////////////////////////////////////////////
+
+model PrintProfile {
+  id          Int    @id @default(autoincrement())
+
+  productId   Int
+
+  name        String
+  filePath    String
+
+  slicer      String?
+
+  printTime   Int?   // minutos
+  filamentUsed Float?
+
+  product     Product @relation(fields: [productId], references: [id])
+
+  createdAt   DateTime @default(now())
+}
+
+//////////////////////////////////////////////////////////
+// PRODUCTION LOG
+//////////////////////////////////////////////////////////
 
 model ProductionLog {
-  id        Int      @id @default(autoincrement())
+  id        Int @id @default(autoincrement())
+
   productId Int
+  printerId Int
+
   quantity  Int
-  notes     String?
-  date      DateTime @default(now())
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  filamentCost     Float?
+  electricityCost  Float?
+  printerCost      Float?
+  extrasCost       Float?
+
+  totalCost        Float?
+
+  date             DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id])
+  printer Printer @relation(fields: [printerId], references: [id])
 }
 
+//////////////////////////////////////////////////////////
+// SALES
+//////////////////////////////////////////////////////////
+
 model Sale {
-  id           Int      @id @default(autoincrement())
+  id           Int @id @default(autoincrement())
+
   productId    Int
-  customerName String
+
+  customerName String?
+
   quantity     Int
   salePrice    Float
+
   date         DateTime @default(now())
-  product      Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  product Product @relation(fields: [productId], references: [id])
 }

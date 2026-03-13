@@ -1,71 +1,245 @@
-import 'dotenv/config'
-import bcrypt from 'bcryptjs'
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
-import { PrismaClient } from '../generated/prisma/client'
+import { PrismaClient } from "@prisma/client";
+import { Pool } from "pg";
+import { PrismaPg } from "@prisma/adapter-pg";
+import * as dotenv from "dotenv";
 
-const adapter = new PrismaBetterSqlite3({ url: 'file:prisma/dev.db' })
-const prisma = new PrismaClient({ adapter })
+// 1. Carrega as variáveis do .env
+dotenv.config();
+
+// 2. Configura a ligação com o driver pg nativo
+const connectionString = process.env.DATABASE_URL;
+const pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool);
+
+// 3. O Prisma agora recebe o adapter e fica feliz (o objeto já não está vazio!)
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  await prisma.sale.deleteMany()
-  await prisma.productionLog.deleteMany()
-  await prisma.product.deleteMany()
-  await prisma.user.deleteMany()
+  console.log("A iniciar o seed da base de dados...");
+  /////////////////////////////////////////////////////////
+  // CATEGORIES
+  /////////////////////////////////////////////////////////
 
-  // Create default users
-  const adminPassword = await bcrypt.hash('admin123', 12)
-  const viewerPassword = await bcrypt.hash('viewer123', 12)
+  const keychains = await prisma.category.create({
+    data: { name: "Keychains" },
+  });
 
-  await prisma.user.create({
-    data: { name: 'Administrador', email: 'admin@print3d.com', password: adminPassword, role: 'admin' }
-  })
-  await prisma.user.create({
-    data: { name: 'Visualizador', email: 'viewer@print3d.com', password: viewerPassword, role: 'viewer' }
-  })
+  const decoration = await prisma.category.create({
+    data: { name: "Decoration" },
+  });
 
-  console.log('✓ Utilizadores criados:')
-  console.log('  admin@print3d.com / admin123')
-  console.log('  viewer@print3d.com / viewer123')
+  /////////////////////////////////////////////////////////
+  // FILAMENT TYPES
+  /////////////////////////////////////////////////////////
 
-  const products = await Promise.all([
-    prisma.product.create({ data: { name: 'Suporte Ergonômico', productionCost: 12.50, recommendedPrice: 65.00, stockLevel: 8 } }),
-    prisma.product.create({ data: { name: 'Case Headphone', productionCost: 18.00, recommendedPrice: 90.00, stockLevel: 5 } }),
-    prisma.product.create({ data: { name: 'Miniatura RPG', productionCost: 8.00, recommendedPrice: 45.00, stockLevel: 14 } }),
-    prisma.product.create({ data: { name: 'Peça Mecânica', productionCost: 22.00, recommendedPrice: 110.00, stockLevel: 3 } }),
-    prisma.product.create({ data: { name: 'Placa de Nome', productionCost: 5.00, recommendedPrice: 30.00, stockLevel: 20 } }),
-    prisma.product.create({ data: { name: 'Case Personalizado', productionCost: 15.00, recommendedPrice: 75.00, stockLevel: 6 } }),
-  ])
+  const plaBlack = await prisma.filamentType.create({
+    data: {
+      brand: "Bambu Lab",
+      material: "PLA",
+      color: "Black",
+    },
+  });
 
-  const now = new Date()
-  const customers = ['Carlos Mendes', 'Ana Souza', 'Julia Ferreira', 'Pedro Costa', 'Maria Santos', 'Rafael Lima', 'Bruno Oliveira', 'Camila Reis']
+  const plaWhite = await prisma.filamentType.create({
+    data: {
+      brand: "Bambu Lab",
+      material: "PLA",
+      color: "White",
+    },
+  });
 
-  for (let i = 89; i >= 0; i--) {
-    const date = new Date(now)
-    date.setDate(now.getDate() - i)
-    const count = Math.floor(Math.random() * 3) + 1
-    for (let j = 0; j < count; j++) {
-      const product = products[Math.floor(Math.random() * products.length)]
-      await prisma.sale.create({
-        data: {
-          productId: product.id,
-          customerName: customers[Math.floor(Math.random() * customers.length)],
-          quantity: Math.floor(Math.random() * 3) + 1,
-          salePrice: product.recommendedPrice * (0.9 + Math.random() * 0.2),
-          date,
-        }
-      })
-    }
-  }
+  const plaRed = await prisma.filamentType.create({
+    data: {
+      brand: "Bambu Lab",
+      material: "PLA",
+      color: "Red",
+    },
+  });
 
-  for (const product of products) {
-    const logDate = new Date(now)
-    logDate.setDate(logDate.getDate() - 30)
-    await prisma.productionLog.create({
-      data: { productId: product.id, quantity: product.stockLevel + 5, notes: 'Estoque inicial', date: logDate }
-    })
-  }
+  /////////////////////////////////////////////////////////
+  // FILAMENT SPOOLS
+  /////////////////////////////////////////////////////////
 
-  console.log('✓ Seed completo!')
+  await prisma.filamentSpool.createMany({
+    data: [
+      {
+        filamentTypeId: plaBlack.id,
+        spoolWeight: 1000,
+        remaining: 1000,
+        price: 22,
+        purchaseDate: new Date(),
+      },
+      {
+        filamentTypeId: plaBlack.id,
+        spoolWeight: 1000,
+        remaining: 850,
+        price: 26,
+        purchaseDate: new Date(),
+      },
+      {
+        filamentTypeId: plaWhite.id,
+        spoolWeight: 1000,
+        remaining: 1000,
+        price: 22,
+        purchaseDate: new Date(),
+      },
+      {
+        filamentTypeId: plaRed.id,
+        spoolWeight: 1000,
+        remaining: 1000,
+        price: 23,
+        purchaseDate: new Date(),
+      },
+    ],
+  });
+
+  /////////////////////////////////////////////////////////
+  // EXTRAS
+  /////////////////////////////////////////////////////////
+
+  const keyring = await prisma.extra.create({
+    data: {
+      name: "Keychain Ring",
+      price: 0.15,
+      unit: "unit",
+    },
+  });
+
+  const magnet = await prisma.extra.create({
+    data: {
+      name: "Magnet",
+      price: 0.3,
+      unit: "unit",
+    },
+  });
+
+  const glue = await prisma.extra.create({
+    data: {
+      name: "Glue",
+      price: 0.05,
+      unit: "use",
+    },
+  });
+
+  /////////////////////////////////////////////////////////
+  // PRINTERS
+  /////////////////////////////////////////////////////////
+
+  const bambuX1 = await prisma.printer.create({
+    data: {
+      name: "Bambu X1C",
+      hourlyCost: 0.5,
+      powerWatts: 120,
+    },
+  });
+
+  const bambuP1 = await prisma.printer.create({
+    data: {
+      name: "Bambu P1S",
+      hourlyCost: 0.45,
+      powerWatts: 110,
+    },
+  });
+
+  /////////////////////////////////////////////////////////
+  // PRODUCTS
+  /////////////////////////////////////////////////////////
+
+  const pokemonKeychain = await prisma.product.create({
+    data: {
+      name: "Pokemon Keychain",
+      description: "Multicolor Pokemon themed keychain",
+      categoryId: keychains.id,
+      productionTime: 120,
+      margin: 0.4,
+    },
+  });
+
+  const benchy = await prisma.product.create({
+    data: {
+      name: "3D Benchy",
+      description: "Benchmark test print",
+      categoryId: decoration.id,
+      productionTime: 60,
+      margin: 0.3,
+    },
+  });
+
+  /////////////////////////////////////////////////////////
+  // FILAMENT USAGE
+  /////////////////////////////////////////////////////////
+
+  await prisma.productFilamentUsage.createMany({
+    data: [
+      {
+        productId: pokemonKeychain.id,
+        filamentTypeId: plaBlack.id,
+        weight: 10,
+      },
+      {
+        productId: pokemonKeychain.id,
+        filamentTypeId: plaWhite.id,
+        weight: 4,
+      },
+      {
+        productId: pokemonKeychain.id,
+        filamentTypeId: plaRed.id,
+        weight: 3,
+      },
+      {
+        productId: benchy.id,
+        filamentTypeId: plaWhite.id,
+        weight: 12,
+      },
+    ],
+  });
+
+  /////////////////////////////////////////////////////////
+  // PRODUCT EXTRAS
+  /////////////////////////////////////////////////////////
+
+  await prisma.productExtra.create({
+    data: {
+      productId: pokemonKeychain.id,
+      extraId: keyring.id,
+      quantity: 1,
+    },
+  });
+
+  /////////////////////////////////////////////////////////
+  // PRINT PROFILES (.3mf)
+  /////////////////////////////////////////////////////////
+
+  await prisma.printProfile.create({
+    data: {
+      productId: pokemonKeychain.id,
+      name: "Pokemon Keychain AMS",
+      filePath: "/uploads/3mf/pokemon_keychain.3mf",
+      slicer: "Bambu Studio",
+      printTime: 120,
+      filamentUsed: 17,
+    },
+  });
+
+  await prisma.printProfile.create({
+    data: {
+      productId: benchy.id,
+      name: "Benchy Fast",
+      filePath: "/uploads/3mf/benchy_fast.3mf",
+      slicer: "Bambu Studio",
+      printTime: 60,
+      filamentUsed: 12,
+    },
+  });
+
+  console.log("🌱 Database seeded successfully");
 }
 
-main().catch(console.error).finally(() => prisma.$disconnect())
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

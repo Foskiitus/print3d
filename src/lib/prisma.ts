@@ -1,13 +1,22 @@
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
-import { PrismaClient } from '../../generated/prisma/client'
+import { PrismaClient } from "@prisma/client";
+import { Pool } from "pg";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
+// Criamos uma variável para o cliente
+let prisma: PrismaClient;
 
-function createPrismaClient() {
-  const adapter = new PrismaBetterSqlite3({ url: 'file:prisma/dev.db' })
-  return new PrismaClient({ adapter })
+if (typeof window === "undefined") {
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    // Se estivermos no ambiente Node.js normal (API Routes, Server Actions)
+    const connectionString = process.env.DATABASE_URL;
+    const pool = new Pool({ connectionString });
+    const adapter = new PrismaPg(pool);
+    prisma = new PrismaClient({ adapter });
+  } else {
+    // Se estivermos no Edge (Middleware), instanciamos o Prisma sem o adapter nativo
+    // ou usamos uma versão que não dependa de drivers TCP
+    prisma = new PrismaClient();
+  }
 }
 
-export const prisma = globalForPrisma.prisma || createPrismaClient()
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+export { prisma };
