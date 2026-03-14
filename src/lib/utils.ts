@@ -29,7 +29,7 @@ interface ProductionCostsParams {
   spoolPrice: number;
   spoolWeightGrams: number;
   printerWattage: number;
-  printerHourlyCost: number; // Este é o valor da tua amortização (ex: 0.26)
+  printerHourlyCost: number;
 }
 
 export function calculateProductionCosts({
@@ -42,21 +42,21 @@ export function calculateProductionCosts({
 }: ProductionCostsParams) {
   const hours = printTimeMinutes / 60;
 
-  // 1. Custo do Filamento: (Preço da Bobine / Peso da Bobine) * Gramas Usadas
+  // 1. Custo do Filamento
   const filamentCost = (spoolPrice / spoolWeightGrams) * weightGrams;
 
-  // 2. Custo de Energia: (W / 1000) * Horas * Preço kWh
+  // 2. Custo de Energia: (W / 1000) * horas * preço_kWh
   const energyCost = (printerWattage / 1000) * hours * ELECTRICITY_KWH_PRICE;
 
-  // 3. Custo de Amortização/Manutenção: Horas * Custo Horário da Máquina
+  // 3. Custo de Amortização/Manutenção
   const maintenanceCost = hours * printerHourlyCost;
 
   const totalCost = filamentCost + energyCost + maintenanceCost;
 
   return {
-    filamentCost: Number(filamentCost.toFixed(4)),
-    energyCost: Number(energyCost.toFixed(4)),
-    maintenanceCost: Number(maintenanceCost.toFixed(4)),
-    totalCost: Number(totalCost.toFixed(2)), // Arredondamos o total para cêntimos
+    filamentCost,
+    energyCost,
+    maintenanceCost,
+    totalCost,
   };
 }

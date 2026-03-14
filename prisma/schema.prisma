@@ -96,6 +96,8 @@ model Product {
 
   imageUrl        String?
 
+  fileUrl          String?  // NOVO: Guarda o caminho do ficheiro .3mf
+
   category        Category? @relation(fields: [categoryId], references: [id])
 
   filamentUsage   ProductFilamentUsage[]
