@@ -36,8 +36,7 @@ export async function POST(req: NextRequest) {
     const product = await prisma.product.findUnique({
       where: { id: Number(productId) },
       include: {
-        filamentUsages: true,
-        extrasUsed: { include: { extra: true } },
+        filamentUsage: true, // ⬅️ CORREÇÃO 1: Singular, conforme o schema
       },
     });
 
@@ -61,32 +60,25 @@ export async function POST(req: NextRequest) {
     // ==========================================
     // PARTE A: CÁLCULO DE CUSTOS FIXOS (Máquina e Extras)
     // ==========================================
-    const printTimeHours = (product.printTimeMinutes || 0) / 60;
+    const printTimeHours = (product.productionTime || 0) / 60;
     const totalPrintTime = printTimeHours * Number(quantity);
 
-    // Custo da Impressora (Horas * Custo por Hora)
     const printerCost = printer.hourlyCost * totalPrintTime;
-
-    // Custo Eletricidade: (Watts / 1000 = kW) * Horas * Preço do kWh
     const electricityCost =
-      (printer.electricityW / 1000) * totalPrintTime * ELECTRICITY_PRICE_KWH;
+      (printer.powerWatts / 1000) * totalPrintTime * ELECTRICITY_PRICE_KWH;
 
-    // Custo Extras: Somar o preço de cada extra * quantidade usada * quantidade produzida
     let extrasCost = 0;
-    for (const usage of product.extrasUsed) {
-      extrasCost += usage.quantity * usage.extra.price * Number(quantity);
-    }
 
     // ==========================================
     // PARTE B: ALGORITMO FIFO PARA O FILAMENTO
     // ==========================================
     let filamentCost = 0;
-    const spoolUpdates = []; // Vamos guardar as atualizações para a transação final
+    const spoolUpdates = [];
 
-    for (const usage of product.filamentUsages) {
+    // ⬅️ CORREÇÃO 2: Singular no for loop também
+    for (const usage of product.filamentUsage) {
       let remainingNeeded = usage.weight * Number(quantity);
 
-      // Procurar rolos físicos deste material que ainda tenham filamento (do mais antigo para o mais novo)
       const availableSpools = await prisma.filamentSpool.findMany({
         where: {
           filamentTypeId: usage.filamentTypeId,
@@ -96,7 +88,7 @@ export async function POST(req: NextRequest) {
       });
 
       for (const spool of availableSpools) {
-        if (remainingNeeded <= 0) break; // Já reunimos filamento suficiente
+        if (remainingNeeded <= 0) break;
 
         const costPerGram = spool.price / spool.spoolWeight;
         const amountToTake = Math.min(spool.remaining, remainingNeeded);
@@ -104,7 +96,6 @@ export async function POST(req: NextRequest) {
         filamentCost += amountToTake * costPerGram;
         remainingNeeded -= amountToTake;
 
-        // Preparar a instrução para descontar no rolo
         spoolUpdates.push(
           prisma.filamentSpool.update({
             where: { id: spool.id },
@@ -113,7 +104,6 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Se o loop acabar e ainda faltar filamento, bloqueamos a produção
       if (remainingNeeded > 0) {
         return NextResponse.json(
           {
@@ -129,10 +119,11 @@ export async function POST(req: NextRequest) {
     // ==========================================
     // PARTE C: TRANSAÇÃO SEGURA
     // ==========================================
-    const [log] = await prisma.$transaction([
-      ...spoolUpdates, // 1. Desconta as gramas dos rolos exatos
+    // ⬅️ CORREÇÃO 3: Removida a tentativa de atualizar o stockLevel extinto
+    // e extração correta do Log no final do array da transação
+    const transactionResults = await prisma.$transaction([
+      ...spoolUpdates,
       prisma.productionLog.create({
-        // 2. Regista o custo no histórico
         data: {
           productId: Number(productId),
           printerId: Number(printerId),
@@ -144,12 +135,10 @@ export async function POST(req: NextRequest) {
           totalCost,
         },
       }),
-      prisma.product.update({
-        // 3. Aumenta o stock da peça final
-        where: { id: Number(productId) },
-        data: { stockLevel: { increment: Number(quantity) } },
-      }),
     ]);
+
+    // O log será sempre a última operação inserida no array da transação
+    const log = transactionResults[transactionResults.length - 1];
 
     return NextResponse.json(log, { status: 201 });
   } catch (error) {

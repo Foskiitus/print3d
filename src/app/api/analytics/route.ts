@@ -35,7 +35,24 @@ export async function GET(req: NextRequest) {
       // Lucro Líquido Real = Faturação - Gastos de Produção
       const totalProfit = totalRevenue - totalCost;
 
-      const totalStock = products.reduce((sum, p) => sum + p.stockLevel, 0);
+      // ==========================================
+      // NOVO CÁLCULO DE STOCK DINÂMICO AQUI
+      // ==========================================
+      // 1. Soma tudo o que já fabricaste
+      const totalProducedQuantity = allProductionLogs.reduce(
+        (sum, log) => sum + log.quantity,
+        0,
+      );
+
+      // 2. Soma tudo o que já vendeste
+      const totalSoldQuantity = allSales.reduce(
+        (sum, sale) => sum + sale.quantity,
+        0,
+      );
+
+      // 3. O stock atual é a diferença
+      const totalStock = totalProducedQuantity - totalSoldQuantity;
+
       const monthlySalesVolume = monthlySales.reduce(
         (sum, s) => sum + s.quantity,
         0,

@@ -13,12 +13,24 @@ type SaleWithProduct = Sale & { product: Product };
 type SortKey = "date" | "salePrice" | "customerName" | "product";
 type SortDir = "asc" | "desc";
 
+export type SerializedProduct = Omit<Product, "createdAt" | "updatedAt"> & {
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SerializedSale = Omit<Sale, "date"> & {
+  date: string;
+  product: SerializedProduct;
+};
+
 export function SalesClient({
   initialSales,
+  products,
 }: {
-  initialSales: SaleWithProduct[];
+  initialSales: SerializedSale[];
+  products: SerializedProduct[];
 }) {
-  const [sales, setSales] = useState<SaleWithProduct[]>(initialSales);
+  const [sales, setSales] = useState<SerializedSale[]>(initialSales);
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
