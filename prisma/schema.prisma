@@ -28,7 +28,8 @@ model FilamentType {
   id        Int    @id @default(autoincrement())
   brand     String
   material  String
-  color     String
+  colorName String // Para guardar "11101 Preto"
+  colorHex  String // Para guardar "#000000"
 
   spools    FilamentSpool[]
   usages    ProductFilamentUsage[]

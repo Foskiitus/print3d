@@ -1,48 +1,33 @@
-export type Product = {
-  id: number
-  name: string
-  imageUrl: string | null
-  productionCost: number
-  recommendedPrice: number
-  stockLevel: number
-  createdAt: string
-  updatedAt: string
+export interface Printer {
+  id: number;
+  name: string;
+  model?: string | null;
+  hourlyCost: number;
+  electricity: number; // Nome corrigido (estava electricityW)
 }
 
-export type ProductionLog = {
-  id: number
-  productId: number
-  quantity: number
-  notes: string | null
-  date: string
-  product?: Product
-}
+export interface Product {
+  id: number;
+  name: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  productionTime?: number | null;
+  price: number; // Nome corrigido (no schema é 'price')
+  margin: number;
+  categoryId?: number | null;
 
-export type Sale = {
-  id: number
-  productId: number
-  customerName: string
-  quantity: number
-  salePrice: number
-  date: string
-  product?: Product
-}
+  // Relações
+  category?: Category | null;
+  filamentUsage?: ProductFilamentUsage[];
+  extras?: ProductExtra[];
 
-export type KPIData = {
-  totalProfit: number
-  totalStock: number
-  monthlySalesVolume: number
-  monthlyRevenue: number
-}
-
-export type SalesChartData = {
-  date: string
-  revenue: number
-  count: number
-}
-
-export type TopProductData = {
-  name: string
-  totalSold: number
-  revenue: number
+  // Campos virtuais (calculados pela API)
+  stockLevel?: number;
+  calculatedCosts?: {
+    filament: number;
+    extras: number;
+    machine: number;
+    total: number;
+    suggestedPrice: number;
+  };
 }

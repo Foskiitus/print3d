@@ -4,6 +4,9 @@ import { prisma } from "@/lib/prisma";
 export async function GET() {
   try {
     const types = await prisma.filamentType.findMany({
+      include: {
+        _count: { select: { spools: true } },
+      },
       orderBy: { brand: "asc" },
     });
     return NextResponse.json(types);
@@ -17,26 +20,40 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { brand, material, color } = await req.json();
+    const body = await req.json();
+    console.log("DADOS RECEBIDOS NA API:", body);
+    const { brand, material, colorName, colorHex } = body;
 
-    if (!brand || !material || !color) {
+    // Validação básica
+    if (!brand || !material || !colorName || !colorHex) {
       return NextResponse.json(
-        { error: "Marca, material e cor são obrigatórios" },
+        { error: "Campos obrigatórios em falta" },
         { status: 400 },
       );
     }
 
-    const type = await prisma.filamentType.create({
+    const newType = await prisma.filamentType.create({
       data: {
         brand: brand.trim(),
         material: material.trim(),
-        color: color.trim(),
+        colorName: colorName.trim(),
+        colorHex: colorHex.trim(),
+      },
+      include: {
+        _count: {
+          select: { spools: true },
+        },
       },
     });
-    return NextResponse.json(type, { status: 201 });
-  } catch (error) {
+
+    return NextResponse.json(newType, { status: 201 });
+  } catch (error: any) {
+    console.error("Erro na API de Filamentos:", error);
     return NextResponse.json(
-      { error: "Erro ao criar tipo de filamento" },
+      {
+        error: "Falha ao comunicar com a base de dados",
+        details: error.message,
+      },
       { status: 500 },
     );
   }

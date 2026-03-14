@@ -111,7 +111,6 @@ export function ProductDetailsClient({
       >
         <ArrowLeft className="w-4 h-4 mr-2" /> Voltar ao Inventário
       </Button>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* PAINEL 1: FILAMENTOS */}
         <Card>
@@ -287,6 +286,63 @@ export function ProductDetailsClient({
           </CardContent>
         </Card>
       </div>
+      // Adiciona isto dentro do return do teu ProductDetailsClient, antes ou
+      depois dos cards de filamento
+      {product.calculatedCosts && (
+        <Card className="bg-primary/5 border-primary/20">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold uppercase tracking-wider text-primary">
+              Análise de Custo e Preço Sugerido
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Custo Materiais</p>
+                <p className="text-lg font-bold">
+                  {formatCurrency(
+                    product.calculatedCosts.filament +
+                      product.calculatedCosts.extras,
+                  )}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Custo Máquina</p>
+                <p className="text-lg font-bold">
+                  {formatCurrency(product.calculatedCosts.machine)}
+                </p>
+              </div>
+              <div className="border-l pl-4">
+                <p className="text-xs text-muted-foreground">
+                  Custo Total (Base)
+                </p>
+                <p className="text-lg font-bold text-orange-600">
+                  {formatCurrency(product.calculatedCosts.total)}
+                </p>
+              </div>
+              <div className="bg-primary text-primary-foreground p-3 rounded-lg">
+                <p className="text-xs opacity-80">
+                  Preço Sugerido ({((product.margin || 0) * 100).toFixed(0)}%
+                  lucro)
+                </p>
+                <p className="text-xl font-black">
+                  {formatCurrency(product.calculatedCosts.suggestedPrice)}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 flex gap-2">
+              <Button variant="outline" size="sm" className="text-xs">
+                Aplicar Preço Sugerido ao Produto
+              </Button>
+              <p className="text-[10px] text-muted-foreground flex items-center italic">
+                * Os custos de filamento são baseados na média de preço das tuas
+                bobines atuais.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

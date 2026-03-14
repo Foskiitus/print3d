@@ -36,7 +36,8 @@ async function main() {
     data: {
       brand: "Bambu Lab",
       material: "PLA",
-      color: "Black",
+      colorName: "Black",
+      colorHex: "#000000",
     },
   });
 
@@ -44,7 +45,8 @@ async function main() {
     data: {
       brand: "Bambu Lab",
       material: "PLA",
-      color: "White",
+      colorName: "White",
+      colorHex: "#ffffff",
     },
   });
 
@@ -52,7 +54,8 @@ async function main() {
     data: {
       brand: "Bambu Lab",
       material: "PLA",
-      color: "Red",
+      colorName: "Red",
+      colorHex: "#ff000f",
     },
   });
 
