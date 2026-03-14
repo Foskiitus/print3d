@@ -41,6 +41,7 @@ async function getDashboardData() {
   const totalProfit = totalRevenue - totalRealCost;
 
   const totalStock = products.reduce((s, p) => s + 0, 0); // Ainda não temos stock real, então deixamos 0
+
   const monthlySalesVolume = monthlySales.reduce((s, x) => s + x.quantity, 0);
   const monthlyRevenue = monthlySales.reduce(
     (s, x) => s + x.salePrice * x.quantity,

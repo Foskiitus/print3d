@@ -1,10 +1,10 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"] 
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
-  provider  = "postgresql"
+  provider = "postgresql"
 }
 
 //////////////////////////////////////////////////////////
@@ -31,8 +31,8 @@ model FilamentType {
   colorName String // Para guardar "11101 Preto"
   colorHex  String // Para guardar "#000000"
 
-  spools    FilamentSpool[]
-  usages    ProductFilamentUsage[]
+  spools FilamentSpool[]
+  usages ProductFilamentUsage[]
 
   createdAt DateTime @default(now())
 }
@@ -42,17 +42,17 @@ model FilamentType {
 //////////////////////////////////////////////////////////
 
 model FilamentSpool {
-  id             Int      @id @default(autoincrement())
+  id             Int @id @default(autoincrement())
   filamentTypeId Int
 
-  spoolWeight    Float
-  remaining      Float
-  price          Float
-  purchaseDate   DateTime
+  spoolWeight  Float
+  remaining    Float
+  price        Float
+  purchaseDate DateTime
 
-  filamentType   FilamentType @relation(fields: [filamentTypeId], references: [id])
+  filamentType FilamentType @relation(fields: [filamentTypeId], references: [id])
 
-  createdAt      DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 //////////////////////////////////////////////////////////
@@ -60,12 +60,14 @@ model FilamentSpool {
 //////////////////////////////////////////////////////////
 
 model Printer {
-  id           Int     @id @default(autoincrement())
-  name         String
-  hourlyCost   Float   // desvalorização
-  powerWatts   Int     // consumo energético
+  id         Int    @id @default(autoincrement())
+  name       String
+  hourlyCost Float // desvalorização
+  powerWatts Int // consumo energético
 
-  productions  ProductionLog[]
+  products Product[]
+
+  productions ProductionLog[]
 }
 
 //////////////////////////////////////////////////////////
@@ -73,8 +75,8 @@ model Printer {
 //////////////////////////////////////////////////////////
 
 model Category {
-  id       Int      @id @default(autoincrement())
-  name     String
+  id   Int    @id @default(autoincrement())
+  name String
 
   products Product[]
 }
@@ -84,31 +86,34 @@ model Category {
 //////////////////////////////////////////////////////////
 
 model Product {
-  id              Int      @id @default(autoincrement())
-  name            String
-  description     String?
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String?
 
-  categoryId      Int?
+  categoryId Int?
 
-  productionTime  Int?     // minutos
+  productionTime Int? // minutos
 
-  margin          Float    @default(0.3)
+  margin Float @default(0.3)
 
-  imageUrl        String?
+  imageUrl String?
 
-  fileUrl          String?  // NOVO: Guarda o caminho do ficheiro .3mf
+  fileUrl String? // NOVO: Guarda o caminho do ficheiro .3mf
 
-  category        Category? @relation(fields: [categoryId], references: [id])
+  printerId Int // Guarda o ID da impressora padrão
+  printer   Printer @relation(fields: [printerId], references: [id])
 
-  filamentUsage   ProductFilamentUsage[]
-  extras          ProductExtra[]
-  printProfiles   PrintProfile[]
+  category Category? @relation(fields: [categoryId], references: [id])
 
-  productionLogs  ProductionLog[]
-  sales           Sale[]
+  filamentUsage ProductFilamentUsage[]
+  extras        ProductExtra[]
+  printProfiles PrintProfile[]
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  productionLogs ProductionLog[]
+  sales          Sale[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 //////////////////////////////////////////////////////////
@@ -116,15 +121,15 @@ model Product {
 //////////////////////////////////////////////////////////
 
 model ProductFilamentUsage {
-  id             Int @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   productId      Int
   filamentTypeId Int
 
-  weight         Float
+  weight Float
 
-  product        Product      @relation(fields: [productId], references: [id])
-  filamentType   FilamentType @relation(fields: [filamentTypeId], references: [id])
+  product      Product      @relation(fields: [productId], references: [id])
+  filamentType FilamentType @relation(fields: [filamentTypeId], references: [id])
 }
 
 //////////////////////////////////////////////////////////
@@ -132,12 +137,12 @@ model ProductFilamentUsage {
 //////////////////////////////////////////////////////////
 
 model Extra {
-  id      Int    @id @default(autoincrement())
-  name    String
-  price   Float
-  unit    String?
+  id    Int     @id @default(autoincrement())
+  name  String
+  price Float
+  unit  String?
 
-  usages  ProductExtra[]
+  usages ProductExtra[]
 }
 
 //////////////////////////////////////////////////////////
@@ -145,15 +150,15 @@ model Extra {
 //////////////////////////////////////////////////////////
 
 model ProductExtra {
-  id        Int @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   productId Int
   extraId   Int
 
-  quantity  Float
+  quantity Float
 
-  product   Product @relation(fields: [productId], references: [id])
-  extra     Extra   @relation(fields: [extraId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+  extra   Extra   @relation(fields: [extraId], references: [id])
 }
 
 //////////////////////////////////////////////////////////
@@ -161,21 +166,21 @@ model ProductExtra {
 //////////////////////////////////////////////////////////
 
 model PrintProfile {
-  id          Int    @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  productId   Int
+  productId Int
 
-  name        String
-  filePath    String
+  name     String
+  filePath String
 
-  slicer      String?
+  slicer String?
 
-  printTime   Int?   // minutos
+  printTime    Int? // minutos
   filamentUsed Float?
 
-  product     Product @relation(fields: [productId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 //////////////////////////////////////////////////////////
@@ -183,21 +188,23 @@ model PrintProfile {
 //////////////////////////////////////////////////////////
 
 model ProductionLog {
-  id        Int @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   productId Int
   printerId Int
 
-  quantity  Int
+  quantity Int
 
-  filamentCost     Float?
-  electricityCost  Float?
-  printerCost      Float?
-  extrasCost       Float?
+  notes String? // Ex: "A correia falhou na 3ª peça"
 
-  totalCost        Float?
+  filamentCost    Float?
+  electricityCost Float?
+  printerCost     Float?
+  extrasCost      Float?
 
-  date             DateTime @default(now())
+  totalCost Float?
+
+  date DateTime @default(now())
 
   product Product @relation(fields: [productId], references: [id])
   printer Printer @relation(fields: [printerId], references: [id])
@@ -208,16 +215,16 @@ model ProductionLog {
 //////////////////////////////////////////////////////////
 
 model Sale {
-  id           Int @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  productId    Int
+  productId Int
 
   customerName String?
 
-  quantity     Int
-  salePrice    Float
+  quantity  Int
+  salePrice Float
 
-  date         DateTime @default(now())
+  date DateTime @default(now())
 
   product Product @relation(fields: [productId], references: [id])
 }
