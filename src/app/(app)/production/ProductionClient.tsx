@@ -6,16 +6,26 @@ import { AddProductionDialog } from "@/components/forms/AddProductionDialog";
 import { formatDate } from "@/lib/utils";
 import { Product, ProductionLog } from "@prisma/client";
 
-type LogWithProduct = ProductionLog & { product: Product };
+// 1. Criar versões "Serializadas" dos tipos do Prisma
+// (Substitui os campos de Data por string para o Next.js não reclamar)
+export type SerializedProduct = Omit<Product, "createdAt" | "updatedAt"> & {
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SerializedLog = Omit<ProductionLog, "date"> & {
+  date: string;
+  product: SerializedProduct;
+};
 
 export function ProductionClient({
   initialLogs,
   products,
 }: {
-  initialLogs: LogWithProduct[];
-  products: Product[];
+  initialLogs: SerializedLog[];
+  products: SerializedProduct[];
 }) {
-  const [logs, setLogs] = useState<LogWithProduct[]>(initialLogs);
+  const [logs, setLogs] = useState<SerializedLog[]>(initialLogs);
 
   const refresh = useCallback(() => {
     fetch("/api/production")
@@ -23,16 +33,19 @@ export function ProductionClient({
       .then(setLogs);
   }, []);
 
+  // O 'new Date(l.date)' continua a funcionar perfeitamente com a string!
   const totalThisMonth = logs
     .filter((l) => new Date(l.date).getMonth() === new Date().getMonth())
     .reduce((s, l) => s + l.quantity, 0);
 
   return (
-    <>
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {totalThisMonth} unidades produzidas este mês
+          <strong className="text-foreground">{totalThisMonth}</strong> unidades
+          produzidas este mês
         </p>
+        {/* Passamos os produtos serializados para o Dialog */}
         <AddProductionDialog products={products} onAdded={refresh} />
       </div>
 
@@ -41,7 +54,7 @@ export function ProductionClient({
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border">
+                <tr className="border-b border-border bg-muted/30">
                   <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     Data
                   </th>
@@ -84,7 +97,7 @@ export function ProductionClient({
                       colSpan={4}
                       className="px-4 py-8 text-center text-muted-foreground text-sm"
                     >
-                      Nenhuma produção registrada ainda.
+                      Nenhuma produção registada ainda.
                     </td>
                   </tr>
                 )}
@@ -93,6 +106,6 @@ export function ProductionClient({
           </div>
         </CardContent>
       </Card>
-    </>
+    </div>
   );
 }
