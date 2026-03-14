@@ -17,19 +17,17 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, hourlyCost, electricityW } = await req.json();
+    const { name, hourlyCost, electricity } = await req.json();
 
-    if (!name)
-      return NextResponse.json({ error: "Nome obrigatório" }, { status: 400 });
-
-    const printer = await prisma.printer.create({
+    const newPrinter = await prisma.printer.create({
       data: {
-        name: name.trim(),
-        hourlyCost: Number(hourlyCost) || 0,
-        electricityW: Number(electricityW) || 0,
+        name,
+        hourlyCost: Number(hourlyCost),
+        powerWatts: Number(electricity),
       },
     });
-    return NextResponse.json(printer, { status: 201 });
+
+    return NextResponse.json(newPrinter, { status: 201 });
   } catch (error) {
     return NextResponse.json(
       { error: "Erro ao criar impressora" },

@@ -14,6 +14,7 @@ import {
   Users,
   Droplets,
   Settings,
+  Printer,
 } from "lucide-react";
 import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
@@ -25,6 +26,7 @@ const navItems = [
   { label: "Filamentos", icon: Droplets, href: "/filaments" },
   { label: "Produção", icon: Factory, href: "/production" },
   { label: "Vendas", icon: ShoppingCart, href: "/sales-ledger" },
+  { label: "Impressoras", icon: Printer, href: "/printers" },
   { label: "Configurações", icon: Settings, href: "/settings" },
 ];
 
