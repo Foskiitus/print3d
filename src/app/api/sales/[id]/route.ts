@@ -20,7 +20,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     }
 
-    const { customerName, quantity, notes } = await req.json();
+    const { customerName, customerId, quantity, notes } = await req.json();
 
     // Verificar stock se quantidade aumentou
     if (quantity && quantity !== existing.quantity) {
@@ -54,9 +54,14 @@ export async function PATCH(
     const sale = await prisma.sale.update({
       where: { id },
       data: {
-        customerName: customerName ?? null,
+        customerId:
+          customerId !== undefined ? customerId || null : existing.customerId,
+        customerName:
+          customerName !== undefined
+            ? customerName || null
+            : existing.customerName,
         quantity: quantity ? Number(quantity) : existing.quantity,
-        notes: notes ?? null,
+        notes: notes !== undefined ? notes || null : existing.notes,
       },
       include: { product: true },
     });

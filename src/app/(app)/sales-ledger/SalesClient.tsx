@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,13 @@ import { NewSaleDialog } from "@/components/forms/NewSaleDialog";
 import { formatCurrency } from "@/lib/utils";
 import { ArrowUpDown, Search, Trash2, Pencil, Check, X } from "lucide-react";
 import { toast } from "@/components/ui/toaster";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type SortKey = "date" | "salePrice" | "customerName" | "product";
 type SortDir = "asc" | "desc";
@@ -28,6 +35,7 @@ export function SalesClient({
   products: any[];
 }) {
   const [sales, setSales] = useState(initialSales);
+  const [customers, setCustomers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -35,7 +43,7 @@ export function SalesClient({
   // Estado de edição inline
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
-    customerName: "",
+    customerId: "",
     quantity: "",
     notes: "",
   });
@@ -47,10 +55,17 @@ export function SalesClient({
       .then(setSales);
   }, []);
 
+  useEffect(() => {
+    fetch("/api/customers")
+      .then((r) => r.json())
+      .then(setCustomers)
+      .catch(() => {});
+  }, []);
+
   const startEdit = (sale: any) => {
     setEditingId(sale.id);
     setEditForm({
-      customerName: sale.customerName ?? "",
+      customerId: sale.customerId ?? "none",
       quantity: String(sale.quantity),
       notes: sale.notes ?? "",
     });
@@ -58,7 +73,7 @@ export function SalesClient({
 
   const cancelEdit = () => {
     setEditingId(null);
-    setEditForm({ customerName: "", quantity: "", notes: "" });
+    setEditForm({ customerId: "", quantity: "", notes: "" });
   };
 
   const handleSave = async (sale: any) => {
@@ -68,7 +83,8 @@ export function SalesClient({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          customerName: editForm.customerName.trim() || null,
+          customerId:
+            editForm.customerId === "none" ? null : editForm.customerId || null,
           quantity: Number(editForm.quantity),
           notes: editForm.notes.trim() || null,
         }),
@@ -263,23 +279,32 @@ export function SalesClient({
                         {sale.product.name}
                       </td>
 
-                      {/* Cliente — editável */}
+                      {/* Cliente — dropdown editável */}
                       <td className="px-4 py-3">
                         {isEditing ? (
-                          <Input
-                            value={editForm.customerName}
-                            onChange={(e) =>
-                              setEditForm({
-                                ...editForm,
-                                customerName: e.target.value,
-                              })
+                          <Select
+                            value={editForm.customerId}
+                            onValueChange={(v) =>
+                              setEditForm({ ...editForm, customerId: v })
                             }
-                            placeholder="Cliente..."
-                            className="h-7 text-xs min-w-[120px]"
-                          />
+                          >
+                            <SelectTrigger className="h-7 text-xs min-w-[140px]">
+                              <SelectValue placeholder="Selecionar..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">
+                                — Sem cliente —
+                              </SelectItem>
+                              {customers.map((c) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                  {c.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         ) : (
                           <span className="text-muted-foreground">
-                            {sale.customerName || "—"}
+                            {sale.customer?.name ?? sale.customerName ?? "—"}
                           </span>
                         )}
                       </td>

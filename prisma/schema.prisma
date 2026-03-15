@@ -19,6 +19,7 @@ model User {
   createdAt DateTime @default(now())
 
   // Dados pertencentes ao utilizador
+  customers Customer[]
   printers       Printer[]
   filamentTypes  FilamentType[]
   filamentSpools FilamentSpool[]
@@ -261,9 +262,32 @@ model Sale {
   salePrice    Float
   notes        String?   // ← adicionar
   date         DateTime @default(now())
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
+}
+
+
+//////////////////////////////////////////////////////////
+// CUSTOMERS (para vendas, não necessariamente relacionados a produções)
+//////////////////////////////////////////////////////////
+
+
+model Customer {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  nif       String?
+  notes     String?
+  createdAt DateTime @default(now())
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sales Sale[]
 }
 
 //////////////////////////////////////////////////////////

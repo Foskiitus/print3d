@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -20,30 +20,41 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, UserPlus } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 export function NewSaleDialog({
   products,
   onCreated,
 }: {
-  products: any[]; // inclui campo stock
+  products: any[];
   onCreated: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [customers, setCustomers] = useState<any[]>([]);
+
   const [productId, setProductId] = useState("");
-  const [quantity, setQuantity] = useState(""); // ✅ vazio por defeito
+  const [quantity, setQuantity] = useState("");
   const [salePrice, setSalePrice] = useState("");
-  const [customerName, setCustomerName] = useState("");
+  const [customerId, setCustomerId] = useState("");
   const [notes, setNotes] = useState("");
 
   const selectedProduct = products.find((p) => p.id === productId);
   const availableStock = selectedProduct?.stock ?? 0;
 
+  // Carregar clientes quando o dialog abre
+  useEffect(() => {
+    if (!open) return;
+    fetch("/api/customers")
+      .then((r) => r.json())
+      .then(setCustomers)
+      .catch(() => {});
+  }, [open]);
+
   const handleProductChange = (id: string) => {
     setProductId(id);
-    setQuantity(""); // ✅ limpar quantidade ao mudar produto
+    setQuantity("");
   };
 
   const total =
@@ -58,7 +69,7 @@ export function NewSaleDialog({
     setProductId("");
     setQuantity("");
     setSalePrice("");
-    setCustomerName("");
+    setCustomerId("");
     setNotes("");
   };
 
@@ -75,7 +86,7 @@ export function NewSaleDialog({
           productId,
           quantity: Number(quantity),
           salePrice: Number(salePrice),
-          customerName: customerName.trim() || null,
+          customerId: customerId || null,
           notes: notes.trim() || null,
         }),
       });
@@ -83,9 +94,10 @@ export function NewSaleDialog({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro ao registar venda");
 
+      const customerName = customers.find((c) => c.id === customerId)?.name;
       toast({
         title: "Venda registada!",
-        description: `${quantity}× ${selectedProduct?.name} — ${formatCurrency(Number(salePrice) * Number(quantity))}`,
+        description: `${quantity}× ${selectedProduct?.name}${customerName ? ` — ${customerName}` : ""} — ${formatCurrency(Number(salePrice) * Number(quantity))}`,
       });
 
       reset();
@@ -121,7 +133,7 @@ export function NewSaleDialog({
           <DialogTitle>Registar Venda</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-          {/* Produto com stock */}
+          {/* Produto */}
           <div className="space-y-1.5">
             <Label>Produto</Label>
             <Select value={productId} onValueChange={handleProductChange}>
@@ -149,7 +161,6 @@ export function NewSaleDialog({
                 ))}
               </SelectContent>
             </Select>
-            {/* Stock info abaixo do select */}
             {selectedProduct && (
               <p
                 className={`text-[10px] ${
@@ -168,7 +179,6 @@ export function NewSaleDialog({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            {/* Quantidade */}
             <div className="space-y-1.5">
               <Label htmlFor="quantity">Quantidade</Label>
               <Input
@@ -184,12 +194,10 @@ export function NewSaleDialog({
               />
               {quantityExceedsStock && (
                 <p className="text-[10px] text-destructive">
-                  Excede o stock disponível ({availableStock} un.)
+                  Excede o stock ({availableStock} un.)
                 </p>
               )}
             </div>
-
-            {/* Preço por unidade */}
             <div className="space-y-1.5">
               <Label htmlFor="salePrice">Preço por unidade (€)</Label>
               <Input
@@ -213,20 +221,50 @@ export function NewSaleDialog({
             </div>
           )}
 
-          {/* Cliente */}
+          {/* Cliente do sistema */}
           <div className="space-y-1.5">
-            <Label htmlFor="customer">
+            <Label>
               Cliente{" "}
               <span className="text-muted-foreground font-normal">
                 (opcional)
               </span>
             </Label>
-            <Input
-              id="customer"
-              placeholder="Nome do cliente..."
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-            />
+            <Select value={customerId} onValueChange={setCustomerId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecionar cliente..." />
+              </SelectTrigger>
+              <SelectContent>
+                {customers.length === 0 ? (
+                  <div className="px-3 py-2 text-xs text-muted-foreground">
+                    Nenhum cliente registado
+                  </div>
+                ) : (
+                  customers.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      <div className="flex flex-col">
+                        <span>{c.name}</span>
+                        {c.email && (
+                          <span className="text-[10px] text-muted-foreground">
+                            {c.email}
+                          </span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))
+                )}
+                {/* Link para criar novo cliente */}
+                <div className="px-2 py-1.5 border-t border-border mt-1">
+                  <a
+                    href="/customers"
+                    target="_blank"
+                    className="flex items-center gap-2 text-xs text-primary hover:text-primary/80 transition-colors py-1"
+                  >
+                    <UserPlus size={12} />
+                    Gerir clientes
+                  </a>
+                </div>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Notas */}

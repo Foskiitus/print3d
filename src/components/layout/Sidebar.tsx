@@ -27,6 +27,7 @@ const navItems = [
   { label: "Produção", icon: Factory, href: "/production" },
   { label: "Vendas", icon: ShoppingCart, href: "/sales-ledger" },
   { label: "Impressoras", icon: Printer, href: "/printers" },
+  { label: "Clientes", icon: Users, href: "/customers" },
   { label: "Configurações", icon: Settings, href: "/settings" },
 ];
 

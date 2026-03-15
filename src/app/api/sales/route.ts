@@ -14,7 +14,7 @@ export async function GET() {
   const [sales, products, productionCosts] = await Promise.all([
     prisma.sale.findMany({
       where: { userId },
-      include: { product: true },
+      include: { product: true, customer: true },
       orderBy: { date: "desc" },
     }),
     prisma.product.findMany({ where: { userId } }),
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { productId, quantity, salePrice, customerName, notes } =
+    const { productId, quantity, salePrice, customerId, notes } =
       await req.json();
 
     if (!productId || !quantity || salePrice === undefined) {
@@ -104,11 +104,11 @@ export async function POST(req: Request) {
         productId,
         quantity: Number(quantity),
         salePrice: Number(salePrice),
-        customerName: customerName || null,
+        customerId: customerId || null,
         notes: notes || null,
         date: new Date(),
       },
-      include: { product: true },
+      include: { product: true, customer: true },
     });
 
     return NextResponse.json(
