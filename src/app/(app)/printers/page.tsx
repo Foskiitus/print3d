@@ -1,3 +1,5 @@
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PrintersClient } from "./PrintersClient";
 
@@ -7,12 +9,24 @@ export const metadata = {
 };
 
 export default async function PrintersPage() {
-  // Procuramos todas as impressoras registadas no sistema
-  const printers = await prisma.printer.findMany({
-    orderBy: {
-      name: "asc",
-    },
-  });
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
+  const isAdmin = (session.user as any).role === "admin";
+
+  const [printers, presets] = await Promise.all([
+    prisma.printer.findMany({
+      where: { userId: session.user.id },
+      include: { preset: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.printerPreset.findMany({
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -27,12 +41,14 @@ export default async function PrintersPage() {
       </div>
 
       <div className="border-t border-muted pt-6">
-        {/* Passamos as impressoras para o componente Client que lida com a interatividade */}
-        <PrintersClient initialPrinters={printers} />
+        <PrintersClient
+          initialPrinters={printers as any}
+          presets={presets as any}
+          isAdmin={isAdmin}
+        />
       </div>
 
-      {/* Dica de Utilização para o utilizador */}
-      <div className="bg-primary/5 border border-primary/10 rounded-lg p-4 mt-8">
+      <div className="bg-primary/5 border border-primary/10 rounded-lg p-4">
         <h4 className="text-sm font-semibold text-primary mb-1">
           Como funcionam os custos?
         </h4>

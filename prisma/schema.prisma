@@ -89,13 +89,15 @@ model SpoolAdjustment {
 //////////////////////////////////////////////////////////
 
 model Printer {
-  id         String @id @default(cuid())
+  id         String  @id @default(cuid())
   userId     String
+  presetId   String?                        // ← adicionar
   name       String
   hourlyCost Float
   powerWatts Int
 
-  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preset  PrinterPreset? @relation(fields: [presetId], references: [id])  // ← adicionar
   products    Product[]
   productions ProductionLog[]
 }
@@ -160,11 +162,12 @@ model ProductFilamentUsage {
 //////////////////////////////////////////////////////////
 
 model Extra {
-  id     String  @id @default(cuid())
-  userId String
-  name   String
-  price  Float
-  unit   String?
+  id          String  @id @default(cuid())
+  userId      String
+  name        String
+  description String?   // ← adicionar
+  price       Float
+  unit        String?
 
   user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   usages ProductExtra[]
@@ -201,6 +204,21 @@ model PrintProfile {
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+//////////////////////////////////////////////////////////
+// PRINTER PRESETS (para guardar configurações de impressoras sem criar uma impressora real)
+//////////////////////////////////////////////////////////
+
+model PrinterPreset {
+  id         String   @id @default(cuid())
+  name       String
+  powerWatts Int
+  hourlyCost Float
+  imageUrl   String?
+  createdAt  DateTime @default(now())
+
+  printers Printer[]
 }
 
 //////////////////////////////////////////////////////////

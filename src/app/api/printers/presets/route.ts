@@ -2,31 +2,34 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-// GET /api/printers
+// GET /api/printers/presets
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
 
-  const printers = await prisma.printer.findMany({
-    where: { userId: session.user.id },
-    include: { preset: true },
+  const presets = await prisma.printerPreset.findMany({
     orderBy: { name: "asc" },
   });
 
-  return NextResponse.json(printers);
+  return NextResponse.json(presets);
 }
 
-// POST /api/printers
+// POST /api/printers/presets — apenas admin
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
 
+  // ✅ Verificar role admin
+  if ((session.user as any).role !== "admin") {
+    return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  }
+
   try {
-    const { name, hourlyCost, powerWatts, presetId } = await req.json();
+    const { name, hourlyCost, powerWatts } = await req.json();
 
     if (!name || hourlyCost === undefined || powerWatts === undefined) {
       return NextResponse.json(
@@ -35,22 +38,19 @@ export async function POST(req: Request) {
       );
     }
 
-    const printer = await prisma.printer.create({
+    const preset = await prisma.printerPreset.create({
       data: {
-        userId: session.user.id,
         name,
         hourlyCost: Number(hourlyCost),
         powerWatts: Number(powerWatts),
-        presetId: presetId ?? null,
       },
-      include: { preset: true },
     });
 
-    return NextResponse.json(printer, { status: 201 });
+    return NextResponse.json(preset, { status: 201 });
   } catch (error: any) {
-    console.error("[POST /api/printers]", error);
+    console.error("[POST /api/printers/presets]", error);
     return NextResponse.json(
-      { error: "Falha ao criar impressora", details: error.message },
+      { error: "Falha ao criar preset", details: error.message },
       { status: 500 },
     );
   }

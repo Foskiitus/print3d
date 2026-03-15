@@ -1,35 +1,50 @@
-import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
 
+// DELETE /api/printers/[id]
 export async function DELETE(
-  req: NextRequest,
+  _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  try {
-    const { id } = await params;
-    const printerId = Number(id);
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
 
-    // Verificar se a impressora já foi usada em algum log de produção
-    const isUsed = await prisma.productionLog.findFirst({
-      where: { printerId: printerId },
+  const { id } = await params;
+
+  try {
+    const existing = await prisma.printer.findUnique({
+      where: { id },
+      include: { _count: { select: { productions: true } } },
     });
 
-    if (isUsed) {
+    if (!existing) {
+      return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+    }
+
+    if (existing.userId !== session.user.id) {
+      return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+    }
+
+    if (existing._count.productions > 0) {
       return NextResponse.json(
         {
-          error:
-            "Não é possível eliminar uma impressora que já realizou trabalhos de produção.",
+          error: `Esta impressora tem ${existing._count.productions} produção(ões) registada(s) e não pode ser eliminada.`,
         },
-        { status: 400 },
+        { status: 409 },
       );
     }
 
-    await prisma.printer.delete({
-      where: { id: printerId },
-    });
+    await prisma.printer.delete({ where: { id } });
 
-    return NextResponse.json({ message: "Impressora removida com sucesso" });
+    return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[DELETE /api/printers/[id]]", error);
+    return NextResponse.json(
+      { error: "Erro ao eliminar", details: error.message },
+      { status: 500 },
+    );
   }
 }
