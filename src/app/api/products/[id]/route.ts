@@ -1,122 +1,170 @@
-import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { ELECTRICITY_KWH_PRICE } from "@/lib/utils";
+import { NextResponse } from "next/server";
 
-// GET: Procura um produto específico e calcula os custos dinâmicos
+// GET /api/products/[id]
 export async function GET(
-  req: NextRequest,
+  _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  try {
-    const { id } = await params;
-    const productId = Number(id);
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
 
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-      include: {
-        category: true,
-        // No teu schema o nome é 'filamentUsage' e 'extras'
-        filamentUsage: {
-          include: {
-            filamentType: {
-              include: {
-                spools: {
-                  where: { remaining: { gt: 0 } }, // Apenas rolos com filamento
-                },
-              },
-            },
-          },
-        },
-        extras: {
-          include: {
-            extra: true,
-          },
-        },
+  const { id } = await params;
+
+  const product = await prisma.product.findUnique({
+    where: { id },
+    include: {
+      category: true,
+      printer: true,
+      filamentUsage: { include: { filamentType: true } },
+      extras: { include: { extra: true } },
+      printProfiles: true,
+      productionLogs: {
+        include: { printer: true },
+        orderBy: { date: "desc" },
+        take: 10,
       },
-    });
+      _count: { select: { productionLogs: true, sales: true } },
+    },
+  });
 
-    if (!product) {
-      return NextResponse.json(
-        { error: "Produto não encontrado" },
-        { status: 404 },
-      );
+  if (!product || product.userId !== session.user.id) {
+    return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+  }
+
+  return NextResponse.json(product);
+}
+
+// PATCH /api/products/[id]
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
+
+  const { id } = await params;
+
+  try {
+    const existing = await prisma.product.findUnique({ where: { id } });
+    if (!existing || existing.userId !== session.user.id) {
+      return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     }
 
-    // --- CÁLCULO DINÂMICO DE CUSTOS ---
+    const {
+      name,
+      description,
+      categoryId,
+      productionTime,
+      margin,
+      imageUrl,
+      fileUrl,
+      filamentUsages,
+      extraUsages,
+    } = await req.json();
 
-    // 1. Custo de Filamento (Média ponderada do que tens em stock)
-    let totalFilamentCost = 0;
-    product.filamentUsage.forEach((usage) => {
-      const spools = usage.filamentType.spools;
-      if (spools.length > 0) {
-        // Preço médio por grama das bobines deste tipo de material
-        const avgPricePerGram =
-          spools.reduce((acc, s) => acc + s.price / s.spoolWeight, 0) /
-          spools.length;
-        totalFilamentCost += usage.weight * avgPricePerGram;
-      }
+    // Atualizar produto + substituir filamentos e extras numa transação
+    const product = await prisma.$transaction(async (tx) => {
+      // Apagar filamentos e extras antigos
+      await tx.productFilamentUsage.deleteMany({ where: { productId: id } });
+      await tx.productExtra.deleteMany({ where: { productId: id } });
+
+      // Atualizar produto com novos dados
+      return tx.product.update({
+        where: { id },
+        data: {
+          name: name.trim(),
+          description: description || null,
+          categoryId: categoryId || null,
+          productionTime: productionTime || null,
+          margin: margin ?? existing.margin,
+          imageUrl: imageUrl ?? null,
+          fileUrl: fileUrl ?? null,
+          filamentUsage: {
+            create: filamentUsages.map((f: any) => ({
+              filamentTypeId: f.filamentTypeId,
+              weight: f.weight,
+            })),
+          },
+          extras: {
+            create: (extraUsages || []).map((e: any) => ({
+              extraId: e.extraId,
+              quantity: e.quantity,
+            })),
+          },
+        },
+        include: {
+          category: true,
+          printer: true,
+          filamentUsage: { include: { filamentType: true } },
+          extras: { include: { extra: true } },
+          printProfiles: true,
+          productionLogs: {
+            include: { printer: true },
+            orderBy: { date: "desc" },
+            take: 10,
+          },
+          _count: { select: { productionLogs: true, sales: true } },
+        },
+      });
     });
 
-    // 2. Custo de Extras
-    const totalExtrasCost = product.extras.reduce(
-      (acc, item) => acc + item.extra.price * item.quantity,
-      0,
-    );
-
-    // 3. Custo de Máquina (Baseado no tempo extraído do .3mf ou manual)
-    // Vamos buscar o custo da primeira impressora como referência padrão
-    const printers = await prisma.printer.findMany();
-    const printerRef = printers[0];
-    const hourlyCost = printerRef?.hourlyCost || 0;
-    const electricityCostPerHour =
-      ((printerRef?.powerWatts || 0) / 1000) * ELECTRICITY_KWH_PRICE;
-
-    const hours = (product.productionTime || 0) / 60;
-    const machineCost = hours * (hourlyCost + electricityCostPerHour);
-
-    // 4. Totais
-    const totalProductionCost =
-      totalFilamentCost + totalExtrasCost + machineCost;
-    const suggestedPrice = totalProductionCost * (1 + (product.margin || 0.3));
-
-    return NextResponse.json({
-      ...product,
-      calculatedCosts: {
-        filament: totalFilamentCost,
-        extras: totalExtrasCost,
-        machine: machineCost,
-        total: totalProductionCost,
-        suggestedPrice: suggestedPrice,
-      },
-    });
+    return NextResponse.json(product);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[PATCH /api/products/[id]]", error);
+    return NextResponse.json(
+      { error: "Erro ao atualizar produto", details: error.message },
+      { status: 500 },
+    );
   }
 }
 
-// POST/PATCH: Atualiza os dados básicos do produto (Preço, Margem, Nome)
-export async function POST(
-  req: NextRequest,
+// DELETE /api/products/[id]
+export async function DELETE(
+  _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  try {
-    const { id } = await params;
-    const body = await req.json();
-    const { name, recommendedPrice, margin, productionTime, categoryId } = body;
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
 
-    const updatedProduct = await prisma.product.update({
-      where: { id: Number(id) },
-      data: {
-        name: name !== undefined ? name : undefined,
-        margin: margin !== undefined ? Number(margin) : undefined,
-        productionTime:
-          productionTime !== undefined ? Number(productionTime) : undefined,
-        categoryId: categoryId !== undefined ? Number(categoryId) : undefined,
+  const { id } = await params;
+
+  try {
+    const existing = await prisma.product.findUnique({
+      where: { id },
+      include: {
+        _count: { select: { productionLogs: true, sales: true } },
       },
     });
 
-    return NextResponse.json(updatedProduct);
+    if (!existing || existing.userId !== session.user.id) {
+      return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+    }
+
+    if (existing._count.productionLogs > 0 || existing._count.sales > 0) {
+      return NextResponse.json(
+        {
+          error: `Este produto tem ${existing._count.productionLogs} produção(ões) e ${existing._count.sales} venda(s) registadas e não pode ser eliminado.`,
+        },
+        { status: 409 },
+      );
+    }
+
+    await prisma.product.delete({ where: { id } });
+
+    return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[DELETE /api/products/[id]]", error);
+    return NextResponse.json(
+      { error: "Erro ao eliminar", details: error.message },
+      { status: 500 },
+    );
   }
 }

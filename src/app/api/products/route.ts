@@ -1,57 +1,98 @@
-import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { put } from "@vercel/blob"; // Importamos o Vercel Blob
+import { NextResponse } from "next/server";
 
+// GET /api/products
+export async function GET() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
+
+  const products = await prisma.product.findMany({
+    where: { userId: session.user.id },
+    include: {
+      category: true,
+      filamentUsage: { include: { filamentType: true } },
+      extras: { include: { extra: true } },
+      _count: { select: { productionLogs: true, sales: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return NextResponse.json(products);
+}
+
+// POST /api/products
 export async function POST(req: Request) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
+
   try {
-    const formData = await req.formData();
+    const {
+      name,
+      description,
+      categoryId,
+      productionTime,
+      margin,
+      imageUrl,
+      fileUrl,
+      filamentUsages,
+      extraUsages,
+    } = await req.json();
 
-    const name = formData.get("name") as string;
-    const categoryId = formData.get("categoryId");
-    const printerId = formData.get("printerId");
-    const printTimeMinutes = formData.get("printTimeMinutes");
-    const baseCost = formData.get("baseCost");
-    const recommendedPrice = formData.get("recommendedPrice");
-    const usagesRaw = formData.get("usages") as string;
-    const file = formData.get("file") as File | null;
-
-    let fileUrl = null;
-
-    // MAGIA DO VERCEL BLOB AQUI
-    if (file) {
-      // O 'put' faz o upload direto para a cloud da Vercel
-      // O access: 'public' significa que o ficheiro pode ser descarregado
-      const blob = await put(`produtos/${file.name}`, file, {
-        access: "public",
-      });
-
-      fileUrl = blob.url; // Guardamos o URL permanente que a Vercel nos dá
+    if (!name?.trim()) {
+      return NextResponse.json(
+        { error: "Nome é obrigatório" },
+        { status: 400 },
+      );
     }
 
-    // Gravamos na base de dados
+    if (!filamentUsages || filamentUsages.length === 0) {
+      return NextResponse.json(
+        { error: "Pelo menos um filamento é obrigatório" },
+        { status: 400 },
+      );
+    }
+
     const product = await prisma.product.create({
       data: {
-        name,
-        categoryId: categoryId ? Number(categoryId) : null,
-        printerId: Number(printerId),
-        productionTime: Number(printTimeMinutes), // era printTime
-        fileUrl: fileUrl,
-        // remove basePrice e suggestedPrice — não existem no schema
-
+        userId: session.user.id,
+        name: name.trim(),
+        description: description || null,
+        categoryId: categoryId || null,
+        productionTime: productionTime || null,
+        margin: margin ?? 0.3,
+        imageUrl: imageUrl || null,
+        fileUrl: fileUrl || null,
         filamentUsage: {
-          create: JSON.parse(usagesRaw).map((u: any) => ({
-            filamentTypeId: Number(u.filamentTypeId),
-            weight: Number(u.weight),
+          create: filamentUsages.map((f: any) => ({
+            filamentTypeId: f.filamentTypeId,
+            weight: f.weight,
           })),
         },
+        extras: {
+          create: (extraUsages || []).map((e: any) => ({
+            extraId: e.extraId,
+            quantity: e.quantity,
+          })),
+        },
+      },
+      include: {
+        category: true,
+        filamentUsage: { include: { filamentType: true } },
+        extras: { include: { extra: true } },
+        _count: { select: { productionLogs: true, sales: true } },
       },
     });
 
     return NextResponse.json(product, { status: 201 });
   } catch (error: any) {
-    console.error("Erro ao guardar produto:", error);
+    console.error("[POST /api/products]", error);
     return NextResponse.json(
-      { error: "Erro interno no servidor" },
+      { error: "Falha ao criar produto", details: error.message },
       { status: 500 },
     );
   }

@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-  { label: "Inventário", icon: Package, href: "/inventory" },
+  { label: "Inventário", icon: Package, href: "/products" },
   { label: "Filamentos", icon: Droplets, href: "/filaments" },
   { label: "Produção", icon: Factory, href: "/production" },
   { label: "Vendas", icon: ShoppingCart, href: "/sales-ledger" },

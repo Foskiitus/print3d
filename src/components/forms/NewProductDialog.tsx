@@ -8,6 +8,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -15,418 +19,622 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
-import {
-  Plus,
-  FileUp,
-  Loader2,
-  Clock,
-  Weight,
-  Trash2,
-  Calculator,
-} from "lucide-react";
-import JSZip from "jszip";
-import { calculateProductionCosts, formatCurrency } from "@/lib/utils";
+import { Plus, Trash2, Upload, X } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
+import { AddSpoolDialog } from "@/components/forms/AddSpoolDialog";
 
 export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [extracting, setExtracting] = useState(false);
+  const [costData, setCostData] = useState<any>(null);
+  const [isChildDialogOpen, setIsChildDialogOpen] = useState(false);
 
+  // Dados de suporte
   const [categories, setCategories] = useState<any[]>([]);
-  const [printers, setPrinters] = useState<any[]>([]);
   const [filamentTypes, setFilamentTypes] = useState<any[]>([]);
+  const [extras, setExtras] = useState<any[]>([]);
 
+  const refreshFilamentTypes = async () => {
+    const res = await fetch("/api/filaments/types");
+    if (res.ok) setFilamentTypes(await res.json());
+  };
+
+  // Formulário base
   const [form, setForm] = useState({
     name: "",
+    description: "",
     categoryId: "",
-    printerId: "",
-    printHours: "0",
-    printMinutes: "0",
-    margin: "100",
+    productionHours: "",
+    productionMinutes: "",
+    margin: "30",
   });
 
-  const [usages, setUsages] = useState([{ filamentTypeId: "", weight: "0" }]);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  // Filamentos usados
+  const [filamentUsages, setFilamentUsages] = useState<
+    { filamentTypeId: string; weight: string }[]
+  >([{ filamentTypeId: "", weight: "" }]);
 
+  // Extras usados
+  const [extraUsages, setExtraUsages] = useState<
+    { extraId: string; quantity: string }[]
+  >([]);
+
+  // Upload
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [threemfFile, setThreemfFile] = useState<File | null>(null);
+
+  // Carregar dados quando o dialog abre
   useEffect(() => {
-    if (open) {
-      Promise.all([
-        fetch("/api/categories").then((res) => res.json()),
-        fetch("/api/printers").then((res) => res.json()),
-        fetch("/api/filaments/types").then((res) => res.json()),
-      ]).then(([cats, prnts, types]) => {
-        setCategories(cats);
-        setPrinters(prnts);
-        setFilamentTypes(types);
-      });
-    }
+    if (!open) return;
+    Promise.all([
+      fetch("/api/categories").then((r) => r.json()),
+      fetch("/api/filaments/types").then((r) => r.json()),
+      fetch("/api/extras").then((r) => r.json()),
+    ]).then(([cats, fils, exts]) => {
+      setCategories(cats);
+      setFilamentTypes(fils);
+      setExtras(exts);
+    });
   }, [open]);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Calcular custo estimado sempre que filamentos/extras/margem mudam
+  useEffect(() => {
+    if (!open) return;
+    const validFilaments = filamentUsages.filter(
+      (f) => f.filamentTypeId && f.weight && Number(f.weight) > 0,
+    );
+    if (validFilaments.length === 0) {
+      setCostData(null);
+      return;
+    }
+    fetch("/api/products/estimate-cost", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        filamentUsages: validFilaments.map((f) => ({
+          filamentTypeId: f.filamentTypeId,
+          weight: Number(f.weight),
+        })),
+        extraUsages: extraUsages
+          .filter((e) => e.extraId && e.quantity)
+          .map((e) => ({ extraId: e.extraId, quantity: Number(e.quantity) })),
+        margin: Number(form.margin) / 100,
+      }),
+    })
+      .then((r) => r.json())
+      .then(setCostData)
+      .catch(() => setCostData(null));
+  }, [filamentUsages, extraUsages, form.margin, open]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    setSelectedFile(file); // NOVO: Guarda o ficheiro real na memória
-    setExtracting(true);
-    setForm((prev) => ({ ...prev, name: file.name.replace(".3mf", "") }));
-
-    try {
-      const zip = new JSZip();
-      const contents = await zip.loadAsync(file);
-      const configFile =
-        contents.file("Metadata/model_settings.config") ||
-        contents.file("Config/slice_info.config");
-
-      if (configFile) {
-        const text = await configFile.async("text");
-        const timeMatch =
-          text.match(/prediction="(\d+)"/) ||
-          text.match(/<total_time>(\d+)<\/total_time>/);
-        if (timeMatch) {
-          const totalMins = Math.floor(parseInt(timeMatch[1]) / 60);
-          setForm((prev) => ({
-            ...prev,
-            printHours: Math.floor(totalMins / 60).toString(),
-            printMinutes: (totalMins % 60).toString(),
-          }));
-        }
-
-        const weightMatch =
-          text.match(/filament_weight="([\d.]+)"/) ||
-          text.match(/<filament_weight>([\d.]+)<\/filament_weight>/);
-        if (weightMatch) {
-          setUsages([
-            {
-              filamentTypeId: "",
-              weight: Math.ceil(parseFloat(weightMatch[1])).toString(),
-            },
-          ]);
-        }
-      }
-      toast({ title: "Dados extraídos do .3mf" });
-    } catch (err) {
-      toast({ title: "Erro ao ler ficheiro", variant: "destructive" });
-    } finally {
-      setExtracting(false);
-    }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
   };
 
-  const addColor = () =>
-    setUsages([...usages, { filamentTypeId: "", weight: "0" }]);
-  const removeColor = (index: number) =>
-    usages.length > 1 && setUsages(usages.filter((_, i) => i !== index));
-  const updateUsage = (index: number, field: string, value: string) => {
-    const newUsages = [...usages];
-    newUsages[index] = { ...newUsages[index], [field]: value };
-    setUsages(newUsages);
+  const addFilament = () =>
+    setFilamentUsages([...filamentUsages, { filamentTypeId: "", weight: "" }]);
+
+  const removeFilament = (i: number) =>
+    setFilamentUsages(filamentUsages.filter((_, idx) => idx !== i));
+
+  const updateFilament = (i: number, field: string, value: string) =>
+    setFilamentUsages(
+      filamentUsages.map((f, idx) =>
+        idx === i ? { ...f, [field]: value } : f,
+      ),
+    );
+
+  const addExtra = () =>
+    setExtraUsages([...extraUsages, { extraId: "", quantity: "1" }]);
+
+  const removeExtra = (i: number) =>
+    setExtraUsages(extraUsages.filter((_, idx) => idx !== i));
+
+  const updateExtra = (i: number, field: string, value: string) =>
+    setExtraUsages(
+      extraUsages.map((e, idx) => (idx === i ? { ...e, [field]: value } : e)),
+    );
+
+  const resetForm = () => {
+    setForm({
+      name: "",
+      description: "",
+      categoryId: "",
+      productionHours: "",
+      productionMinutes: "",
+      margin: "30",
+    });
+    setFilamentUsages([{ filamentTypeId: "", weight: "" }]);
+    setExtraUsages([]);
+    setImageFile(null);
+    setImagePreview(null);
+    setThreemfFile(null);
+    setCostData(null);
   };
-
-  const selectedPrinter = printers.find((p) => p.id === Number(form.printerId));
-  const totalMinutes = Number(form.printHours) * 60 + Number(form.printMinutes);
-
-  const calculatedCosts =
-    selectedPrinter &&
-    totalMinutes > 0 &&
-    usages.every((u) => u.filamentTypeId && Number(u.weight) > 0)
-      ? usages.reduce(
-          (acc, usage) => {
-            const type = filamentTypes.find(
-              (t) => t.id === Number(usage.filamentTypeId),
-            );
-            const spool = type?.spools?.[0];
-            if (!spool) return acc;
-
-            const partial = calculateProductionCosts({
-              printTimeMinutes: totalMinutes / usages.length,
-              weightGrams: Number(usage.weight),
-              spoolPrice: spool.price,
-              spoolWeightGrams: spool.spoolWeight,
-              printerWattage: selectedPrinter.electricity / usages.length,
-              printerHourlyCost: selectedPrinter.hourlyCost / usages.length,
-            });
-            return {
-              total: acc.total + partial.totalCost,
-              filament: acc.filament + partial.filamentCost,
-            };
-          },
-          { total: 0, filament: 0 },
-        )
-      : null;
-
-  const suggestedPrice = calculatedCosts
-    ? calculatedCosts.total * (1 + Number(form.margin) / 100)
-    : 0;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!form.name.trim()) return;
+
+    const validFilaments = filamentUsages.filter(
+      (f) => f.filamentTypeId && f.weight && Number(f.weight) > 0,
+    );
+    if (validFilaments.length === 0) {
+      toast({
+        title: "Adiciona pelo menos um filamento",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      // Usamos FormData em vez de JSON.stringify
-      const formData = new FormData();
-      formData.append("name", form.name);
-      if (form.categoryId) formData.append("categoryId", form.categoryId);
-      formData.append("printerId", form.printerId);
-      formData.append("printTimeMinutes", totalMinutes.toString());
-      formData.append("usages", JSON.stringify(usages));
-      formData.append("baseCost", (calculatedCosts?.total || 0).toString());
-      formData.append("recommendedPrice", suggestedPrice.toString());
-
-      // Se existir um ficheiro selecionado, anexa-o ao pacote
-      if (selectedFile) {
-        formData.append("file", selectedFile);
+      // Upload imagem se existir
+      let imageUrl = null;
+      if (imageFile) {
+        const fd = new FormData();
+        fd.append("file", imageFile);
+        fd.append("type", "image");
+        const r = await fetch("/api/upload", { method: "POST", body: fd });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error);
+        imageUrl = d.url;
       }
 
-      // Nota: Quando usamos FormData, NÃO colocamos o header 'Content-Type'.
-      // O navegador faz isso automaticamente e define o 'boundary' correto.
+      // Upload .3mf se existir
+      let fileUrl = null;
+      if (threemfFile) {
+        const fd = new FormData();
+        fd.append("file", threemfFile);
+        fd.append("type", "3mf");
+        const r = await fetch("/api/upload", { method: "POST", body: fd });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error);
+        fileUrl = d.url;
+      }
+
       const res = await fetch("/api/products", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          description: form.description.trim() || null,
+          categoryId: form.categoryId || null,
+          productionTime: (() => {
+            const h = parseInt(form.productionHours || "0", 10) || 0;
+            const m = parseInt(form.productionMinutes || "0", 10) || 0;
+            const total = h * 60 + m;
+            return total > 0 ? total : null;
+          })(),
+          margin: Number(form.margin) / 100,
+          imageUrl,
+          fileUrl,
+          filamentUsages: validFilaments.map((f) => ({
+            filamentTypeId: f.filamentTypeId,
+            weight: Number(f.weight),
+          })),
+          extraUsages: extraUsages
+            .filter((e) => e.extraId && e.quantity)
+            .map((e) => ({ extraId: e.extraId, quantity: Number(e.quantity) })),
+        }),
       });
 
-      if (res.ok) {
-        setOpen(false);
-        onCreated();
-        toast({ title: "Produto Guardado" });
-      } else {
-        throw new Error();
-      }
-    } catch (error) {
-      toast({ title: "Erro ao gravar", variant: "destructive" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      toast({ title: "Produto criado!" });
+      resetForm();
+      setOpen(false);
+      onCreated();
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        // ✅ Não fechar o dialog do produto enquanto o dialog da bobine estiver aberto
+        if (!v && isChildDialogOpen) return;
+        setOpen(v);
+        if (!v) resetForm();
+      }}
+    >
       <DialogTrigger asChild>
         <Button size="sm">
           <Plus size={14} className="mr-1.5" />
-          Novo do .3mf
+          Novo Produto
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg overflow-y-auto max-h-[90vh]">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Importar e Configurar Produto</DialogTitle>
+          <DialogTitle>Criar Produto</DialogTitle>
         </DialogHeader>
 
-        {/* ZONA DE UPLOAD .3MF */}
-        <div className="border-2 border-dashed border-muted rounded-xl p-6 flex flex-col items-center justify-center space-y-2 hover:bg-accent/50 transition-colors cursor-pointer relative">
-          <input
-            type="file"
-            accept=".3mf"
-            className="absolute inset-0 opacity-0 cursor-pointer"
-            onChange={handleFileChange}
-          />
-          <FileUp className="w-8 h-8 text-primary/60" />
-          <p className="text-sm font-medium text-muted-foreground text-center">
-            Arraste o ficheiro .3mf ou clique aqui
-          </p>
-          {extracting && (
-            <Loader2 className="w-4 h-4 animate-spin text-primary" />
-          )}
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-6 mt-2">
+          {/* ── Informação básica ── */}
+          <div className="space-y-4">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Informação básica
+            </p>
 
-        <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5 flex-1">
-              <Label>Nome do Modelo</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="name">Nome do produto</Label>
               <Input
+                id="name"
+                placeholder="ex: Porta-chaves Coração"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 required
               />
             </div>
-            <div className="space-y-1.5 flex-1">
-              <Label>Categoria</Label>
-              <Select
-                value={form.categoryId}
-                onValueChange={(v) => setForm({ ...form, categoryId: v })}
-              >
-                <SelectTrigger className="justify-start text-left">
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((c) => (
-                    <SelectItem key={c.id} value={String(c.id)}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="description">
+                Descrição{" "}
+                <span className="text-muted-foreground font-normal">
+                  (opcional)
+                </span>
+              </Label>
+              <Textarea
+                id="description"
+                placeholder="Descrição do produto..."
+                value={form.description}
+                onChange={(e) =>
+                  setForm({ ...form, description: e.target.value })
+                }
+                rows={2}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Categoria</Label>
+                <Select
+                  value={form.categoryId}
+                  onValueChange={(v) => setForm({ ...form, categoryId: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Tempo de impressão</Label>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      value={form.productionHours}
+                      onChange={(e) =>
+                        setForm({ ...form, productionHours: e.target.value })
+                      }
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                      h
+                    </span>
+                  </div>
+                  <div className="relative flex-1">
+                    <Input
+                      type="number"
+                      min="0"
+                      max="59"
+                      placeholder="0"
+                      value={form.productionMinutes}
+                      onChange={(e) =>
+                        setForm({ ...form, productionMinutes: e.target.value })
+                      }
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                      min
+                    </span>
+                  </div>
+                </div>
+                {(form.productionHours || form.productionMinutes) && (
+                  <p className="text-[10px] text-muted-foreground">
+                    Total:{" "}
+                    {Number(form.productionHours || 0) * 60 +
+                      Number(form.productionMinutes || 0)}{" "}
+                    minutos
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* AMS / CORES */}
-          <div className="space-y-3 bg-muted/20 p-3 rounded-lg border">
-            <div className="flex justify-between items-center mb-1">
-              <Label className="text-xs font-bold uppercase">
-                Configuração AMS
-              </Label>
+          {/* ── Filamentos ── */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Filamentos usados
+              </p>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={addColor}
-                className="h-7 text-[10px] px-2"
+                onClick={addFilament}
               >
-                <Plus size={12} className="mr-1" /> Adicionar Cor
+                <Plus size={12} className="mr-1" /> Adicionar
               </Button>
             </div>
-            {usages.map((usage, index) => (
-              <div key={index} className="flex gap-2 items-end">
+
+            {filamentUsages.map((f, i) => (
+              <div key={i} className="flex items-center gap-2">
                 <div className="flex-1">
                   <Select
-                    value={usage.filamentTypeId}
+                    value={f.filamentTypeId}
                     onValueChange={(v) =>
-                      updateUsage(index, "filamentTypeId", v)
+                      updateFilament(i, "filamentTypeId", v)
                     }
                   >
-                    <SelectTrigger className="h-9 justify-start text-left">
-                      <SelectValue placeholder="Filamento" />
+                    <SelectTrigger>
+                      <SelectValue placeholder="Tipo de filamento..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {filamentTypes.map((t) => (
-                        <SelectItem key={t.id} value={String(t.id)}>
+                      {filamentTypes.map((ft) => (
+                        <SelectItem key={ft.id} value={ft.id}>
                           <div className="flex items-center gap-2">
                             <div
-                              className="w-2 h-2 rounded-full"
-                              style={{ backgroundColor: t.colorHex }}
+                              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: ft.colorHex }}
                             />
-                            <span className="truncate">
-                              {t.brand} {t.colorName}
-                            </span>
+                            {ft.brand} {ft.material} — {ft.colorName}
                           </div>
                         </SelectItem>
                       ))}
+                      {/* ✅ Opção rápida para registar nova bobine */}
+                      <div className="px-2 py-1.5 border-t border-border mt-1">
+                        <AddSpoolDialog
+                          types={filamentTypes}
+                          onAdded={refreshFilamentTypes}
+                          onOpenChange={setIsChildDialogOpen}
+                          trigger={
+                            <button
+                              type="button"
+                              className="flex items-center gap-2 w-full text-xs text-primary hover:text-primary/80 transition-colors py-1"
+                            >
+                              <Plus size={12} />
+                              Registar nova bobine
+                            </button>
+                          }
+                        />
+                      </div>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="w-24 relative">
+                <div className="w-28">
                   <Input
                     type="number"
-                    className="h-9 pr-7 text-right"
-                    value={usage.weight}
+                    step="0.1"
+                    placeholder="gramas"
+                    value={f.weight}
                     onChange={(e) =>
-                      updateUsage(index, "weight", e.target.value)
+                      updateFilament(i, "weight", e.target.value)
                     }
                   />
-                  <span className="absolute right-2 top-2.5 text-[10px] text-muted-foreground">
-                    g
-                  </span>
                 </div>
-                {usages.length > 1 && (
+                {filamentUsages.length > 1 && (
                   <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 text-destructive"
-                    onClick={() => removeColor(index)}
+                    className="h-9 w-9 text-destructive/50 hover:text-destructive"
+                    onClick={() => removeFilament(i)}
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={13} />
                   </Button>
                 )}
               </div>
             ))}
           </div>
 
-          {/* TEMPO E MÁQUINA */}
-          <div className="grid grid-cols-3 gap-4 border-t pt-4">
-            <div className="space-y-1.5">
-              <Label>Impressora</Label>
-              <Select
-                value={form.printerId}
-                onValueChange={(v) => setForm({ ...form, printerId: v })}
+          {/* ── Extras ── */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Extras
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addExtra}
               >
-                <SelectTrigger className="justify-start text-left">
-                  <SelectValue placeholder="Máquina" />
-                </SelectTrigger>
-                <SelectContent>
-                  {printers.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <Plus size={12} className="mr-1" /> Adicionar
+              </Button>
             </div>
-            <div className="space-y-1.5">
-              <Label className="flex items-center gap-1">
-                <Clock size={12} /> Horas
-              </Label>
-              <Input
-                type="number"
-                value={form.printHours}
-                onChange={(e) =>
-                  setForm({ ...form, printHours: e.target.value })
-                }
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="flex items-center gap-1">
-                <Clock size={12} /> Min
-              </Label>
-              <Input
-                type="number"
-                value={form.printMinutes}
-                onChange={(e) =>
-                  setForm({ ...form, printMinutes: e.target.value })
-                }
-              />
-            </div>
-          </div>
 
-          {/* PAINEL FINANCEIRO */}
-          {calculatedCosts && (
-            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-3">
-              <div className="flex justify-between items-center border-b border-primary/10 pb-2">
-                <span className="text-xs text-muted-foreground">
-                  Custo Total (Energia + Amortização + Material)
-                </span>
-                <span className="font-bold text-primary">
-                  {formatCurrency(calculatedCosts.total)}
-                </span>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="flex-1 space-y-1">
-                  <Label className="text-[10px] uppercase font-bold">
-                    Margem (%)
-                  </Label>
+            {extraUsages.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                Nenhum extra adicionado.
+              </p>
+            )}
+
+            {extraUsages.map((e, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <div className="flex-1">
+                  <Select
+                    value={e.extraId}
+                    onValueChange={(v) => updateExtra(i, "extraId", v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Extra..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {extras.map((ex) => (
+                        <SelectItem key={ex.id} value={ex.id}>
+                          {ex.name} — {formatCurrency(ex.price)}/
+                          {ex.unit || "un"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="w-28">
                   <Input
                     type="number"
-                    className="h-8"
-                    value={form.margin}
-                    onChange={(e) =>
-                      setForm({ ...form, margin: e.target.value })
+                    step="0.1"
+                    placeholder="qtd"
+                    value={e.quantity}
+                    onChange={(ev) =>
+                      updateExtra(i, "quantity", ev.target.value)
                     }
                   />
                 </div>
-                <div className="flex-1 text-right">
-                  <p className="text-[10px] uppercase text-muted-foreground font-bold">
-                    Venda Sugerida
-                  </p>
-                  <p className="text-xl font-black text-green-600 tracking-tight">
-                    {formatCurrency(suggestedPrice)}
-                  </p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 text-destructive/50 hover:text-destructive"
+                  onClick={() => removeExtra(i)}
+                >
+                  <Trash2 size={13} />
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Margem ── */}
+          <div className="space-y-1.5">
+            <Label htmlFor="margin">Margem de lucro (%)</Label>
+            <Input
+              id="margin"
+              type="number"
+              min="0"
+              max="1000"
+              placeholder="ex: 30"
+              value={form.margin}
+              onChange={(e) => setForm({ ...form, margin: e.target.value })}
+            />
+          </div>
+
+          {/* ── Preview de custo ── */}
+          {costData && (
+            <div className="p-4 rounded-lg bg-muted/40 space-y-2 text-sm">
+              <p className="font-medium">Estimativa de custo</p>
+              <div className="space-y-1 text-xs text-muted-foreground">
+                <div className="flex justify-between">
+                  <span>Filamentos (FIFO)</span>
+                  <span>{formatCurrency(costData.filamentCost)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Extras</span>
+                  <span>{formatCurrency(costData.extrasCost)}</span>
+                </div>
+                <div className="flex justify-between border-t border-border pt-1 mt-1 font-medium text-foreground">
+                  <span>Custo total</span>
+                  <span>{formatCurrency(costData.totalCost)}</span>
+                </div>
+                <div className="flex justify-between text-primary font-bold text-sm pt-1">
+                  <span>Preço sugerido ({form.margin}% margem)</span>
+                  <span>{formatCurrency(costData.suggestedPrice)}</span>
                 </div>
               </div>
+              {costData.missingSpools?.length > 0 && (
+                <p className="text-[10px] text-yellow-500 mt-1">
+                  ⚠️ Sem bobines em stock para:{" "}
+                  {costData.missingSpools.join(", ")}. Custo estimado a 0€.
+                </p>
+              )}
             </div>
           )}
 
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={loading || extracting}
-          >
-            {loading ? (
-              <Loader2 className="animate-spin mr-2" size={16} />
-            ) : (
-              <Calculator className="mr-2" size={16} />
-            )}
-            Guardar no Catálogo
+          {/* ── Ficheiros ── */}
+          <div className="space-y-4">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Ficheiros
+            </p>
+
+            {/* Imagem */}
+            <div className="space-y-2">
+              <Label>Imagem do produto</Label>
+              {imagePreview ? (
+                <div className="relative w-32 h-32">
+                  <img
+                    src={imagePreview}
+                    alt="preview"
+                    className="w-full h-full object-cover rounded-lg border"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImageFile(null);
+                      setImagePreview(null);
+                    }}
+                    className="absolute -top-2 -right-2 w-5 h-5 bg-destructive text-white rounded-full flex items-center justify-center"
+                  >
+                    <X size={10} />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex items-center gap-2 w-fit cursor-pointer border border-dashed rounded-lg px-4 py-2 text-xs text-muted-foreground hover:border-primary/40 transition-colors">
+                  <Upload size={14} />
+                  Escolher imagem
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageChange}
+                  />
+                </label>
+              )}
+            </div>
+
+            {/* .3mf */}
+            <div className="space-y-2">
+              <Label>Ficheiro .3mf</Label>
+              {threemfFile ? (
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground truncate max-w-[200px]">
+                    {threemfFile.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setThreemfFile(null)}
+                    className="text-destructive hover:text-destructive/80"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex items-center gap-2 w-fit cursor-pointer border border-dashed rounded-lg px-4 py-2 text-xs text-muted-foreground hover:border-primary/40 transition-colors">
+                  <Upload size={14} />
+                  Escolher ficheiro .3mf
+                  <input
+                    type="file"
+                    accept=".3mf"
+                    className="hidden"
+                    onChange={(e) =>
+                      setThreemfFile(e.target.files?.[0] || null)
+                    }
+                  />
+                </label>
+              )}
+            </div>
+          </div>
+
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? "A criar..." : "Criar Produto"}
           </Button>
         </form>
       </DialogContent>
