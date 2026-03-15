@@ -54,6 +54,10 @@ export function AddProductionDialog({
         totalMinutes > 0 ? String(Math.floor(totalMinutes / 60)) : "",
       );
       setPrintMinutes(totalMinutes > 0 ? String(totalMinutes % 60) : "");
+      // ✅ Pré-selecionar impressora do produto se existir
+      if (product.printerId) {
+        setPrinterId(product.printerId);
+      }
     }
   };
 
@@ -151,27 +155,39 @@ export function AddProductionDialog({
             </Select>
           </div>
 
-          {/* Impressora */}
+          {/* Impressora — só leitura, vem do produto */}
           <div className="space-y-1.5">
             <Label>Impressora</Label>
-            <Select value={printerId} onValueChange={setPrinterId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecionar impressora..." />
-              </SelectTrigger>
-              <SelectContent>
-                {printers.length === 0 ? (
-                  <SelectItem value="none" disabled>
-                    Nenhuma impressora registada
-                  </SelectItem>
-                ) : (
-                  printers.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
+            {selectedProduct?.printerId ? (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-muted/30 text-sm">
+                <span className="font-medium">
+                  {printers.find((p) => p.id === selectedProduct.printerId)
+                    ?.name ?? "—"}
+                </span>
+                <span className="text-[10px] text-muted-foreground ml-auto">
+                  definida no produto
+                </span>
+              </div>
+            ) : (
+              <Select value={printerId} onValueChange={setPrinterId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar impressora..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {printers.length === 0 ? (
+                    <SelectItem value="none" disabled>
+                      Nenhuma impressora registada
                     </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+                  ) : (
+                    printers.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           {/* Resumo automático do produto selecionado */}
