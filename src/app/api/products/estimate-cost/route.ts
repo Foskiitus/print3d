@@ -11,9 +11,11 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { filamentUsages, extraUsages, margin } = await req.json();
+    const { filamentUsages, extraUsages, margin, unitsPerPrint } =
+      await req.json();
 
     const userId = session.user.id;
+    const units = Math.max(1, Number(unitsPerPrint) || 1);
 
     // ✅ Custo FIFO com distribuição por múltiplas bobines
     const { filamentCost, missingSpools } = await calculateFIFOCost(
@@ -36,11 +38,18 @@ export async function POST(req: Request) {
     const marginRate = margin ?? 0.3;
     const suggestedPrice = totalCost * (1 + marginRate);
 
+    // Custo e preço por unidade
+    const costPerUnit = totalCost / units;
+    const pricePerUnit = suggestedPrice / units;
+
     return NextResponse.json({
       filamentCost: Math.round(filamentCost * 1000) / 1000,
       extrasCost: Math.round(extrasCost * 1000) / 1000,
       totalCost: Math.round(totalCost * 1000) / 1000,
       suggestedPrice: Math.round(suggestedPrice * 100) / 100,
+      costPerUnit: Math.round(costPerUnit * 1000) / 1000,
+      pricePerUnit: Math.round(pricePerUnit * 100) / 100,
+      unitsPerPrint: units,
       missingSpools,
     });
   } catch (error: any) {

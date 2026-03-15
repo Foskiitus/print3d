@@ -66,6 +66,7 @@ export async function PATCH(
       fileUrl,
       filamentUsages,
       extraUsages,
+      unitsPerPrint,
     } = await req.json();
 
     // Atualizar produto + substituir filamentos e extras numa transação
@@ -83,6 +84,7 @@ export async function PATCH(
           categoryId: categoryId || null,
           productionTime: productionTime || null,
           margin: margin ?? existing.margin,
+          unitsPerPrint: unitsPerPrint ?? existing.unitsPerPrint,
           imageUrl: imageUrl ?? null,
           fileUrl: fileUrl ?? null,
           filamentUsage: {

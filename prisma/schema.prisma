@@ -131,6 +131,7 @@ model Product {
   imageUrl       String?
   fileUrl        String?
   printerId      String?                         // ✅ opcional — impressora escolhida na produção
+  unitsPerPrint  Int  @default(1)   // ← adicionar
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

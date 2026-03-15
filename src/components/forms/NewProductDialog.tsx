@@ -48,6 +48,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
     productionHours: "",
     productionMinutes: "",
     margin: "30",
+    unitsPerPrint: "1",
   });
 
   // Filamentos usados
@@ -63,7 +64,6 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
   // Upload
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [threemfFile, setThreemfFile] = useState<File | null>(null);
 
   // Carregar dados quando o dialog abre
   useEffect(() => {
@@ -101,6 +101,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
           .filter((e) => e.extraId && e.quantity)
           .map((e) => ({ extraId: e.extraId, quantity: Number(e.quantity) })),
         margin: Number(form.margin) / 100,
+        unitsPerPrint: Number(form.unitsPerPrint) || 1,
       }),
     })
       .then((r) => r.json())
@@ -147,12 +148,12 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
       productionHours: "",
       productionMinutes: "",
       margin: "30",
+      unitsPerPrint: "1",
     });
     setFilamentUsages([{ filamentTypeId: "", weight: "" }]);
     setExtraUsages([]);
     setImageFile(null);
     setImagePreview(null);
-    setThreemfFile(null);
     setCostData(null);
   };
 
@@ -185,18 +186,6 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
         imageUrl = d.url;
       }
 
-      // Upload .3mf se existir
-      let fileUrl = null;
-      if (threemfFile) {
-        const fd = new FormData();
-        fd.append("file", threemfFile);
-        fd.append("type", "3mf");
-        const r = await fetch("/api/upload", { method: "POST", body: fd });
-        const d = await r.json();
-        if (!r.ok) throw new Error(d.error);
-        fileUrl = d.url;
-      }
-
       const res = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -211,8 +200,9 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
             return total > 0 ? total : null;
           })(),
           margin: Number(form.margin) / 100,
+          unitsPerPrint: Number(form.unitsPerPrint) || 1,
           imageUrl,
-          fileUrl,
+          fileUrl: null,
           filamentUsages: validFilaments.map((f) => ({
             filamentTypeId: f.filamentTypeId,
             weight: Number(f.weight),
@@ -514,50 +504,91 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
             ))}
           </div>
 
-          {/* ── Margem ── */}
-          <div className="space-y-1.5">
-            <Label htmlFor="margin">Margem de lucro (%)</Label>
-            <Input
-              id="margin"
-              type="number"
-              min="0"
-              max="1000"
-              placeholder="ex: 30"
-              value={form.margin}
-              onChange={(e) => setForm({ ...form, margin: e.target.value })}
-            />
+          {/* ── Margem e unidades por impressão ── */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="margin">Margem de lucro (%)</Label>
+              <Input
+                id="margin"
+                type="number"
+                min="0"
+                max="1000"
+                placeholder="ex: 30"
+                value={form.margin}
+                onChange={(e) => setForm({ ...form, margin: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="unitsPerPrint">Unidades por impressão</Label>
+              <Input
+                id="unitsPerPrint"
+                type="number"
+                min="1"
+                placeholder="ex: 31"
+                value={form.unitsPerPrint}
+                onChange={(e) =>
+                  setForm({ ...form, unitsPerPrint: e.target.value })
+                }
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Quantas unidades saem de cada impressão
+              </p>
+            </div>
           </div>
 
           {/* ── Preview de custo ── */}
-          {costData && (
-            <div className="p-4 rounded-lg bg-muted/40 space-y-2 text-sm">
-              <p className="font-medium">Estimativa de custo</p>
-              <div className="space-y-1 text-xs text-muted-foreground">
-                <div className="flex justify-between">
-                  <span>Filamentos (FIFO)</span>
-                  <span>{formatCurrency(costData.filamentCost)}</span>
+          {costData &&
+            (() => {
+              const units = Number(form.unitsPerPrint) || 1;
+              const costPerUnit = costData.totalCost / units;
+              const pricePerUnit = costData.suggestedPrice / units;
+              return (
+                <div className="p-4 rounded-lg bg-muted/40 space-y-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium">Estimativa de custo</p>
+                    {units > 1 && (
+                      <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                        {units} unidades/impressão
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-1 text-xs text-muted-foreground">
+                    <div className="flex justify-between">
+                      <span>Filamentos (FIFO)</span>
+                      <span>{formatCurrency(costData.filamentCost)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Extras</span>
+                      <span>{formatCurrency(costData.extrasCost)}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-border pt-1 mt-1 font-medium text-foreground">
+                      <span>Custo total da impressão</span>
+                      <span>{formatCurrency(costData.totalCost)}</span>
+                    </div>
+                    {units > 1 && (
+                      <div className="flex justify-between text-foreground">
+                        <span>Custo por unidade</span>
+                        <span>{formatCurrency(costPerUnit)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-primary font-bold text-sm pt-1 border-t border-border mt-1">
+                      <span>
+                        {units > 1
+                          ? `Preço sugerido/unidade (${form.margin}% margem)`
+                          : `Preço sugerido (${form.margin}% margem)`}
+                      </span>
+                      <span>{formatCurrency(pricePerUnit)}</span>
+                    </div>
+                  </div>
+                  {costData.missingSpools?.length > 0 && (
+                    <p className="text-[10px] text-yellow-500 mt-1">
+                      ⚠️ Sem bobines em stock para:{" "}
+                      {costData.missingSpools.join(", ")}. Custo estimado a 0€.
+                    </p>
+                  )}
                 </div>
-                <div className="flex justify-between">
-                  <span>Extras</span>
-                  <span>{formatCurrency(costData.extrasCost)}</span>
-                </div>
-                <div className="flex justify-between border-t border-border pt-1 mt-1 font-medium text-foreground">
-                  <span>Custo total</span>
-                  <span>{formatCurrency(costData.totalCost)}</span>
-                </div>
-                <div className="flex justify-between text-primary font-bold text-sm pt-1">
-                  <span>Preço sugerido ({form.margin}% margem)</span>
-                  <span>{formatCurrency(costData.suggestedPrice)}</span>
-                </div>
-              </div>
-              {costData.missingSpools?.length > 0 && (
-                <p className="text-[10px] text-yellow-500 mt-1">
-                  ⚠️ Sem bobines em stock para:{" "}
-                  {costData.missingSpools.join(", ")}. Custo estimado a 0€.
-                </p>
-              )}
-            </div>
-          )}
+              );
+            })()}
 
           {/* ── Ficheiros ── */}
           <div className="space-y-4">
@@ -595,38 +626,6 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                     accept="image/*"
                     className="hidden"
                     onChange={handleImageChange}
-                  />
-                </label>
-              )}
-            </div>
-
-            {/* .3mf */}
-            <div className="space-y-2">
-              <Label>Ficheiro .3mf</Label>
-              {threemfFile ? (
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="text-muted-foreground truncate max-w-[200px]">
-                    {threemfFile.name}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setThreemfFile(null)}
-                    className="text-destructive hover:text-destructive/80"
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              ) : (
-                <label className="flex items-center gap-2 w-fit cursor-pointer border border-dashed rounded-lg px-4 py-2 text-xs text-muted-foreground hover:border-primary/40 transition-colors">
-                  <Upload size={14} />
-                  Escolher ficheiro .3mf
-                  <input
-                    type="file"
-                    accept=".3mf"
-                    className="hidden"
-                    onChange={(e) =>
-                      setThreemfFile(e.target.files?.[0] || null)
-                    }
                   />
                 </label>
               )}

@@ -3,33 +3,51 @@ import { head } from "@vercel/blob";
 import { NextResponse } from "next/server";
 
 // GET /api/blob-url?url=<blobUrl>
-// Gera um URL assinado temporário (1 hora) para aceder a um ficheiro privado
+// Faz proxy da imagem privada através do servidor — o browser nunca acede diretamente ao Blob
 export async function GET(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+    return new NextResponse("Não autenticado", { status: 401 });
   }
 
   const { searchParams } = new URL(req.url);
   const blobUrl = searchParams.get("url");
 
   if (!blobUrl) {
-    return NextResponse.json({ error: "URL em falta" }, { status: 400 });
+    return new NextResponse("URL em falta", { status: 400 });
   }
 
   try {
-    // Verificar que o ficheiro existe e gerar URL com token temporário
+    // Verificar que o ficheiro existe
     const blob = await head(blobUrl, {
       token: process.env.BLOB_READ_WRITE_TOKEN,
     });
 
-    // Construir URL assinado com downloadUrl (válido 1 hora por defeito)
-    return NextResponse.json({ signedUrl: blob.downloadUrl });
+    // Fazer fetch do conteúdo usando o token de servidor
+    const response = await fetch(blob.url, {
+      headers: {
+        Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
+      },
+    });
+
+    if (!response.ok) {
+      return new NextResponse("Ficheiro não encontrado", { status: 404 });
+    }
+
+    const buffer = await response.arrayBuffer();
+    const contentType =
+      response.headers.get("content-type") ?? "application/octet-stream";
+
+    // Devolver o conteúdo com headers corretos para o browser mostrar a imagem
+    return new NextResponse(buffer, {
+      status: 200,
+      headers: {
+        "Content-Type": contentType,
+        "Cache-Control": "private, max-age=3600", // cache 1 hora no browser
+      },
+    });
   } catch (error: any) {
     console.error("[GET /api/blob-url]", error);
-    return NextResponse.json(
-      { error: "Erro ao gerar URL", details: error.message },
-      { status: 500 },
-    );
+    return new NextResponse("Erro ao carregar ficheiro", { status: 500 });
   }
 }

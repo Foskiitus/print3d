@@ -41,6 +41,7 @@ export async function POST(req: Request) {
       fileUrl,
       filamentUsages,
       extraUsages,
+      unitsPerPrint,
     } = await req.json();
 
     if (!name?.trim()) {
@@ -65,6 +66,7 @@ export async function POST(req: Request) {
         categoryId: categoryId || null,
         productionTime: productionTime || null,
         margin: margin ?? 0.3,
+        unitsPerPrint: unitsPerPrint ?? 1,
         imageUrl: imageUrl || null,
         fileUrl: fileUrl || null,
         filamentUsage: {

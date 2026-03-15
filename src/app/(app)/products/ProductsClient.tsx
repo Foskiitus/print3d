@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Trash2, Package, Clock, Layers } from "lucide-react";
 import { NewProductDialog } from "@/components/forms/NewProductDialog";
+import { BlobImage } from "@/components/BlobImage";
 import { toast } from "@/components/ui/toaster";
 
 export function ProductsClient({
@@ -114,7 +115,7 @@ export function ProductsClient({
                 {/* Imagem */}
                 {product.imageUrl ? (
                   <div className="aspect-square overflow-hidden bg-muted">
-                    <img
+                    <BlobImage
                       src={product.imageUrl}
                       alt={product.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

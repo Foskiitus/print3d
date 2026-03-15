@@ -61,9 +61,8 @@ export function ProductDetailClient({
   const [saving, setSaving] = useState(false);
   const [isChildDialogOpen, setIsChildDialogOpen] = useState(false);
 
-  // ✅ URLs assinados para ficheiros privados
+  // ✅ URL assinado para imagem privada
   const { signedUrl: signedImageUrl } = useSignedUrl(product.imageUrl);
-  const { signedUrl: signedFileUrl } = useSignedUrl(product.fileUrl);
 
   const [categories, setCategories] = useState<any[]>([]);
   const [filamentTypes, setFilamentTypes] = useState<any[]>([]);
@@ -104,12 +103,19 @@ export function ProductDetailClient({
             quantity: Number(e.quantity),
           })),
         margin: Number(form.margin) / 100,
+        unitsPerPrint: Number(form.unitsPerPrint) || 1,
       }),
     })
       .then((r) => r.json())
       .then(setCosts)
       .catch(() => {});
-  }, [form?.filamentUsages, form?.extraUsages, form?.margin, editing]);
+  }, [
+    form?.filamentUsages,
+    form?.extraUsages,
+    form?.margin,
+    form?.unitsPerPrint,
+    editing,
+  ]);
 
   const startEditing = () => {
     const totalMinutes = product.productionTime ?? 0;
@@ -120,11 +126,12 @@ export function ProductDetailClient({
       productionHours: String(Math.floor(totalMinutes / 60) || ""),
       productionMinutes: String(totalMinutes % 60 || ""),
       margin: String(Math.round(product.margin * 100)),
+      unitsPerPrint: String(product.unitsPerPrint ?? 1),
       imageFile: null,
       imagePreview: product.imageUrl ?? null,
       imageUrl: product.imageUrl ?? null,
       threemfFile: null,
-      fileUrl: product.fileUrl ?? null,
+      fileUrl: null, // removido suporte a .3mf por limitação de upload
       filamentUsages: product.filamentUsage.map((fu: any) => ({
         filamentTypeId: fu.filamentTypeId,
         weight: String(fu.weight),
@@ -218,16 +225,7 @@ export function ProductDetailClient({
         imageUrl = d.url;
       }
 
-      let fileUrl = form.fileUrl;
-      if (form.threemfFile) {
-        const fd = new FormData();
-        fd.append("file", form.threemfFile);
-        fd.append("type", "3mf");
-        const r = await fetch("/api/upload", { method: "POST", body: fd });
-        const d = await r.json();
-        if (!r.ok) throw new Error(d.error);
-        fileUrl = d.url;
-      }
+      let fileUrl = null; // .3mf removido por limitação de upload
 
       const res = await fetch(`/api/products/${product.id}`, {
         method: "PATCH",
@@ -243,6 +241,7 @@ export function ProductDetailClient({
             return total > 0 ? total : null;
           })(),
           margin: Number(form.margin) / 100,
+          unitsPerPrint: Number(form.unitsPerPrint) || 1,
           imageUrl,
           fileUrl,
           filamentUsages: validFilaments.map((f: any) => ({
@@ -292,11 +291,16 @@ export function ProductDetailClient({
           <div className="space-y-4">
             {product.imageUrl ? (
               <div className="aspect-square rounded-xl overflow-hidden border bg-muted">
-                <img
-                  src={signedImageUrl ?? ""}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
+                {signedImageUrl ? (
+                  <img
+                    src={signedImageUrl}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  // A carregar o URL assinado
+                  <div className="w-full h-full bg-muted animate-pulse" />
+                )}
               </div>
             ) : (
               <div className="aspect-square rounded-xl border bg-muted/40 flex items-center justify-center">
@@ -306,12 +310,11 @@ export function ProductDetailClient({
 
             {product.fileUrl && (
               <a
-                href={signedFileUrl ?? "#"}
-                download
-                className="flex items-center gap-2 w-full justify-center border border-dashed rounded-lg p-3 text-xs text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors"
+                href="#"
+                className="flex items-center gap-2 w-full justify-center border border-dashed rounded-lg p-3 text-xs text-muted-foreground opacity-50 cursor-not-allowed"
               >
                 <Download size={13} />
-                Descarregar ficheiro .3mf
+                Ficheiro .3mf (download indisponível)
               </a>
             )}
 
@@ -348,9 +351,16 @@ export function ProductDetailClient({
           <div className="lg:col-span-2 space-y-4">
             <Card>
               <CardContent className="p-5">
-                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-4">
-                  Estimativa de Custo (FIFO)
-                </p>
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Estimativa de Custo (FIFO)
+                  </p>
+                  {product.unitsPerPrint > 1 && (
+                    <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                      {product.unitsPerPrint} unidades/impressão
+                    </span>
+                  )}
+                </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Filamentos</span>
@@ -361,12 +371,30 @@ export function ProductDetailClient({
                     <span>{formatCurrency(costs.extrasCost)}</span>
                   </div>
                   <div className="flex justify-between font-medium border-t border-border pt-2 mt-2">
-                    <span>Custo total</span>
+                    <span>Custo total da impressão</span>
                     <span>{formatCurrency(costs.totalCost)}</span>
                   </div>
-                  <div className="flex justify-between text-primary font-bold text-base pt-1">
-                    <span>Preço sugerido</span>
-                    <span>{formatCurrency(costs.suggestedPrice)}</span>
+                  {product.unitsPerPrint > 1 && (
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Custo por unidade</span>
+                      <span>
+                        {formatCurrency(
+                          costs.totalCost / product.unitsPerPrint,
+                        )}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-primary font-bold text-base pt-1 border-t border-border mt-1">
+                    <span>
+                      {product.unitsPerPrint > 1
+                        ? "Preço sugerido/unidade"
+                        : "Preço sugerido"}
+                    </span>
+                    <span>
+                      {formatCurrency(
+                        costs.suggestedPrice / product.unitsPerPrint,
+                      )}
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -504,7 +532,7 @@ export function ProductDetailClient({
                 src={
                   form.imageFile
                     ? form.imagePreview
-                    : (signedImageUrl ?? form.imagePreview)
+                    : (signedImageUrl ?? undefined)
                 }
                 alt="preview"
                 className="w-full h-full object-cover"
@@ -543,42 +571,6 @@ export function ProductDetailClient({
                       imagePreview: URL.createObjectURL(file),
                     });
                 }}
-              />
-            </label>
-          )}
-
-          {/* .3mf */}
-          {form.fileUrl || form.threemfFile ? (
-            <div className="flex items-center justify-between border border-dashed rounded-lg p-3">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground min-w-0">
-                <Download size={13} />
-                <span className="truncate">
-                  {form.threemfFile
-                    ? form.threemfFile.name
-                    : "ficheiro .3mf atual"}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() =>
-                  setForm({ ...form, threemfFile: null, fileUrl: null })
-                }
-                className="text-destructive ml-2"
-              >
-                <X size={12} />
-              </button>
-            </div>
-          ) : (
-            <label className="flex items-center gap-2 w-full justify-center border border-dashed rounded-lg p-3 text-xs text-muted-foreground hover:border-primary/40 cursor-pointer transition-colors">
-              <Upload size={13} />
-              Adicionar ficheiro .3mf
-              <input
-                type="file"
-                accept=".3mf"
-                className="hidden"
-                onChange={(e) =>
-                  setForm({ ...form, threemfFile: e.target.files?.[0] || null })
-                }
               />
             </label>
           )}
@@ -664,6 +656,21 @@ export function ProductDetailClient({
                   onChange={(e) => setForm({ ...form, margin: e.target.value })}
                 />
               </div>
+              <div className="space-y-1.5">
+                <Label>Unidades por impressão</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="ex: 31"
+                  value={form.unitsPerPrint}
+                  onChange={(e) =>
+                    setForm({ ...form, unitsPerPrint: e.target.value })
+                  }
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Quantas unidades saem de cada impressão
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -672,9 +679,16 @@ export function ProductDetailClient({
           {/* Custo atualizado */}
           <Card>
             <CardContent className="p-5">
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-4">
-                Estimativa de Custo (FIFO)
-              </p>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Estimativa de Custo (FIFO)
+                </p>
+                {Number(form.unitsPerPrint) > 1 && (
+                  <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                    {form.unitsPerPrint} unidades/impressão
+                  </span>
+                )}
+              </div>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Filamentos</span>
@@ -685,12 +699,30 @@ export function ProductDetailClient({
                   <span>{formatCurrency(costs.extrasCost)}</span>
                 </div>
                 <div className="flex justify-between font-medium border-t border-border pt-2 mt-2">
-                  <span>Custo total</span>
+                  <span>Custo total da impressão</span>
                   <span>{formatCurrency(costs.totalCost)}</span>
                 </div>
-                <div className="flex justify-between text-primary font-bold text-base pt-1">
-                  <span>Preço sugerido ({form.margin}% margem)</span>
-                  <span>{formatCurrency(costs.suggestedPrice)}</span>
+                {Number(form.unitsPerPrint) > 1 && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Custo por unidade</span>
+                    <span>
+                      {formatCurrency(
+                        costs.totalCost / (Number(form.unitsPerPrint) || 1),
+                      )}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between text-primary font-bold text-base pt-1 border-t border-border mt-1">
+                  <span>
+                    {Number(form.unitsPerPrint) > 1
+                      ? `Preço sugerido/unidade (${form.margin}% margem)`
+                      : `Preço sugerido (${form.margin}% margem)`}
+                  </span>
+                  <span>
+                    {formatCurrency(
+                      costs.suggestedPrice / (Number(form.unitsPerPrint) || 1),
+                    )}
+                  </span>
                 </div>
               </div>
             </CardContent>
