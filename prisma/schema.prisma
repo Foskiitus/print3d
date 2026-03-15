@@ -64,6 +64,7 @@ model FilamentSpool {
   price          Float
   purchaseDate   DateTime
   createdAt      DateTime @default(now())
+  alertThreshold  Float? // gramas mínimas antes de alertar (ex: 100g)
 
   adjustments SpoolAdjustment[]
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -135,6 +136,7 @@ model Product {
   unitsPerPrint  Int  @default(1)   // ← adicionar
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  alertThreshold  Int?   // unidades mínimas em stock antes de alertar
 
   user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   printer        Printer?               @relation(fields: [printerId], references: [id])

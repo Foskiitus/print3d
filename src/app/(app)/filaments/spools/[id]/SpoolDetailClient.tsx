@@ -4,7 +4,15 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2, TrendingDown, TrendingUp, Package } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Trash2,
+  TrendingDown,
+  TrendingUp,
+  Package,
+  Bell,
+  Check,
+} from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { SpoolAdjustDialog } from "@/components/forms/SpoolAdjustDialog";
 import { toast } from "@/components/ui/toaster";
@@ -25,10 +33,40 @@ export function SpoolDetailClient({
   productionUsage: any[];
 }) {
   const [spool, setSpool] = useState(initialSpool);
+  const [alertThreshold, setAlertThreshold] = useState(
+    initialSpool.alertThreshold != null
+      ? String(initialSpool.alertThreshold)
+      : "",
+  );
+  const [savingAlert, setSavingAlert] = useState(false);
 
   const refreshSpool = async () => {
     const res = await fetch(`/api/filaments/spools/${spool.id}/detail`);
     if (res.ok) setSpool(await res.json());
+  };
+
+  const handleSaveAlert = async () => {
+    setSavingAlert(true);
+    try {
+      const res = await fetch(`/api/filaments/spools/${spool.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          alertThreshold: alertThreshold !== "" ? Number(alertThreshold) : null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast({ title: "Alerta guardado!" });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSavingAlert(false);
+    }
   };
 
   const handleDeleteAdjustment = async (adjustmentId: string) => {
@@ -119,6 +157,42 @@ export function SpoolDetailClient({
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>{percentRemaining.toFixed(0)}% restante</span>
                 <span>Compra: {formatCurrency(spool.price)}</span>
+              </div>
+            </div>
+
+            {/* Alerta de stock mínimo */}
+            <div className="mt-4 pt-4 border-t border-border">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Bell size={13} className="text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">
+                    Alerta abaixo de
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="—"
+                      value={alertThreshold}
+                      onChange={(e) => setAlertThreshold(e.target.value)}
+                      className="h-7 w-24 text-xs pr-6"
+                    />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">
+                      g
+                    </span>
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7"
+                    onClick={handleSaveAlert}
+                    disabled={savingAlert}
+                  >
+                    <Check size={13} />
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>

@@ -145,6 +145,8 @@ export function ProductDetailClient({
       productionMinutes: String(totalMinutes % 60),
       margin: String(Math.round(product.margin * 100)),
       unitsPerPrint: String(product.unitsPerPrint ?? 1),
+      alertThreshold:
+        product.alertThreshold != null ? String(product.alertThreshold) : "",
       imageFile: null,
       imagePreview: product.imageUrl ?? null,
       imageUrl: product.imageUrl ?? null,
@@ -262,6 +264,8 @@ export function ProductDetailClient({
           })(),
           margin: Number(form.margin) / 100,
           unitsPerPrint: Number(form.unitsPerPrint) || 1,
+          alertThreshold:
+            form.alertThreshold !== "" ? Number(form.alertThreshold) : null,
           imageUrl,
           fileUrl,
           filamentUsages: validFilaments.map((f: any) => ({
@@ -725,6 +729,26 @@ export function ProductDetailClient({
                 />
                 <p className="text-[10px] text-muted-foreground">
                   Quantas unidades saem de cada impressão
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>
+                  Alerta de stock mínimo{" "}
+                  <span className="text-muted-foreground font-normal">
+                    (opcional)
+                  </span>
+                </Label>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="ex: 5"
+                  value={form.alertThreshold}
+                  onChange={(e) =>
+                    setForm({ ...form, alertThreshold: e.target.value })
+                  }
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Recebe um alerta quando o stock baixar deste valor
                 </p>
               </div>
             </CardContent>
