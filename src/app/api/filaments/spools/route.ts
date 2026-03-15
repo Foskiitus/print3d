@@ -12,7 +12,10 @@ export async function GET() {
 
   const spools = await prisma.filamentSpool.findMany({
     where: { userId: session.user.id },
-    include: { filamentType: true },
+    include: {
+      filamentType: true,
+      _count: { select: { adjustments: true } }, // ✅ para controlar visibilidade do botão apagar
+    },
     orderBy: { purchaseDate: "desc" },
   });
 
@@ -38,7 +41,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Verificar que o filamentType pertence a este utilizador
     const filamentType = await prisma.filamentType.findUnique({
       where: { id: filamentTypeId },
     });
@@ -55,11 +57,14 @@ export async function POST(req: Request) {
         userId: session.user.id,
         filamentTypeId,
         spoolWeight,
-        remaining: spoolWeight, // começa cheio
+        remaining: spoolWeight,
         price,
         purchaseDate: new Date(purchaseDate),
       },
-      include: { filamentType: true },
+      include: {
+        filamentType: true,
+        _count: { select: { adjustments: true } },
+      },
     });
 
     return NextResponse.json(spool, { status: 201 });

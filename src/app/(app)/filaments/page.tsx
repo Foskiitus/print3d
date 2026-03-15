@@ -20,7 +20,10 @@ export default async function FilamentsPage() {
     }),
     prisma.filamentSpool.findMany({
       where: { userId },
-      include: { filamentType: true },
+      include: {
+        filamentType: true,
+        _count: { select: { adjustments: true } }, // ✅ necessário para controlar botão apagar
+      },
       orderBy: { purchaseDate: "desc" },
     }),
   ]);
