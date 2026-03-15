@@ -1,35 +1,40 @@
-import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
 
 export async function DELETE(
-  req: NextRequest,
+  _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  try {
-    const { id } = await params;
-    const typeId = Number(id);
+  const session = await auth();
 
-    // Verificar se existem bobines associadas para evitar erro de chave estrangeira
-    const hasSpools = await prisma.filamentSpool.findFirst({
-      where: { filamentTypeId: typeId },
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
+
+  const { id } = await params; // ← tem de estar ANTES do try
+
+  try {
+    const existing = await prisma.filamentType.findUnique({
+      where: { id }, // ← usa "id", não "params.id"
     });
 
-    if (hasSpools) {
-      return NextResponse.json(
-        {
-          error:
-            "Não é possível eliminar material com bobines em stock. Elimina primeiro as bobines.",
-        },
-        { status: 400 },
-      );
+    if (!existing) {
+      return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     }
 
-    await prisma.filamentType.delete({
-      where: { id: typeId },
-    });
+    if (existing.userId !== session.user.id) {
+      return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+    }
 
-    return NextResponse.json({ message: "Material eliminado com sucesso" });
+    await prisma.filamentType.delete({ where: { id } });
+
+    return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[DELETE /api/filaments/types/[id]]", error);
+    return NextResponse.json(
+      { error: "Erro ao eliminar", details: error.message },
+      { status: 500 },
+    );
   }
 }

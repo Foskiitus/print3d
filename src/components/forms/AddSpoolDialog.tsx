@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
-import { Plus, Weight } from "lucide-react";
+import { Plus } from "lucide-react";
 
 export function AddSpoolDialog({
   types,
@@ -47,14 +47,15 @@ export function AddSpoolDialog({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          filamentTypeId: Number(form.filamentTypeId),
+          filamentTypeId: form.filamentTypeId, // ✅ string (cuid), não Number()
           spoolWeight: Number(form.spoolWeight),
-          remaining: Number(form.spoolWeight), // Começa cheia
           price: Number(form.price),
           purchaseDate: new Date(form.purchaseDate).toISOString(),
         }),
       });
-      if (!res.ok) throw new Error();
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro desconhecido");
 
       toast({ title: "Bobine registada no inventário!" });
       setForm({
@@ -65,10 +66,10 @@ export function AddSpoolDialog({
       });
       setOpen(false);
       onAdded();
-    } catch {
+    } catch (error: any) {
       toast({
         title: "Erro",
-        description: "Não foi possível registar a bobine.",
+        description: error.message || "Não foi possível registar a bobine.",
         variant: "destructive",
       });
     } finally {
@@ -100,7 +101,9 @@ export function AddSpoolDialog({
               </SelectTrigger>
               <SelectContent>
                 {types.map((t) => (
-                  <SelectItem key={t.id} value={String(t.id)}>
+                  <SelectItem key={t.id} value={t.id}>
+                    {" "}
+                    {/* ✅ value={t.id} não String(t.id) */}
                     {t.brand} {t.material} ({t.colorName})
                   </SelectItem>
                 ))}

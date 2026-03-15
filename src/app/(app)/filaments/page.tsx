@@ -1,15 +1,25 @@
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { FilamentsClient } from "./FilamentsClient";
 
 export default async function FilamentsPage() {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
+  const userId = session.user.id;
+
   const [types, spools] = await Promise.all([
     prisma.filamentType.findMany({
-      include: {
-        _count: { select: { spools: true } },
-      },
+      where: { userId },
+      include: { _count: { select: { spools: true } } },
       orderBy: { brand: "asc" },
     }),
     prisma.filamentSpool.findMany({
+      where: { userId },
       include: { filamentType: true },
       orderBy: { purchaseDate: "desc" },
     }),

@@ -8,6 +8,7 @@ import { Trash2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { NewFilamentTypeDialog } from "@/components/forms/NewFilamentTypeDialog";
 import { AddSpoolDialog } from "@/components/forms/AddSpoolDialog";
+import { SpoolAdjustDialog } from "@/components/forms/SpoolAdjustDialog";
 import { toast } from "@/components/ui/toaster";
 
 export function FilamentsClient({
@@ -21,13 +22,19 @@ export function FilamentsClient({
   const [spools, setSpools] = useState(initialSpools);
 
   const refreshData = async () => {
-    const resTypes = await fetch("/api/filaments/types");
-    const resSpools = await fetch("/api/filaments/spools");
-    setTypes(await resTypes.json());
-    setSpools(await resSpools.json());
+    try {
+      const [resTypes, resSpools] = await Promise.all([
+        fetch("/api/filaments/types"),
+        fetch("/api/filaments/spools"),
+      ]);
+      if (resTypes.ok) setTypes(await resTypes.json());
+      if (resSpools.ok) setSpools(await resSpools.json());
+    } catch (err) {
+      console.error("Erro ao atualizar dados:", err);
+    }
   };
 
-  const handleDeleteType = async (id: number) => {
+  const handleDeleteType = async (id: string) => {
     if (!confirm("Tens a certeza que queres eliminar este material?")) return;
     try {
       const res = await fetch(`/api/filaments/types/${id}`, {
@@ -46,7 +53,7 @@ export function FilamentsClient({
     }
   };
 
-  const handleDeleteSpool = async (id: number) => {
+  const handleDeleteSpool = async (id: string) => {
     if (!confirm("Eliminar esta bobine do stock?")) return;
     try {
       const res = await fetch(`/api/filaments/spools/${id}`, {
@@ -101,7 +108,6 @@ export function FilamentsClient({
                       </p>
                     </div>
                   </div>
-
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <Badge variant="secondary" className="text-[10px]">
                       {type._count?.spools || 0} rolos
@@ -158,14 +164,22 @@ export function FilamentsClient({
                         </span>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-destructive/50 hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
-                      onClick={() => handleDeleteSpool(spool.id)}
-                    >
-                      <Trash2 size={14} />
-                    </Button>
+
+                    {/* ✅ Botões de ação — ajuste + eliminar */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <SpoolAdjustDialog
+                        spool={spool}
+                        onAdjusted={refreshData}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive/50 hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDeleteSpool(spool.id)}
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="space-y-2">

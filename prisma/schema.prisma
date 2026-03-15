@@ -1,6 +1,5 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -12,47 +11,77 @@ datasource db {
 //////////////////////////////////////////////////////////
 
 model User {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(cuid())
   name      String?
   email     String   @unique
   password  String
   role      String   @default("user")
   createdAt DateTime @default(now())
+
+  // Dados pertencentes ao utilizador
+  printers       Printer[]
+  filamentTypes  FilamentType[]
+  filamentSpools FilamentSpool[]
+  categories     Category[]
+  extras         Extra[]
+  products       Product[]
+  productionLogs ProductionLog[]
+  sales          Sale[]
+  printProfiles  PrintProfile[]
+  settings       Settings[]
+  spoolAdjustments SpoolAdjustment[]
 }
 
 //////////////////////////////////////////////////////////
-// FILAMENT TYPES (PLA preto, PETG branco, etc)
+// FILAMENT TYPES
 //////////////////////////////////////////////////////////
 
 model FilamentType {
-  id        Int    @id @default(autoincrement())
+  id        String   @id @default(cuid())
+  userId    String
   brand     String
   material  String
-  colorName String // Para guardar "11101 Preto"
-  colorHex  String // Para guardar "#000000"
+  colorName String
+  colorHex  String
+  createdAt DateTime @default(now())
 
+  user   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   spools FilamentSpool[]
   usages ProductFilamentUsage[]
-
-  createdAt DateTime @default(now())
 }
 
 //////////////////////////////////////////////////////////
-// FILAMENT SPOOLS (inventário real)
+// FILAMENT SPOOLS
 //////////////////////////////////////////////////////////
 
 model FilamentSpool {
-  id             Int @id @default(autoincrement())
-  filamentTypeId Int
+  id             String   @id @default(cuid())
+  userId         String                          // ✅ adicionado para isolamento direto
+  filamentTypeId String
+  spoolWeight    Float
+  remaining      Float
+  price          Float
+  purchaseDate   DateTime
+  createdAt      DateTime @default(now())
 
-  spoolWeight  Float
-  remaining    Float
-  price        Float
-  purchaseDate DateTime
+  adjustments SpoolAdjustment[]
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  filamentType FilamentType @relation(fields: [filamentTypeId], references: [id], onDelete: Cascade)
+}
 
-  filamentType FilamentType @relation(fields: [filamentTypeId], references: [id])
-
+//////////////////////////////////////////////////////////
+// AJUSTES DE FILAMENTO (para controlar desperdício e correções)
+//////////////////////////////////////////////////////////
+model SpoolAdjustment {
+  id        String   @id @default(cuid())
+  userId    String
+  spoolId   String
+  amount    Float    // negativo = desperdício, positivo = correção
+  reason    String?
   createdAt DateTime @default(now())
+
+  user  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  spool FilamentSpool @relation(fields: [spoolId], references: [id], onDelete: Cascade)
 }
 
 //////////////////////////////////////////////////////////
@@ -60,13 +89,14 @@ model FilamentSpool {
 //////////////////////////////////////////////////////////
 
 model Printer {
-  id         Int    @id @default(autoincrement())
+  id         String @id @default(cuid())
+  userId     String
   name       String
-  hourlyCost Float // desvalorização
-  powerWatts Int // consumo energético
+  hourlyCost Float
+  powerWatts Int
 
-  products Product[]
-
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products    Product[]
   productions ProductionLog[]
 }
 
@@ -75,9 +105,11 @@ model Printer {
 //////////////////////////////////////////////////////////
 
 model Category {
-  id   Int    @id @default(autoincrement())
-  name String
+  id     String @id @default(cuid())
+  userId String
+  name   String
 
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   products Product[]
 }
 
@@ -86,34 +118,27 @@ model Category {
 //////////////////////////////////////////////////////////
 
 model Product {
-  id          Int     @id @default(autoincrement())
-  name        String
-  description String?
+  id             String   @id @default(cuid())
+  userId         String
+  name           String
+  description    String?
+  categoryId     String?
+  productionTime Int?
+  margin         Float    @default(0.3)
+  imageUrl       String?
+  fileUrl        String?
+  printerId      String?                         // ✅ opcional — impressora escolhida na produção
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  categoryId Int?
-
-  productionTime Int? // minutos
-
-  margin Float @default(0.3)
-
-  imageUrl String?
-
-  fileUrl String? // NOVO: Guarda o caminho do ficheiro .3mf
-
-  printerId Int // Guarda o ID da impressora padrão
-  printer   Printer @relation(fields: [printerId], references: [id])
-
-  category Category? @relation(fields: [categoryId], references: [id])
-
-  filamentUsage ProductFilamentUsage[]
-  extras        ProductExtra[]
-  printProfiles PrintProfile[]
-
+  user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  printer        Printer?               @relation(fields: [printerId], references: [id])
+  category       Category?              @relation(fields: [categoryId], references: [id])
+  filamentUsage  ProductFilamentUsage[]
+  extras         ProductExtra[]
+  printProfiles  PrintProfile[]
   productionLogs ProductionLog[]
   sales          Sale[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 //////////////////////////////////////////////////////////
@@ -121,14 +146,12 @@ model Product {
 //////////////////////////////////////////////////////////
 
 model ProductFilamentUsage {
-  id Int @id @default(autoincrement())
+  id             String @id @default(cuid())
+  productId      String
+  filamentTypeId String
+  weight         Float
 
-  productId      Int
-  filamentTypeId Int
-
-  weight Float
-
-  product      Product      @relation(fields: [productId], references: [id])
+  product      Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
   filamentType FilamentType @relation(fields: [filamentTypeId], references: [id])
 }
 
@@ -137,11 +160,13 @@ model ProductFilamentUsage {
 //////////////////////////////////////////////////////////
 
 model Extra {
-  id    Int     @id @default(autoincrement())
-  name  String
-  price Float
-  unit  String?
+  id     String  @id @default(cuid())
+  userId String
+  name   String
+  price  Float
+  unit   String?
 
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   usages ProductExtra[]
 }
 
@@ -150,37 +175,32 @@ model Extra {
 //////////////////////////////////////////////////////////
 
 model ProductExtra {
-  id Int @id @default(autoincrement())
+  id        String @id @default(cuid())
+  productId String
+  extraId   String
+  quantity  Float
 
-  productId Int
-  extraId   Int
-
-  quantity Float
-
-  product Product @relation(fields: [productId], references: [id])
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   extra   Extra   @relation(fields: [extraId], references: [id])
 }
 
 //////////////////////////////////////////////////////////
-// PRINT PROFILES (.3MF FILES)
+// PRINT PROFILES
 //////////////////////////////////////////////////////////
 
 model PrintProfile {
-  id Int @id @default(autoincrement())
-
-  productId Int
-
-  name     String
-  filePath String
-
-  slicer String?
-
-  printTime    Int? // minutos
+  id           String   @id @default(cuid())
+  userId       String                            // ✅ adicionado para isolamento direto
+  productId    String
+  name         String
+  filePath     String
+  slicer       String?
+  printTime    Int?
   filamentUsed Float?
+  createdAt    DateTime @default(now())
 
-  product Product @relation(fields: [productId], references: [id])
-
-  createdAt DateTime @default(now())
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
 
 //////////////////////////////////////////////////////////
@@ -188,24 +208,20 @@ model PrintProfile {
 //////////////////////////////////////////////////////////
 
 model ProductionLog {
-  id Int @id @default(autoincrement())
-
-  productId Int
-  printerId Int
-
-  quantity Int
-
-  notes String? // Ex: "A correia falhou na 3ª peça"
-
+  id              String   @id @default(cuid())
+  userId          String
+  productId       String
+  printerId       String
+  quantity        Int
+  notes           String?
   filamentCost    Float?
   electricityCost Float?
   printerCost     Float?
   extrasCost      Float?
+  totalCost       Float?
+  date            DateTime @default(now())
 
-  totalCost Float?
-
-  date DateTime @default(now())
-
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
   printer Printer @relation(fields: [printerId], references: [id])
 }
@@ -215,16 +231,29 @@ model ProductionLog {
 //////////////////////////////////////////////////////////
 
 model Sale {
-  id Int @id @default(autoincrement())
-
-  productId Int
-
+  id           String   @id @default(cuid())
+  userId       String
+  productId    String
   customerName String?
+  quantity     Int
+  salePrice    Float
+  date         DateTime @default(now())
 
-  quantity  Int
-  salePrice Float
-
-  date DateTime @default(now())
-
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
+}
+
+//////////////////////////////////////////////////////////
+// SETTINGS (por utilizador)
+//////////////////////////////////////////////////////////
+
+model Settings {
+  id     String @id @default(cuid())
+  userId String
+  key    String
+  value  String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
 }

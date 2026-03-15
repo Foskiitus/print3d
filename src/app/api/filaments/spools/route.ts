@@ -1,47 +1,75 @@
-import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
 
+// GET /api/filaments/spools
 export async function GET() {
-  try {
-    // Incluímos o tipo de filamento para o frontend saber a cor e marca do rolo
-    const spools = await prisma.filamentSpool.findMany({
-      include: { filamentType: true },
-      orderBy: { purchaseDate: "desc" },
-    });
-    return NextResponse.json(spools);
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Erro ao carregar bobines" },
-      { status: 500 },
-    );
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
+
+  const spools = await prisma.filamentSpool.findMany({
+    where: { userId: session.user.id },
+    include: { filamentType: true },
+    orderBy: { purchaseDate: "desc" },
+  });
+
+  return NextResponse.json(spools);
 }
 
-export async function POST(req: NextRequest) {
+// POST /api/filaments/spools
+export async function POST(req: Request) {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
+
   try {
     const { filamentTypeId, spoolWeight, price, purchaseDate } =
       await req.json();
 
-    if (!filamentTypeId || !spoolWeight || !price) {
+    if (!filamentTypeId || !spoolWeight || !price || !purchaseDate) {
       return NextResponse.json(
-        { error: "Faltam dados da bobine" },
+        { error: "Todos os campos são obrigatórios" },
         { status: 400 },
+      );
+    }
+
+    // Verificar que o filamentType pertence a este utilizador
+    const filamentType = await prisma.filamentType.findUnique({
+      where: { id: filamentTypeId },
+    });
+
+    if (!filamentType || filamentType.userId !== session.user.id) {
+      return NextResponse.json(
+        { error: "Tipo de filamento inválido" },
+        { status: 403 },
       );
     }
 
     const spool = await prisma.filamentSpool.create({
       data: {
-        filamentTypeId: Number(filamentTypeId),
-        spoolWeight: Number(spoolWeight),
-        remaining: Number(spoolWeight), // Quando compras, o restante é igual ao peso total
-        price: Number(price),
-        purchaseDate: purchaseDate ? new Date(purchaseDate) : new Date(),
+        userId: session.user.id,
+        filamentTypeId,
+        spoolWeight,
+        remaining: spoolWeight, // começa cheio
+        price,
+        purchaseDate: new Date(purchaseDate),
       },
+      include: { filamentType: true },
     });
+
     return NextResponse.json(spool, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
+    console.error("[POST /api/filaments/spools]", error);
     return NextResponse.json(
-      { error: "Erro ao adicionar bobine" },
+      {
+        error: "Falha ao comunicar com a base de dados",
+        details: error.message,
+      },
       { status: 500 },
     );
   }

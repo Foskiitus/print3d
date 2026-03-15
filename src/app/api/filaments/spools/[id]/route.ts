@@ -1,40 +1,43 @@
-import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
 
+// DELETE /api/filaments/spools/[id]
 export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }, // ✅ Next.js 15: params é uma Promise
 ) {
-  try {
-    const { id } = await params;
-    const spoolId = Number(id);
+  const session = await auth();
 
-    // Verificar se a bobine já foi usada em algum log de produção
-    // Nota: Ajusta o nome do campo 'spoolId' se no teu schema for diferente em ProductionLog
-    const isUsed = await prisma.productionLog.findFirst({
-      where: {
-        // Se ainda não tens esta relação no schema, o Prisma ignorará
-        // mas é a boa prática para o futuro
-        id: spoolId,
-      },
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
+
+  const { id } = await params; // ✅ await obrigatório no Next.js 15
+
+  try {
+    const existing = await prisma.filamentSpool.findUnique({
+      where: { id },
     });
 
-    if (isUsed) {
-      return NextResponse.json(
-        {
-          error:
-            "Não é possível eliminar uma bobine que já tem registos de produção associados.",
-        },
-        { status: 400 },
-      );
+    if (!existing) {
+      return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+    }
+
+    if (existing.userId !== session.user.id) {
+      return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
     }
 
     await prisma.filamentSpool.delete({
-      where: { id: spoolId },
+      where: { id },
     });
 
-    return NextResponse.json({ message: "Bobine eliminada com sucesso" });
+    return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[DELETE /api/filaments/spools/[id]]", error);
+    return NextResponse.json(
+      { error: "Erro ao eliminar", details: error.message },
+      { status: 500 },
+    );
   }
 }
