@@ -239,6 +239,8 @@ model ProductionLog {
   printerCost     Float?
   extrasCost      Float?
   totalCost       Float?
+  printTime       Int?    // ← adicionar se não existir
+  filamentUsed    Float?  // ← adicionar se não existir
   date            DateTime @default(now())
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -20,51 +21,57 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
 import { Factory, Loader2 } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
-// Definimos um tipo rápido para as impressoras para não dar erros de TypeScript
-type Printer = { id: number; name: string };
-
-// Usamos any genérico no Product caso o teu tipo antigo ainda não tenha os campos novos
 export function AddProductionDialog({
   products,
+  printers,
   onAdded,
 }: {
   products: any[];
+  printers: any[];
   onAdded: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Estados do formulário
   const [productId, setProductId] = useState("");
   const [printerId, setPrinterId] = useState("");
-  const [quantity, setQuantity] = useState("");
+  const [printHours, setPrintHours] = useState("");
+  const [printMinutes, setPrintMinutes] = useState("");
+  const [notes, setNotes] = useState("");
 
-  // Estado para guardar as impressoras vindas da API
-  const [printers, setPrinters] = useState<Printer[]>([]);
-  const [loadingPrinters, setLoadingPrinters] = useState(false);
+  const selectedProduct = products.find((p) => p.id === productId);
+  const quantity = selectedProduct?.unitsPerPrint ?? 1;
 
-  // Carrega as impressoras assim que o Dialog for aberto
-  useEffect(() => {
-    if (open && printers.length === 0) {
-      setLoadingPrinters(true);
-      fetch("/api/printers")
-        .then((res) => res.json())
-        .then((data) => setPrinters(data || []))
-        .catch(() =>
-          toast({
-            title: "Erro",
-            description: "Falha ao carregar impressoras.",
-            variant: "destructive",
-          }),
-        )
-        .finally(() => setLoadingPrinters(false));
+  // ✅ Pré-preencher campos com valores do produto ao selecionar
+  const handleProductChange = (id: string) => {
+    setProductId(id);
+    const product = products.find((p) => p.id === id);
+    if (product) {
+      const totalMinutes = product.productionTime ?? 0;
+      setPrintHours(
+        totalMinutes > 0 ? String(Math.floor(totalMinutes / 60)) : "",
+      );
+      setPrintMinutes(totalMinutes > 0 ? String(totalMinutes % 60) : "");
     }
-  }, [open, printers.length]);
+  };
+
+  const reset = () => {
+    setProductId("");
+    setPrinterId("");
+    setPrintHours("");
+    setPrintMinutes("");
+    setNotes("");
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!productId || !printerId || !quantity) return;
+    if (!productId || !printerId) return;
+
+    const printTime =
+      (parseInt(printHours || "0", 10) || 0) * 60 +
+      (parseInt(printMinutes || "0", 10) || 0);
 
     setLoading(true);
     try {
@@ -72,36 +79,29 @@ export function AddProductionDialog({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          productId: Number(productId),
-          printerId: Number(printerId),
-          quantity: Number(quantity),
+          productId,
+          printerId,
+          quantity,
+          printTime: printTime > 0 ? printTime : null,
+          notes: notes.trim() || null,
         }),
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        // Lança o erro com a mensagem exata da nossa API (ex: falta de filamento)
+      if (!res.ok)
         throw new Error(data.error || "Não foi possível registar a produção.");
-      }
-
-      const product = products.find((p) => p.id === Number(productId));
 
       toast({
-        title: "Produção registada com sucesso!",
-        description: `+${quantity} unidades de "${product?.name}" adicionadas ao stock. Custo total: ${data.totalCost?.toFixed(2)}€`,
-        variant: "default",
+        title: "Produção registada!",
+        description: `+${quantity} unidade(s) de "${selectedProduct?.name}". Custo: ${formatCurrency(data.totalCost || 0)}`,
       });
 
-      // Limpa os dados e fecha o pop-up
-      setProductId("");
-      setPrinterId("");
-      setQuantity("");
+      reset();
       setOpen(false);
-      onAdded(); // Atualiza a tabela no componente pai
+      onAdded();
     } catch (error: any) {
       toast({
-        title: "Produção Recusada",
+        title: "Produção recusada",
         description: error.message,
         variant: "destructive",
       });
@@ -111,57 +111,61 @@ export function AddProductionDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        if (!v) reset();
+      }}
+    >
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline">
+        <Button size="sm">
           <Factory size={14} className="mr-1.5" />
           Registar produção
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Registar Produção</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+          {/* Produto */}
           <div className="space-y-1.5">
-            <Label>Modelo *</Label>
-            <Select value={productId} onValueChange={setProductId} required>
+            <Label>Produto</Label>
+            <Select value={productId} onValueChange={handleProductChange}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecione o modelo..." />
+                <SelectValue placeholder="Selecionar produto..." />
               </SelectTrigger>
               <SelectContent>
                 {products.map((p) => (
-                  <SelectItem key={p.id} value={String(p.id)}>
+                  <SelectItem key={p.id} value={p.id}>
                     {p.name}
+                    {p.unitsPerPrint > 1 && (
+                      <span className="text-muted-foreground ml-1">
+                        (×{p.unitsPerPrint}/impressão)
+                      </span>
+                    )}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
+          {/* Impressora */}
           <div className="space-y-1.5">
-            <Label>Impressora Usada *</Label>
-            <Select
-              value={printerId}
-              onValueChange={setPrinterId}
-              required
-              disabled={loadingPrinters}
-            >
+            <Label>Impressora</Label>
+            <Select value={printerId} onValueChange={setPrinterId}>
               <SelectTrigger>
-                <SelectValue
-                  placeholder={
-                    loadingPrinters ? "A carregar..." : "Selecione a máquina..."
-                  }
-                />
+                <SelectValue placeholder="Selecionar impressora..." />
               </SelectTrigger>
               <SelectContent>
-                {printers.length === 0 && !loadingPrinters ? (
+                {printers.length === 0 ? (
                   <SelectItem value="none" disabled>
                     Nenhuma impressora registada
                   </SelectItem>
                 ) : (
                   printers.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>
+                    <SelectItem key={p.id} value={p.id}>
                       {p.name}
                     </SelectItem>
                   ))
@@ -170,21 +174,117 @@ export function AddProductionDialog({
             </Select>
           </div>
 
+          {/* Resumo automático do produto selecionado */}
+          {selectedProduct &&
+            (() => {
+              const totalFilament =
+                selectedProduct.filamentUsage?.reduce(
+                  (s: number, fu: any) => s + fu.weight,
+                  0,
+                ) ?? 0;
+              return (
+                <div className="p-3 rounded-lg bg-muted/40 text-sm space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Unidades produzidas
+                    </span>
+                    <span className="font-bold text-emerald-400">
+                      +{quantity}
+                    </span>
+                  </div>
+                  {totalFilament > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        Filamento estimado
+                      </span>
+                      <span className="font-medium">{totalFilament}g</span>
+                    </div>
+                  )}
+                  {selectedProduct.filamentUsage?.length > 1 && (
+                    <div className="pt-1 border-t border-border space-y-0.5">
+                      {selectedProduct.filamentUsage.map((fu: any) => (
+                        <div
+                          key={fu.filamentTypeId}
+                          className="flex justify-between text-[10px] text-muted-foreground"
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <div
+                              className="w-2 h-2 rounded-full flex-shrink-0"
+                              style={{
+                                backgroundColor: fu.filamentType?.colorHex,
+                              }}
+                            />
+                            {fu.filamentType?.brand}{" "}
+                            {fu.filamentType?.colorName}
+                          </span>
+                          <span>{fu.weight}g</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {selectedProduct.unitsPerPrint > 1 && (
+                    <p className="text-[10px] text-muted-foreground pt-0.5">
+                      Calculado automaticamente ({selectedProduct.unitsPerPrint}{" "}
+                      unidades/impressão)
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+
+          {/* Tempo real de impressão */}
           <div className="space-y-1.5">
-            <Label htmlFor="qty">Quantidade produzida *</Label>
-            <Input
-              id="qty"
-              type="number"
-              min="1"
-              placeholder="Ex: 5"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              required
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              O sistema irá descontar automaticamente os materiais necessários
-              do inventário.
+            <Label>Tempo de impressão</Label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={printHours}
+                  onChange={(e) => setPrintHours(e.target.value)}
+                  className="pr-8"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                  h
+                </span>
+              </div>
+              <div className="relative flex-1">
+                <Input
+                  type="number"
+                  min="0"
+                  max="59"
+                  placeholder="0"
+                  value={printMinutes}
+                  onChange={(e) => setPrintMinutes(e.target.value)}
+                  className="pr-10"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                  min
+                </span>
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Pré-preenchido com o valor do produto — altere se o tempo real foi
+              diferente
             </p>
+          </div>
+
+          {/* Filamento real usado */}
+          {/* Notas */}
+          <div className="space-y-1.5">
+            <Label>
+              Notas{" "}
+              <span className="text-muted-foreground font-normal">
+                (opcional)
+              </span>
+            </Label>
+            <Textarea
+              placeholder="Observações sobre esta produção..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={2}
+            />
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
@@ -197,12 +297,12 @@ export function AddProductionDialog({
             </Button>
             <Button
               type="submit"
-              disabled={loading || !productId || !printerId || !quantity}
+              disabled={loading || !productId || !printerId}
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />{" "}
-                  Processando...
+                  <Loader2 size={14} className="mr-2 animate-spin" />A
+                  processar...
                 </>
               ) : (
                 "Registar no Stock"
