@@ -17,7 +17,7 @@ export default async function SettingsPage() {
 
   const userId = session.user.id;
 
-  const [categories, extras] = await Promise.all([
+  const [categories, extras, electricitySetting] = await Promise.all([
     prisma.category.findMany({
       where: { userId },
       include: { _count: { select: { products: true } } },
@@ -28,7 +28,14 @@ export default async function SettingsPage() {
       include: { _count: { select: { usages: true } } },
       orderBy: { name: "asc" },
     }),
+    prisma.settings.findUnique({
+      where: { userId_key: { userId, key: "electricityPrice" } },
+    }),
   ]);
+
+  const electricityPrice = electricitySetting
+    ? Number(electricitySetting.value)
+    : 0.2;
 
   return (
     <div className="space-y-6">
@@ -42,6 +49,7 @@ export default async function SettingsPage() {
       <SettingsClient
         initialCategories={categories as any}
         initialExtras={extras as any}
+        initialElectricityPrice={electricityPrice}
       />
     </div>
   );

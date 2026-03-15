@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2, Tag, Package } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Trash2, Tag, Package, Zap, Check } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { NewCategoryDialog } from "@/components/forms/NewCategoryDialog";
 import { NewExtraDialog } from "@/components/forms/NewExtraDialog";
@@ -13,12 +14,18 @@ import { toast } from "@/components/ui/toaster";
 export function SettingsClient({
   initialCategories,
   initialExtras,
+  initialElectricityPrice,
 }: {
   initialCategories: any[];
   initialExtras: any[];
+  initialElectricityPrice: number;
 }) {
   const [categories, setCategories] = useState(initialCategories);
   const [extras, setExtras] = useState(initialExtras);
+  const [electricityPrice, setElectricityPrice] = useState(
+    String(initialElectricityPrice),
+  );
+  const [savingElectricity, setSavingElectricity] = useState(false);
 
   const refreshCategories = async () => {
     const res = await fetch("/api/categories");
@@ -28,6 +35,33 @@ export function SettingsClient({
   const refreshExtras = async () => {
     const res = await fetch("/api/extras");
     if (res.ok) setExtras(await res.json());
+  };
+
+  const handleSaveElectricity = async () => {
+    const value = Number(electricityPrice);
+    if (isNaN(value) || value < 0) {
+      toast({ title: "Valor inválido", variant: "destructive" });
+      return;
+    }
+    setSavingElectricity(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "electricityPrice", value: String(value) }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast({ title: "Preço de eletricidade guardado!" });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSavingElectricity(false);
+    }
   };
 
   const handleDeleteCategory = async (id: string) => {
@@ -71,6 +105,58 @@ export function SettingsClient({
 
   return (
     <div className="space-y-10">
+      {/* ── Secção: Configurações Gerais ── */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Zap size={14} className="text-muted-foreground" />
+          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+            Configurações Gerais
+          </h2>
+        </div>
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between gap-6 flex-wrap">
+              <div className="space-y-1 flex-1 min-w-[200px]">
+                <p className="text-sm font-medium">Preço da eletricidade</p>
+                <p className="text-xs text-muted-foreground">
+                  Usado para calcular o custo de energia em cada produção. O
+                  valor padrão é 0.20€/kWh.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={electricityPrice}
+                    onChange={(e) => setElectricityPrice(e.target.value)}
+                    className="w-28 pr-12"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                    €/kWh
+                  </span>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleSaveElectricity}
+                  disabled={savingElectricity}
+                >
+                  {savingElectricity ? (
+                    "A guardar..."
+                  ) : (
+                    <>
+                      <Check size={13} className="mr-1.5" />
+                      Guardar
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* ── Secção: Categorias ── */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
