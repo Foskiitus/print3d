@@ -34,10 +34,9 @@ export async function POST(req: Request) {
         name,
         categoryId: categoryId ? Number(categoryId) : null,
         printerId: Number(printerId),
-        printTime: Number(printTimeMinutes),
-        basePrice: Number(baseCost),
-        suggestedPrice: Number(recommendedPrice),
-        fileUrl: fileUrl, // Aqui vai o URL do Blob (ex: https://m5...blob.vercel-storage.com/...)
+        productionTime: Number(printTimeMinutes), // era printTime
+        fileUrl: fileUrl,
+        // remove basePrice e suggestedPrice — não existem no schema
 
         filamentUsage: {
           create: JSON.parse(usagesRaw).map((u: any) => ({

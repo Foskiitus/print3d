@@ -51,6 +51,11 @@ export async function POST(req: NextRequest) {
     // 2. Verificar se o artigo existe e se há stock suficiente
     const product = await prisma.product.findUnique({
       where: { id: Number(productId) },
+      include: {
+        _count: false,
+        productionLogs: { select: { quantity: true } },
+        sales: { select: { quantity: true } },
+      },
     });
 
     if (!product) {
@@ -60,10 +65,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (product.stockLevel < Number(quantity)) {
+    const produced = product.productionLogs.reduce(
+      (acc, l) => acc + l.quantity,
+      0,
+    );
+    const sold = product.sales.reduce((acc, s) => acc + s.quantity, 0);
+    const currentStock = produced - sold;
+
+    if (currentStock < Number(quantity)) {
       return NextResponse.json(
         {
-          error: `Stock insuficiente. Apenas tens ${product.stockLevel} unidades disponíveis para venda.`,
+          error: `Stock insuficiente. Apenas tens ${currentStock} unidades disponíveis para venda.`,
         },
         { status: 422 },
       );
@@ -71,24 +83,8 @@ export async function POST(req: NextRequest) {
 
     // 3. Registo e Atualização (Transação Segura)
     // O Prisma garante que se a venda falhar, o stock não é descontado (e vice-versa).
-    const [sale] = await prisma.$transaction([
-      prisma.sale.create({
-        data: {
-          productId: Number(productId),
-          // Se o nome do cliente vier vazio, guardamos como null (é opcional no schema)
-          customerName: customerName ? customerName.trim() : null,
-          quantity: Number(quantity),
-          salePrice: Number(salePrice),
-        },
-        include: { product: true },
-      }),
-      prisma.product.update({
-        where: { id: Number(productId) },
-        data: { stockLevel: { decrement: Number(quantity) } },
-      }),
-    ]);
 
-    return NextResponse.json(sale, { status: 201 });
+    return NextResponse.json(currentStock, { status: 201 });
   } catch (error) {
     console.error("Erro ao registar venda:", error);
     return NextResponse.json(

@@ -21,7 +21,7 @@ export function formatDate(date: Date | string): string {
  */
 
 // Preço médio do kWh em Portugal (pode ser movido para .env no futuro)
-const ELECTRICITY_KWH_PRICE = 0.26; // €/kWh
+export const ELECTRICITY_KWH_PRICE = 0.26; // €/kWh
 
 interface ProductionCostsParams {
   printTimeMinutes: number;

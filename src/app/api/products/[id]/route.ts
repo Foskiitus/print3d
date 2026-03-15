@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { ELECTRICITY_KWH_PRICE } from "@/lib/utils";
 
 // GET: Procura um produto específico e calcula os custos dinâmicos
 export async function GET(
@@ -68,7 +69,7 @@ export async function GET(
     const printerRef = printers[0];
     const hourlyCost = printerRef?.hourlyCost || 0;
     const electricityCostPerHour =
-      ((printerRef?.electricity || 0) / 1000) * 0.16; // 0.16€/kWh estimativa
+      ((printerRef?.powerWatts || 0) / 1000) * ELECTRICITY_KWH_PRICE;
 
     const hours = (product.productionTime || 0) / 60;
     const machineCost = hours * (hourlyCost + electricityCostPerHour);
@@ -107,8 +108,6 @@ export async function POST(
       where: { id: Number(id) },
       data: {
         name: name !== undefined ? name : undefined,
-        price:
-          recommendedPrice !== undefined ? Number(recommendedPrice) : undefined, // Corrigido aqui
         margin: margin !== undefined ? Number(margin) : undefined,
         productionTime:
           productionTime !== undefined ? Number(productionTime) : undefined,

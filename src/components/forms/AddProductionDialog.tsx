@@ -91,7 +91,6 @@ export function AddProductionDialog({
         title: "Produção registada com sucesso!",
         description: `+${quantity} unidades de "${product?.name}" adicionadas ao stock. Custo total: ${data.totalCost?.toFixed(2)}€`,
         variant: "default",
-        className: "bg-green-500 text-white border-none", // Opcional: Para dar um feedback mais positivo
       });
 
       // Limpa os dados e fecha o pop-up
