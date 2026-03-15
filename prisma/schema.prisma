@@ -259,6 +259,7 @@ model Sale {
   customerName String?
   quantity     Int
   salePrice    Float
+  notes        String?   // ← adicionar
   date         DateTime @default(now())
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)

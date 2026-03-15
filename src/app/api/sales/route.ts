@@ -1,94 +1,127 @@
-import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
 
-export async function GET(req: NextRequest) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const productId = searchParams.get("productId");
-    const from = searchParams.get("from");
-    const to = searchParams.get("to");
+// GET /api/sales
+export async function GET() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
 
-    const sales = await prisma.sale.findMany({
-      where: {
-        ...(productId ? { productId: Number(productId) } : {}),
-        ...(from || to
-          ? {
-              date: {
-                ...(from ? { gte: new Date(from) } : {}),
-                ...(to ? { lte: new Date(to) } : {}),
-              },
-            }
-          : {}),
-      },
-      // Incluímos os dados do artigo para podermos mostrar o nome na tabela do frontend
+  const userId = session.user.id;
+
+  const [sales, products, productionCosts] = await Promise.all([
+    prisma.sale.findMany({
+      where: { userId },
       include: { product: true },
       orderBy: { date: "desc" },
-    });
+    }),
+    prisma.product.findMany({ where: { userId } }),
+    prisma.productionLog.groupBy({
+      by: ["productId"],
+      where: { userId },
+      _avg: { totalCost: true },
+    }),
+  ]);
 
-    return NextResponse.json(sales);
-  } catch (error) {
-    console.error("Erro ao carregar vendas:", error);
-    return NextResponse.json(
-      { error: "Falha ao carregar o histórico de vendas" },
-      { status: 500 },
-    );
-  }
+  const costMap = Object.fromEntries(
+    productionCosts.map((p) => [
+      p.productId,
+      (p._avg.totalCost ?? 0) /
+        (products.find((pr) => pr.id === p.productId)?.unitsPerPrint ?? 1),
+    ]),
+  );
+
+  return NextResponse.json(
+    sales.map((s) => ({
+      ...s,
+      date: s.date.toISOString(),
+      product: {
+        ...s.product,
+        createdAt: s.product.createdAt.toISOString(),
+        updatedAt: s.product.updatedAt.toISOString(),
+      },
+      costPerUnit: costMap[s.productId] ?? null,
+    })),
+  );
 }
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const { productId, customerName, quantity, salePrice } = body;
+// POST /api/sales
+export async function POST(req: Request) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
 
-    // 1. Validação básica de dados
-    if (!productId || !quantity || quantity <= 0 || salePrice === undefined) {
+  try {
+    const { productId, quantity, salePrice, customerName, notes } =
+      await req.json();
+
+    if (!productId || !quantity || salePrice === undefined) {
       return NextResponse.json(
-        { error: "Faltam campos obrigatórios (artigo, quantidade ou preço)" },
+        { error: "Produto, quantidade e preço são obrigatórios" },
         { status: 400 },
       );
     }
 
-    // 2. Verificar se o artigo existe e se há stock suficiente
+    // Verificar que o produto pertence ao utilizador
     const product = await prisma.product.findUnique({
-      where: { id: Number(productId) },
-      include: {
-        _count: false,
-        productionLogs: { select: { quantity: true } },
-        sales: { select: { quantity: true } },
-      },
+      where: { id: productId },
     });
-
-    if (!product) {
+    if (!product || product.userId !== session.user.id) {
       return NextResponse.json(
-        { error: "Artigo não encontrado" },
+        { error: "Produto não encontrado" },
         { status: 404 },
       );
     }
 
-    const produced = product.productionLogs.reduce(
-      (acc, l) => acc + l.quantity,
-      0,
-    );
-    const sold = product.sales.reduce((acc, s) => acc + s.quantity, 0);
-    const currentStock = produced - sold;
+    // Verificar stock disponível
+    const [productionTotal, salesTotal] = await Promise.all([
+      prisma.productionLog.aggregate({
+        where: { userId: session.user.id, productId },
+        _sum: { quantity: true },
+      }),
+      prisma.sale.aggregate({
+        where: { userId: session.user.id, productId },
+        _sum: { quantity: true },
+      }),
+    ]);
 
-    if (currentStock < Number(quantity)) {
+    const stock =
+      (productionTotal._sum.quantity ?? 0) - (salesTotal._sum.quantity ?? 0);
+
+    if (stock < quantity) {
       return NextResponse.json(
-        {
-          error: `Stock insuficiente. Apenas tens ${currentStock} unidades disponíveis para venda.`,
-        },
-        { status: 422 },
+        { error: `Stock insuficiente. Disponível: ${stock} unidade(s).` },
+        { status: 409 },
       );
     }
 
-    // 3. Registo e Atualização (Transação Segura)
-    // O Prisma garante que se a venda falhar, o stock não é descontado (e vice-versa).
+    const sale = await prisma.sale.create({
+      data: {
+        userId: session.user.id,
+        productId,
+        quantity: Number(quantity),
+        salePrice: Number(salePrice),
+        customerName: customerName || null,
+        notes: notes || null,
+        date: new Date(),
+      },
+      include: { product: true },
+    });
 
-    return NextResponse.json(currentStock, { status: 201 });
-  } catch (error) {
-    console.error("Erro ao registar venda:", error);
     return NextResponse.json(
-      { error: "Falha ao registar a venda no sistema" },
+      {
+        ...sale,
+        date: sale.date.toISOString(),
+      },
+      { status: 201 },
+    );
+  } catch (error: any) {
+    console.error("[POST /api/sales]", error);
+    return NextResponse.json(
+      { error: "Erro ao registar venda", details: error.message },
       { status: 500 },
     );
   }

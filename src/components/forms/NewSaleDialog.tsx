@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -20,71 +21,80 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
 import { ShoppingCart } from "lucide-react";
-import type { Product } from "@/types";
+import { formatCurrency } from "@/lib/utils";
 
-export function NewSaleDialog({ onCreated }: { onCreated: () => void }) {
+export function NewSaleDialog({
+  products,
+  onCreated,
+}: {
+  products: any[]; // inclui campo stock
+  onCreated: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [form, setForm] = useState({
-    productId: "",
-    customerName: "",
-    quantity: "1",
-    salePrice: "",
-  });
+  const [productId, setProductId] = useState("");
+  const [quantity, setQuantity] = useState(""); // ✅ vazio por defeito
+  const [salePrice, setSalePrice] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [notes, setNotes] = useState("");
 
-  useEffect(() => {
-    if (open)
-      fetch("/api/products")
-        .then((r) => r.json())
-        .then(setProducts);
-  }, [open]);
+  const selectedProduct = products.find((p) => p.id === productId);
+  const availableStock = selectedProduct?.stock ?? 0;
 
-  const selectedProduct = products.find((p) => p.id === Number(form.productId));
+  const handleProductChange = (id: string) => {
+    setProductId(id);
+    setQuantity(""); // ✅ limpar quantidade ao mudar produto
+  };
 
-  useEffect(() => {
-    if (selectedProduct)
-      setForm((f) => ({
-        ...f,
-        salePrice: String(
-          selectedProduct.calculatedCosts?.suggestedPrice ?? "",
-        ),
-      }));
-  }, [selectedProduct]);
+  const total =
+    salePrice && quantity && Number(quantity) > 0
+      ? Number(salePrice) * Number(quantity)
+      : null;
+
+  const quantityExceedsStock =
+    quantity !== "" && Number(quantity) > availableStock;
+
+  const reset = () => {
+    setProductId("");
+    setQuantity("");
+    setSalePrice("");
+    setCustomerName("");
+    setNotes("");
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!productId || !salePrice || !quantity) return;
+
     setLoading(true);
     try {
       const res = await fetch("/api/sales", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          productId: Number(form.productId),
-          customerName: form.customerName,
-          quantity: Number(form.quantity),
-          salePrice: Number(form.salePrice),
+          productId,
+          quantity: Number(quantity),
+          salePrice: Number(salePrice),
+          customerName: customerName.trim() || null,
+          notes: notes.trim() || null,
         }),
       });
+
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error || "Erro ao registar venda");
+
       toast({
-        title: "Venda registrada!",
-        description: `${form.quantity}x "${selectedProduct?.name}" para ${form.customerName}.`,
+        title: "Venda registada!",
+        description: `${quantity}× ${selectedProduct?.name} — ${formatCurrency(Number(salePrice) * Number(quantity))}`,
       });
-      setForm({
-        productId: "",
-        customerName: "",
-        quantity: "1",
-        salePrice: "",
-      });
+
+      reset();
       setOpen(false);
       onCreated();
-    } catch (err: unknown) {
+    } catch (error: any) {
       toast({
         title: "Erro",
-        description:
-          err instanceof Error ? err.message : "Falha ao registrar venda.",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
@@ -93,94 +103,149 @@ export function NewSaleDialog({ onCreated }: { onCreated: () => void }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        if (!v) reset();
+      }}
+    >
       <DialogTrigger asChild>
         <Button size="sm">
           <ShoppingCart size={14} className="mr-1.5" />
-          Nova venda
+          Nova Venda
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Registrar venda</DialogTitle>
+          <DialogTitle>Registar Venda</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+          {/* Produto com stock */}
           <div className="space-y-1.5">
-            <Label>Produto *</Label>
-            <Select
-              value={form.productId}
-              onValueChange={(v) => setForm((f) => ({ ...f, productId: v }))}
-            >
+            <Label>Produto</Label>
+            <Select value={productId} onValueChange={handleProductChange}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecione o produto..." />
+                <SelectValue placeholder="Selecionar produto..." />
               </SelectTrigger>
               <SelectContent>
-                {products
-                  .filter((p) => (p.stockLevel ?? 0) > 0)
-                  .map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>
-                      {p.name}{" "}
-                      <span className="text-muted-foreground">
-                        (estoque: {p.stockLevel ?? 0})
+                {products.map((p) => (
+                  <SelectItem key={p.id} value={p.id} disabled={p.stock <= 0}>
+                    <div className="flex items-center justify-between w-full gap-3">
+                      <span>{p.name}</span>
+                      <span
+                        className={`text-xs font-medium ${
+                          p.stock <= 0
+                            ? "text-destructive"
+                            : p.stock <= 3
+                              ? "text-yellow-500"
+                              : "text-muted-foreground"
+                        }`}
+                      >
+                        ({p.stock} un.)
                       </span>
-                    </SelectItem>
-                  ))}
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+            {/* Stock info abaixo do select */}
+            {selectedProduct && (
+              <p
+                className={`text-[10px] ${
+                  availableStock <= 0
+                    ? "text-destructive"
+                    : availableStock <= 3
+                      ? "text-yellow-500"
+                      : "text-muted-foreground"
+                }`}
+              >
+                {availableStock <= 0
+                  ? "Sem stock disponível"
+                  : `${availableStock} unidade(s) disponível(eis)`}
+              </p>
+            )}
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="customer">Cliente *</Label>
-            <Input
-              id="customer"
-              placeholder="Nome do cliente"
-              value={form.customerName}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, customerName: e.target.value }))
-              }
-              required
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Quantidade */}
             <div className="space-y-1.5">
-              <Label htmlFor="qty">Quantidade *</Label>
+              <Label htmlFor="quantity">Quantidade</Label>
               <Input
-                id="qty"
+                id="quantity"
                 type="number"
                 min="1"
-                max={selectedProduct?.stockLevel ?? undefined}
-                value={form.quantity}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, quantity: e.target.value }))
-                }
+                max={availableStock || undefined}
+                placeholder="ex: 1"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                className={quantityExceedsStock ? "border-destructive" : ""}
                 required
               />
+              {quantityExceedsStock && (
+                <p className="text-[10px] text-destructive">
+                  Excede o stock disponível ({availableStock} un.)
+                </p>
+              )}
             </div>
+
+            {/* Preço por unidade */}
             <div className="space-y-1.5">
-              <Label htmlFor="price">Preço de venda (R$) *</Label>
+              <Label htmlFor="salePrice">Preço por unidade (€)</Label>
               <Input
-                id="price"
+                id="salePrice"
                 type="number"
                 step="0.01"
                 min="0"
-                value={form.salePrice}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, salePrice: e.target.value }))
-                }
+                placeholder="0.00"
+                value={salePrice}
+                onChange={(e) => setSalePrice(e.target.value)}
                 required
               />
             </div>
           </div>
-          {selectedProduct && (
-            <p className="text-xs text-muted-foreground">
-              Custo unitário: R${" "}
-              {(selectedProduct.calculatedCosts?.total ?? 0).toFixed(2)} ·
-              Margem: €{" "}
-              {(
-                Number(form.salePrice) -
-                (selectedProduct.calculatedCosts?.total ?? 0)
-              ).toFixed(2)}
-            </p>
+
+          {/* Total preview */}
+          {total !== null && (
+            <div className="flex justify-between items-center p-3 rounded-lg bg-muted/40 text-sm">
+              <span className="text-muted-foreground">Total da venda</span>
+              <span className="font-bold">{formatCurrency(total)}</span>
+            </div>
           )}
+
+          {/* Cliente */}
+          <div className="space-y-1.5">
+            <Label htmlFor="customer">
+              Cliente{" "}
+              <span className="text-muted-foreground font-normal">
+                (opcional)
+              </span>
+            </Label>
+            <Input
+              id="customer"
+              placeholder="Nome do cliente..."
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+            />
+          </div>
+
+          {/* Notas */}
+          <div className="space-y-1.5">
+            <Label htmlFor="notes">
+              Notas{" "}
+              <span className="text-muted-foreground font-normal">
+                (opcional)
+              </span>
+            </Label>
+            <Textarea
+              id="notes"
+              placeholder="Observações..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={2}
+            />
+          </div>
+
           <div className="flex justify-end gap-2 pt-2">
             <Button
               type="button"
@@ -191,9 +256,16 @@ export function NewSaleDialog({ onCreated }: { onCreated: () => void }) {
             </Button>
             <Button
               type="submit"
-              disabled={loading || !form.productId || !form.customerName}
+              disabled={
+                loading ||
+                !productId ||
+                !salePrice ||
+                !quantity ||
+                quantityExceedsStock ||
+                availableStock <= 0
+              }
             >
-              {loading ? "Salvando..." : "Registrar venda"}
+              {loading ? "A registar..." : "Registar Venda"}
             </Button>
           </div>
         </form>
