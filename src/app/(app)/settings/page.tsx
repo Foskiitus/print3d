@@ -1,25 +1,48 @@
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { SettingsClient } from "./SettingsClient";
 
-export default async function SalesLedgerPage() {
-  // 1. Vamos buscar as vendas com os produtos associados
-  const sales = await prisma.sale.findMany({
-    include: { product: true },
-    orderBy: { date: "desc" },
-  });
+export const metadata = {
+  title: "Configurações | Print3D",
+  description: "Gerencie categorias e extras para os seus produtos.",
+};
 
-  // 2. Vamos buscar a lista de todos os produtos disponíveis para o formulário de Nova Venda
-  const products = await prisma.product.findMany({
-    orderBy: { name: "asc" },
-  });
+export default async function SettingsPage() {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
+  const userId = session.user.id;
+
+  const [categories, extras] = await Promise.all([
+    prisma.category.findMany({
+      where: { userId },
+      include: { _count: { select: { products: true } } },
+      orderBy: { name: "asc" },
+    }),
+    prisma.extra.findMany({
+      where: { userId },
+      include: { _count: { select: { usages: true } } },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">Vendas</h1>
+        <h1 className="text-xl font-semibold text-foreground">Configurações</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Registre vendas e consulte o histórico de transações
+          Gerencie as categorias e extras disponíveis para os seus produtos.
         </p>
       </div>
+
+      <SettingsClient
+        initialCategories={categories as any}
+        initialExtras={extras as any}
+      />
     </div>
   );
 }
