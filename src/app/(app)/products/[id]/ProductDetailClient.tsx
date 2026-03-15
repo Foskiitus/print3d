@@ -50,6 +50,8 @@ export function ProductDetailClient({
   costs: {
     filamentCost: number;
     extrasCost: number;
+    printerCost?: number | null;
+    electricityCost?: number | null;
     totalCost: number;
     suggestedPrice: number;
   };
@@ -60,6 +62,7 @@ export function ProductDetailClient({
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isChildDialogOpen, setIsChildDialogOpen] = useState(false);
+  const [editKey, setEditKey] = useState(0); // ✅ forçar recálculo ao entrar em edição
 
   // ✅ URL assinado para imagem privada
   const { signedUrl: signedImageUrl } = useSignedUrl(product.imageUrl);
@@ -67,6 +70,7 @@ export function ProductDetailClient({
   const [categories, setCategories] = useState<any[]>([]);
   const [filamentTypes, setFilamentTypes] = useState<any[]>([]);
   const [extras, setExtras] = useState<any[]>([]);
+  const [printers, setPrinters] = useState<any[]>([]);
   const [form, setForm] = useState<any>(null);
 
   useEffect(() => {
@@ -75,10 +79,12 @@ export function ProductDetailClient({
       fetch("/api/categories").then((r) => r.json()),
       fetch("/api/filaments/types").then((r) => r.json()),
       fetch("/api/extras").then((r) => r.json()),
-    ]).then(([cats, fils, exts]) => {
+      fetch("/api/printers").then((r) => r.json()),
+    ]).then(([cats, fils, exts, prints]) => {
       setCategories(cats);
       setFilamentTypes(fils);
       setExtras(exts);
+      setPrinters(prints);
     });
   }, [editing]);
 
@@ -104,17 +110,28 @@ export function ProductDetailClient({
           })),
         margin: Number(form.margin) / 100,
         unitsPerPrint: Number(form.unitsPerPrint) || 1,
+        printerId: form.printerId || null,
+        productionTime: (() => {
+          const h = parseInt(form.productionHours || "0", 10) || 0;
+          const m = parseInt(form.productionMinutes || "0", 10) || 0;
+          const t = h * 60 + m;
+          return t > 0 ? t : null;
+        })(),
       }),
     })
       .then((r) => r.json())
-      .then(setCosts)
+      .then((data) => setCosts((prev: any) => ({ ...prev, ...data })))
       .catch(() => {});
   }, [
     form?.filamentUsages,
     form?.extraUsages,
     form?.margin,
     form?.unitsPerPrint,
+    form?.printerId,
+    form?.productionHours,
+    form?.productionMinutes,
     editing,
+    editKey,
   ]);
 
   const startEditing = () => {
@@ -123,8 +140,9 @@ export function ProductDetailClient({
       name: product.name,
       description: product.description ?? "",
       categoryId: product.categoryId ?? "",
-      productionHours: String(Math.floor(totalMinutes / 60) || ""),
-      productionMinutes: String(totalMinutes % 60 || ""),
+      printerId: product.printerId ?? "",
+      productionHours: String(Math.floor(totalMinutes / 60)),
+      productionMinutes: String(totalMinutes % 60),
       margin: String(Math.round(product.margin * 100)),
       unitsPerPrint: String(product.unitsPerPrint ?? 1),
       imageFile: null,
@@ -142,6 +160,7 @@ export function ProductDetailClient({
       })),
     });
     setEditing(true);
+    setEditKey((k) => k + 1); // ✅ dispara o useEffect mesmo que os valores não mudem
   };
 
   const cancelEditing = () => {
@@ -234,6 +253,7 @@ export function ProductDetailClient({
           name: form.name.trim(),
           description: form.description.trim() || null,
           categoryId: form.categoryId || null,
+          printerId: form.printerId || null,
           productionTime: (() => {
             const h = parseInt(form.productionHours || "0", 10) || 0;
             const m = parseInt(form.productionMinutes || "0", 10) || 0;
@@ -370,6 +390,24 @@ export function ProductDetailClient({
                     <span className="text-muted-foreground">Extras</span>
                     <span>{formatCurrency(costs.extrasCost)}</span>
                   </div>
+                  {costs.printerCost != null && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Impressora</span>
+                      <span>{formatCurrency(costs.printerCost)}</span>
+                    </div>
+                  )}
+                  {costs.electricityCost != null && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Energia</span>
+                      <span>{formatCurrency(costs.electricityCost)}</span>
+                    </div>
+                  )}
+                  {!product.printerId && (
+                    <p className="text-[10px] text-yellow-500">
+                      ⚠️ Sem impressora definida — custos de máquina e energia
+                      não incluídos.
+                    </p>
+                  )}
                   <div className="flex justify-between font-medium border-t border-border pt-2 mt-2">
                     <span>Custo total da impressão</span>
                     <span>{formatCurrency(costs.totalCost)}</span>
@@ -614,6 +652,24 @@ export function ProductDetailClient({
                 </Select>
               </div>
               <div className="space-y-1.5">
+                <Label>Impressora</Label>
+                <Select
+                  value={form.printerId}
+                  onValueChange={(v) => setForm({ ...form, printerId: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {printers.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
                 <Label>Tempo de impressão</Label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
@@ -698,6 +754,24 @@ export function ProductDetailClient({
                   <span className="text-muted-foreground">Extras</span>
                   <span>{formatCurrency(costs.extrasCost)}</span>
                 </div>
+                {costs.printerCost != null && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Impressora</span>
+                    <span>{formatCurrency(costs.printerCost)}</span>
+                  </div>
+                )}
+                {costs.electricityCost != null && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Energia</span>
+                    <span>{formatCurrency(costs.electricityCost)}</span>
+                  </div>
+                )}
+                {!form.printerId && (
+                  <p className="text-[10px] text-yellow-500">
+                    ⚠️ Seleciona uma impressora para incluir custos de máquina e
+                    energia.
+                  </p>
+                )}
                 <div className="flex justify-between font-medium border-t border-border pt-2 mt-2">
                   <span>Custo total da impressão</span>
                   <span>{formatCurrency(costs.totalCost)}</span>

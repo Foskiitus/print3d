@@ -34,6 +34,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
   const [categories, setCategories] = useState<any[]>([]);
   const [filamentTypes, setFilamentTypes] = useState<any[]>([]);
   const [extras, setExtras] = useState<any[]>([]);
+  const [printers, setPrinters] = useState<any[]>([]);
 
   const refreshFilamentTypes = async () => {
     const res = await fetch("/api/filaments/types");
@@ -45,6 +46,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
     name: "",
     description: "",
     categoryId: "",
+    printerId: "",
     productionHours: "",
     productionMinutes: "",
     margin: "30",
@@ -72,10 +74,12 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
       fetch("/api/categories").then((r) => r.json()),
       fetch("/api/filaments/types").then((r) => r.json()),
       fetch("/api/extras").then((r) => r.json()),
-    ]).then(([cats, fils, exts]) => {
+      fetch("/api/printers").then((r) => r.json()),
+    ]).then(([cats, fils, exts, prints]) => {
       setCategories(cats);
       setFilamentTypes(fils);
       setExtras(exts);
+      setPrinters(prints);
     });
   }, [open]);
 
@@ -102,12 +106,27 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
           .map((e) => ({ extraId: e.extraId, quantity: Number(e.quantity) })),
         margin: Number(form.margin) / 100,
         unitsPerPrint: Number(form.unitsPerPrint) || 1,
+        printerId: form.printerId || null,
+        productionTime: (() => {
+          const h = parseInt(form.productionHours || "0", 10) || 0;
+          const m = parseInt(form.productionMinutes || "0", 10) || 0;
+          const total = h * 60 + m;
+          return total > 0 ? total : null;
+        })(),
       }),
     })
       .then((r) => r.json())
       .then(setCostData)
       .catch(() => setCostData(null));
-  }, [filamentUsages, extraUsages, form.margin, open]);
+  }, [
+    filamentUsages,
+    extraUsages,
+    form.margin,
+    form.printerId,
+    form.productionHours,
+    form.productionMinutes,
+    open,
+  ]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -145,6 +164,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
       name: "",
       description: "",
       categoryId: "",
+      printerId: "",
       productionHours: "",
       productionMinutes: "",
       margin: "30",
@@ -193,6 +213,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
           name: form.name.trim(),
           description: form.description.trim() || null,
           categoryId: form.categoryId || null,
+          printerId: form.printerId || null,
           productionTime: (() => {
             const h = parseInt(form.productionHours || "0", 10) || 0;
             const m = parseInt(form.productionMinutes || "0", 10) || 0;
@@ -308,47 +329,66 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Tempo de impressão</Label>
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <Input
-                      type="number"
-                      min="0"
-                      placeholder="0"
-                      value={form.productionHours}
-                      onChange={(e) =>
-                        setForm({ ...form, productionHours: e.target.value })
-                      }
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
-                      h
-                    </span>
-                  </div>
-                  <div className="relative flex-1">
-                    <Input
-                      type="number"
-                      min="0"
-                      max="59"
-                      placeholder="0"
-                      value={form.productionMinutes}
-                      onChange={(e) =>
-                        setForm({ ...form, productionMinutes: e.target.value })
-                      }
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
-                      min
-                    </span>
-                  </div>
-                </div>
-                {(form.productionHours || form.productionMinutes) && (
-                  <p className="text-[10px] text-muted-foreground">
-                    Total:{" "}
-                    {Number(form.productionHours || 0) * 60 +
-                      Number(form.productionMinutes || 0)}{" "}
-                    minutos
-                  </p>
-                )}
+                <Label>Impressora</Label>
+                <Select
+                  value={form.printerId}
+                  onValueChange={(v) => setForm({ ...form, printerId: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {printers.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Tempo de impressão</Label>
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={form.productionHours}
+                    onChange={(e) =>
+                      setForm({ ...form, productionHours: e.target.value })
+                    }
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                    h
+                  </span>
+                </div>
+                <div className="relative flex-1">
+                  <Input
+                    type="number"
+                    min="0"
+                    max="59"
+                    placeholder="0"
+                    value={form.productionMinutes}
+                    onChange={(e) =>
+                      setForm({ ...form, productionMinutes: e.target.value })
+                    }
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                    min
+                  </span>
+                </div>
+              </div>
+              {(form.productionHours || form.productionMinutes) && (
+                <p className="text-[10px] text-muted-foreground">
+                  Total:{" "}
+                  {Number(form.productionHours || 0) * 60 +
+                    Number(form.productionMinutes || 0)}{" "}
+                  minutos
+                </p>
+              )}
             </div>
           </div>
 
@@ -561,6 +601,24 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                       <span>Extras</span>
                       <span>{formatCurrency(costData.extrasCost)}</span>
                     </div>
+                    {costData.printerCost != null && (
+                      <div className="flex justify-between">
+                        <span>Impressora</span>
+                        <span>{formatCurrency(costData.printerCost)}</span>
+                      </div>
+                    )}
+                    {costData.electricityCost != null && (
+                      <div className="flex justify-between">
+                        <span>Energia</span>
+                        <span>{formatCurrency(costData.electricityCost)}</span>
+                      </div>
+                    )}
+                    {!form.printerId && (
+                      <p className="text-[10px] text-yellow-500">
+                        ⚠️ Seleciona uma impressora para incluir custos de
+                        máquina e energia.
+                      </p>
+                    )}
                     <div className="flex justify-between border-t border-border pt-1 mt-1 font-medium text-foreground">
                       <span>Custo total da impressão</span>
                       <span>{formatCurrency(costData.totalCost)}</span>

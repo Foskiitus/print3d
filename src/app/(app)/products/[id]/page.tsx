@@ -32,7 +32,6 @@ export default async function ProductDetailPage({
         _count: { select: { productionLogs: true, sales: true } },
       },
     }),
-    // Bobines para calcular custo FIFO
     prisma.filamentSpool.findMany({
       where: { userId, remaining: { gt: 0 } },
       orderBy: { purchaseDate: "asc" },
@@ -42,7 +41,7 @@ export default async function ProductDetailPage({
 
   if (!product || product.userId !== userId) notFound();
 
-  // Calcular custo estimado FIFO
+  // 1. Custo filamentos FIFO
   let filamentCost = 0;
   for (const usage of product.filamentUsage) {
     const spool = spools.find((s) => s.filamentTypeId === usage.filamentTypeId);
@@ -51,12 +50,34 @@ export default async function ProductDetailPage({
     }
   }
 
+  // 2. Custo extras
   const extrasCost = product.extras.reduce(
     (sum, e) => sum + e.extra.price * e.quantity,
     0,
   );
 
-  const totalCost = filamentCost + extrasCost;
+  // 3. Custo impressora + energia (só se tiver impressora e tempo definidos)
+  let printerCost: number | null = null;
+  let electricityCost: number | null = null;
+
+  if (product.printer && product.productionTime) {
+    const printHours = product.productionTime / 60;
+    printerCost = printHours * product.printer.hourlyCost;
+
+    const electricitySetting = await prisma.settings.findUnique({
+      where: { userId_key: { userId, key: "electricityPrice" } },
+    });
+    const electricityPrice = electricitySetting
+      ? Number(electricitySetting.value)
+      : 0.2;
+
+    electricityCost =
+      (product.printer.powerWatts / 1000) * printHours * electricityPrice;
+  }
+
+  const totalCost =
+    filamentCost + extrasCost + (printerCost ?? 0) + (electricityCost ?? 0);
+
   const suggestedPrice = totalCost * (1 + product.margin);
 
   return (
@@ -82,7 +103,14 @@ export default async function ProductDetailPage({
 
       <ProductDetailClient
         product={product as any}
-        costs={{ filamentCost, extrasCost, totalCost, suggestedPrice }}
+        costs={{
+          filamentCost,
+          extrasCost,
+          printerCost,
+          electricityCost,
+          totalCost,
+          suggestedPrice,
+        }}
       />
     </div>
   );
