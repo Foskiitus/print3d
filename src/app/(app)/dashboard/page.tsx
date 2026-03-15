@@ -1,168 +1,192 @@
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { startOfMonth, subDays, format } from "date-fns";
-import { TrendingUp, Package, ShoppingCart, DollarSign } from "lucide-react";
-import { KpiCard } from "@/components/ui/kpi-card";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SalesLineChart } from "@/components/charts/SalesLineChart";
-import { TopProductsChart } from "@/components/charts/TopProductsChart";
-import { formatCurrency } from "@/lib/utils";
+import { DashboardClient } from "./DashboardClient";
 
-async function getDashboardData() {
-  const now = new Date();
-  const monthStart = startOfMonth(now);
-  const since30 = subDays(now, 30);
-
-  // 1. Adicionamos a busca ao ProductionLog para ter os custos reais
-  const [allSales, products, monthlySales, recentSales, allProductionLogs] =
-    await Promise.all([
-      prisma.sale.findMany({ include: { product: true } }),
-      prisma.product.findMany(),
-      prisma.sale.findMany({ where: { date: { gte: monthStart } } }),
-      prisma.sale.findMany({
-        where: { date: { gte: since30 } },
-        orderBy: { date: "asc" },
-      }),
-      prisma.productionLog.findMany(), // <--- Onde estão os verdadeiros gastos
-    ]);
-
-  // 2. O total faturado continua a vir das vendas
-  const totalRevenue = allSales.reduce(
-    (s, x) => s + x.salePrice * x.quantity,
-    0,
-  );
-
-  // 3. O custo total agora é a soma de TUDO o que gastaste nas impressões (Cash Flow Real)
-  const totalRealCost = allProductionLogs.reduce(
-    (s, log) => s + (log.totalCost || 0),
-    0,
-  );
-
-  // 4. Lucro = Faturação - Gastos Reais de Produção
-  const totalProfit = totalRevenue - totalRealCost;
-
-  const totalStock = products.reduce((s, p) => s + 0, 0); // Ainda não temos stock real, então deixamos 0
-
-  const monthlySalesVolume = monthlySales.reduce((s, x) => s + x.quantity, 0);
-  const monthlyRevenue = monthlySales.reduce(
-    (s, x) => s + x.salePrice * x.quantity,
-    0,
-  );
-
-  // Chart data: Faturação diária (últimos 30 dias)
-  const grouped: Record<string, { revenue: number; count: number }> = {};
-  for (let i = 29; i >= 0; i--) {
-    grouped[format(subDays(now, i), "yyyy-MM-dd")] = { revenue: 0, count: 0 };
-  }
-  for (const sale of recentSales) {
-    const d = format(new Date(sale.date), "yyyy-MM-dd");
-    if (grouped[d]) {
-      grouped[d].revenue += sale.salePrice * sale.quantity;
-      grouped[d].count += sale.quantity;
-    }
-  }
-  const chartData = Object.entries(grouped).map(([date, v]) => ({
-    date,
-    ...v,
-  }));
-
-  // Top products
-  const map: Record<
-    number,
-    { name: string; totalSold: number; revenue: number }
-  > = {};
-  for (const sale of allSales) {
-    if (!map[sale.productId])
-      map[sale.productId] = {
-        name: sale.product.name,
-        totalSold: 0,
-        revenue: 0,
-      };
-    map[sale.productId].totalSold += sale.quantity;
-    map[sale.productId].revenue += sale.salePrice * sale.quantity;
-  }
-  const topProducts = Object.values(map)
-    .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, 5); // Mudei para ordenar por faturação em vez de quantidade
-
-  return {
-    totalProfit,
-    totalStock,
-    monthlySalesVolume,
-    monthlyRevenue,
-    chartData,
-    topProducts,
-  };
-}
+export const metadata = { title: "Dashboard | Print3D" };
 
 export default async function DashboardPage() {
-  const {
-    totalProfit,
-    totalStock,
-    monthlySalesVolume,
-    monthlyRevenue,
-    chartData,
-    topProducts,
-  } = await getDashboardData();
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+
+  const userId = session.user.id;
+
+  const now = new Date();
+  const since = new Date(now);
+  since.setDate(since.getDate() - 30);
+
+  // ── Dados em paralelo ──────────────────────────────────────────
+  const [
+    sales,
+    productions,
+    products,
+    spools,
+    productionCosts,
+    salesTotals,
+    productionTotals,
+  ] = await Promise.all([
+    // Vendas últimos 30 dias
+    prisma.sale.findMany({
+      where: { userId, date: { gte: since } },
+      include: { product: true, customer: true },
+      orderBy: { date: "asc" },
+    }),
+    // Produções últimos 30 dias
+    prisma.productionLog.findMany({
+      where: { userId, date: { gte: since } },
+      include: { product: true },
+      orderBy: { date: "asc" },
+    }),
+    // Todos os produtos com filamentos
+    prisma.product.findMany({
+      where: { userId },
+      orderBy: { name: "asc" },
+    }),
+    // Bobines com stock
+    prisma.filamentSpool.findMany({
+      where: { userId },
+      include: { filamentType: true },
+    }),
+    // Custo médio por produção
+    prisma.productionLog.groupBy({
+      by: ["productId"],
+      where: { userId },
+      _avg: { totalCost: true },
+    }),
+    // Total vendido por produto (para stock)
+    prisma.sale.groupBy({
+      by: ["productId"],
+      where: { userId },
+      _sum: { quantity: true },
+    }),
+    // Total produzido por produto (para stock)
+    prisma.productionLog.groupBy({
+      by: ["productId"],
+      where: { userId },
+      _sum: { quantity: true, filamentUsed: true },
+    }),
+  ]);
+
+  // ── Calcular métricas ──────────────────────────────────────────
+
+  // Custo por unidade por produto
+  const costMap = Object.fromEntries(
+    productionCosts.map((p) => [
+      p.productId,
+      (p._avg.totalCost ?? 0) /
+        (products.find((pr) => pr.id === p.productId)?.unitsPerPrint ?? 1),
+    ]),
+  );
+
+  // Receita e lucro
+  const revenue = sales.reduce((s, x) => s + x.salePrice * x.quantity, 0);
+  const profit = sales.reduce((s, x) => {
+    const cost = costMap[x.productId] ?? 0;
+    return s + (x.salePrice - cost) * x.quantity;
+  }, 0);
+
+  // Unidades produzidas
+  const unitsProduced = productions.reduce((s, p) => s + p.quantity, 0);
+
+  // Filamento consumido
+  const filamentConsumed = productions.reduce(
+    (s, p) => s + (p.filamentUsed ?? 0),
+    0,
+  );
+
+  // Stock por produto
+  const stockMap = Object.fromEntries(
+    products.map((p) => {
+      const produced =
+        productionTotals.find((t) => t.productId === p.id)?._sum.quantity ?? 0;
+      const sold =
+        salesTotals.find((t) => t.productId === p.id)?._sum.quantity ?? 0;
+      return [p.id, { name: p.name, stock: produced - sold }];
+    }),
+  );
+
+  // Produtos mais vendidos (todos os tempos)
+  const topProducts = [...salesTotals]
+    .sort((a, b) => (b._sum.quantity ?? 0) - (a._sum.quantity ?? 0))
+    .slice(0, 5)
+    .map((t) => ({
+      name: products.find((p) => p.id === t.productId)?.name ?? "—",
+      quantity: t._sum.quantity ?? 0,
+    }));
+
+  // Evolução diária de receita (últimos 30 dias)
+  const revenueByDay: Record<string, number> = {};
+  const productionByDay: Record<string, number> = {};
+
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().split("T")[0];
+    revenueByDay[key] = 0;
+    productionByDay[key] = 0;
+  }
+
+  for (const sale of sales) {
+    const key = new Date(sale.date).toISOString().split("T")[0];
+    if (key in revenueByDay) {
+      revenueByDay[key] += sale.salePrice * sale.quantity;
+    }
+  }
+
+  for (const prod of productions) {
+    const key = new Date(prod.date).toISOString().split("T")[0];
+    if (key in productionByDay) {
+      productionByDay[key] += prod.quantity;
+    }
+  }
+
+  const dailyRevenue = Object.entries(revenueByDay).map(([date, value]) => ({
+    date,
+    value: Math.round(value * 100) / 100,
+  }));
+
+  const dailyProduction = Object.entries(productionByDay).map(
+    ([date, value]) => ({
+      date,
+      value,
+    }),
+  );
+
+  // Filamento restante por tipo
+  const filamentStock = Object.values(
+    spools.reduce((acc: any, spool) => {
+      const key = spool.filamentTypeId;
+      if (!acc[key]) {
+        acc[key] = {
+          name: `${spool.filamentType.brand} ${spool.filamentType.colorName}`,
+          colorHex: spool.filamentType.colorHex,
+          remaining: 0,
+          total: 0,
+        };
+      }
+      acc[key].remaining += spool.remaining;
+      acc[key].total += spool.spoolWeight;
+      return acc;
+    }, {}),
+  )
+    .sort((a: any, b: any) => a.remaining - b.remaining)
+    .slice(0, 8);
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Visão geral financeira e logística da produção 3D
-        </p>
+        <p className="text-sm text-muted-foreground mt-0.5">Últimos 30 dias</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Usamos a tua função utilitária formatCurrency para ter o valor em Euros ou Reais certinho */}
-        <KpiCard
-          title="Lucro Líquido Real"
-          value={formatCurrency(totalProfit)}
-          sub="Faturação - Custos Fabrico"
-          icon={DollarSign}
-          trend="up"
-        />
-        <KpiCard
-          title="Peças em Stock"
-          value={String(totalStock)}
-          sub="Prontas a vender"
-          icon={Package}
-          trend="neutral"
-        />
-        <KpiCard
-          title="Vendas (Mês)"
-          value={String(monthlySalesVolume)}
-          sub="Unidades faturadas"
-          icon={ShoppingCart}
-          trend="up"
-        />
-        <KpiCard
-          title="Faturação (Mês)"
-          value={formatCurrency(monthlyRevenue)}
-          sub="Entrada bruta"
-          icon={TrendingUp}
-          trend="up"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Faturação — Últimos 30 dias</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <SalesLineChart data={chartData} />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Top 5 Peças Mais Rentáveis</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <TopProductsChart data={topProducts} />
-          </CardContent>
-        </Card>
-      </div>
+      <DashboardClient
+        metrics={{ revenue, profit, unitsProduced, filamentConsumed }}
+        dailyRevenue={dailyRevenue}
+        dailyProduction={dailyProduction}
+        topProducts={topProducts}
+        stockMap={Object.values(stockMap) as any}
+        filamentStock={filamentStock as any}
+      />
     </div>
   );
 }
