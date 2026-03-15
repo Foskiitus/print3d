@@ -16,9 +16,11 @@ import {
   FileText,
   Check,
   X,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "@/components/ui/toaster";
 import { CustomerDialog } from "@/components/forms/CustomerDialog";
+import Link from "next/link";
 
 export function CustomersClient({
   initialCustomers,
@@ -278,9 +280,12 @@ export function CustomersClient({
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-semibold text-sm">
+                            <Link
+                              href={`/customers/${customer.id}`}
+                              className="font-semibold text-sm hover:text-primary transition-colors"
+                            >
                               {customer.name}
-                            </p>
+                            </Link>
                             {customer.nif && (
                               <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                                 NIF {customer.nif}
@@ -315,6 +320,15 @@ export function CustomersClient({
                         </div>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
+                        <Link href={`/customers/${customer.id}`}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground/40 hover:text-muted-foreground"
+                          >
+                            <ChevronRight size={13} />
+                          </Button>
+                        </Link>
                         <Button
                           variant="ghost"
                           size="icon"

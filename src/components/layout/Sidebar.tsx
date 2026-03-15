@@ -15,6 +15,7 @@ import {
   Droplets,
   Settings,
   Printer,
+  FileDown,
 } from "lucide-react";
 import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
@@ -28,6 +29,7 @@ const navItems = [
   { label: "Vendas", icon: ShoppingCart, href: "/sales-ledger" },
   { label: "Impressoras", icon: Printer, href: "/printers" },
   { label: "Clientes", icon: Users, href: "/customers" },
+  { label: "Exportação", icon: FileDown, href: "/export" },
   { label: "Configurações", icon: Settings, href: "/settings" },
 ];
 
