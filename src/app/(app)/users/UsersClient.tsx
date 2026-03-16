@@ -24,7 +24,7 @@ import {
 import { toast } from "@/components/ui/toaster";
 
 type User = {
-  id: number;
+  id: string;
   name: string;
   email: string;
   role: string;
@@ -68,7 +68,7 @@ export function UsersClient({ users: initial }: { users: User[] }) {
     setLoading(false);
   }
 
-  async function handleDelete(id: number) {
+  async function handleDelete(id: string) {
     if (!confirm("Tens a certeza que queres apagar este utilizador?")) return;
     const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
     if (res.ok) {

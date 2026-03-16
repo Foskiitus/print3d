@@ -106,7 +106,7 @@ export async function GET(req: NextRequest) {
     if (type === "top-products") {
       const sales = await prisma.sale.findMany({ include: { product: true } });
       const map: Record<
-        number,
+        string,
         { name: string; totalSold: number; revenue: number }
       > = {};
 

@@ -10,8 +10,8 @@ export async function POST(
 
   const usage = await prisma.productExtra.create({
     data: {
-      productId: Number(id),
-      extraId: Number(extraId),
+      productId: id,
+      extraId: String(extraId),
       quantity: Number(quantity),
     },
   });
@@ -20,6 +20,6 @@ export async function POST(
 
 export async function DELETE(req: NextRequest) {
   const itemId = req.nextUrl.searchParams.get("itemId");
-  await prisma.productExtra.delete({ where: { id: Number(itemId) } });
+  await prisma.productExtra.delete({ where: { id: String(itemId) } });
   return NextResponse.json({ ok: true });
 }

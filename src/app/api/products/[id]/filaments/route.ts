@@ -10,8 +10,8 @@ export async function POST(
 
   const usage = await prisma.productFilamentUsage.create({
     data: {
-      productId: Number(id),
-      filamentTypeId: Number(filamentTypeId),
+      productId: id,
+      filamentTypeId: String(filamentTypeId),
       weight: Number(weight),
     },
   });
@@ -20,6 +20,6 @@ export async function POST(
 
 export async function DELETE(req: NextRequest) {
   const itemId = req.nextUrl.searchParams.get("itemId");
-  await prisma.productFilamentUsage.delete({ where: { id: Number(itemId) } });
+  await prisma.productFilamentUsage.delete({ where: { id: String(itemId) } });
   return NextResponse.json({ ok: true });
 }
