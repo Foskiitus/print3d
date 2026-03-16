@@ -35,6 +35,7 @@ export async function POST(req: Request) {
       name,
       description,
       categoryId,
+      printerId,
       productionTime,
       margin,
       imageUrl,
@@ -42,6 +43,7 @@ export async function POST(req: Request) {
       filamentUsages,
       extraUsages,
       unitsPerPrint,
+      alertThreshold,
     } = await req.json();
 
     if (!name?.trim()) {
@@ -64,9 +66,11 @@ export async function POST(req: Request) {
         name: name.trim(),
         description: description || null,
         categoryId: categoryId || null,
+        printerId: printerId || null,
         productionTime: productionTime || null,
         margin: margin ?? 0.3,
         unitsPerPrint: unitsPerPrint ?? 1,
+        alertThreshold: alertThreshold != null ? Number(alertThreshold) : null,
         imageUrl: imageUrl || null,
         fileUrl: fileUrl || null,
         filamentUsage: {
