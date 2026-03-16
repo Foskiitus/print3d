@@ -81,5 +81,13 @@ export async function GET() {
     })
     .filter((x): x is NonNullable<typeof x> => x !== null);
 
-  return NextResponse.json({ productAlerts, spoolAlerts });
+  return NextResponse.json(
+    { productAlerts, spoolAlerts },
+    {
+      headers: {
+        // Cache de 60s no browser, revalida em background
+        "Cache-Control": "private, max-age=60, stale-while-revalidate=300",
+      },
+    },
+  );
 }

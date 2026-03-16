@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Package, Droplets, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -132,29 +132,50 @@ export function AlertsHeader() {
   const [productAlerts, setProductAlerts] = useState<any[]>([]);
   const [spoolAlerts, setSpoolAlerts] = useState<any[]>([]);
 
-  const load = useCallback(async () => {
-    try {
-      const r = await fetch("/api/alerts");
-      const data = await r.json();
-      setProductAlerts(data.productAlerts ?? []);
-      setSpoolAlerts(data.spoolAlerts ?? []);
-    } catch {}
-  }, []);
-
   useEffect(() => {
+    const CACHE_KEY = "alerts_cache";
+    const CACHE_TTL = 60 * 1000; // 60 segundos
+
+    const load = async () => {
+      // Verificar cache em memória
+      try {
+        const cached = sessionStorage.getItem(CACHE_KEY);
+        if (cached) {
+          const { data, ts } = JSON.parse(cached);
+          if (Date.now() - ts < CACHE_TTL) {
+            setProductAlerts(data.productAlerts ?? []);
+            setSpoolAlerts(data.spoolAlerts ?? []);
+            return;
+          }
+        }
+      } catch {}
+
+      // Buscar dados frescos
+      try {
+        const res = await fetch("/api/alerts");
+        const data = await res.json();
+        setProductAlerts(data.productAlerts ?? []);
+        setSpoolAlerts(data.spoolAlerts ?? []);
+        sessionStorage.setItem(
+          CACHE_KEY,
+          JSON.stringify({ data, ts: Date.now() }),
+        );
+      } catch {}
+    };
+
     load();
 
-    // Recarrega a cada 5 minutos
-    const interval = setInterval(load, 5 * 60 * 1000);
+    // Refrescar a cada 5 minutos
+    const interval = setInterval(
+      () => {
+        sessionStorage.removeItem("alerts_cache");
+        load();
+      },
+      5 * 60 * 1000,
+    );
 
-    // Recarrega imediatamente quando qualquer ação modifica dados
-    window.addEventListener("refresh-alerts", load);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("refresh-alerts", load);
-    };
-  }, [load]);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="flex items-center gap-1">
