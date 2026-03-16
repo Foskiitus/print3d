@@ -2,6 +2,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
+const DEFAULT_SPOOL_THRESHOLD = 500; // gramas
+
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
@@ -10,25 +12,33 @@ export async function GET() {
 
   const userId = session.user.id;
 
-  const [products, spools, productionTotals, salesTotals] = await Promise.all([
-    prisma.product.findMany({
-      where: { userId, alertThreshold: { not: null } },
-    }),
-    prisma.filamentSpool.findMany({
-      where: { userId, alertThreshold: { not: null } },
-      include: { filamentType: true },
-    }),
-    prisma.productionLog.groupBy({
-      by: ["productId"],
-      where: { userId },
-      _sum: { quantity: true },
-    }),
-    prisma.sale.groupBy({
-      by: ["productId"],
-      where: { userId },
-      _sum: { quantity: true },
-    }),
-  ]);
+  const [products, filamentTypes, productionTotals, salesTotals] =
+    await Promise.all([
+      // Produtos com threshold definido
+      prisma.product.findMany({
+        where: { userId, alertThreshold: { not: null } },
+      }),
+      // Tipos de filamento com as suas bobines
+      prisma.filamentType.findMany({
+        where: { userId },
+        include: {
+          spools: {
+            where: { userId },
+            select: { remaining: true },
+          },
+        },
+      }),
+      prisma.productionLog.groupBy({
+        by: ["productId"],
+        where: { userId },
+        _sum: { quantity: true },
+      }),
+      prisma.sale.groupBy({
+        by: ["productId"],
+        where: { userId },
+        _sum: { quantity: true },
+      }),
+    ]);
 
   // Alertas de produtos
   const productAlerts = products
@@ -38,19 +48,38 @@ export async function GET() {
       const sold =
         salesTotals.find((t) => t.productId === p.id)?._sum.quantity ?? 0;
       const stock = produced - sold;
-      return { id: p.id, name: p.name, stock, threshold: p.alertThreshold! };
+      if (stock > p.alertThreshold!) return null;
+      const severity = stock === 0 ? "critical" : "warning";
+      return {
+        id: p.id,
+        name: p.name,
+        stock,
+        threshold: p.alertThreshold!,
+        severity,
+      };
     })
-    .filter((p) => p.stock <= p.threshold);
+    .filter((x): x is NonNullable<typeof x> => x !== null);
 
-  // Alertas de bobines
-  const spoolAlerts = spools
-    .filter((s) => s.remaining <= s.alertThreshold!)
-    .map((s) => ({
-      id: s.id,
-      name: `${s.filamentType.brand} ${s.filamentType.colorName}`,
-      remaining: s.remaining,
-      threshold: s.alertThreshold!,
-    }));
+  // Alertas de filamentos — soma todas as bobines do tipo
+  const spoolAlerts = filamentTypes
+    .map((ft) => {
+      // Ignorar tipos sem nenhuma bobine registada
+      if (ft.spools.length === 0) return null;
+      const totalRemaining = ft.spools.reduce((s, sp) => s + sp.remaining, 0);
+      const threshold = ft.alertThreshold ?? DEFAULT_SPOOL_THRESHOLD;
+      if (totalRemaining > threshold) return null;
+      const severity = totalRemaining < 100 ? "critical" : "warning";
+      return {
+        id: ft.id,
+        name: `${ft.brand} ${ft.colorName}`,
+        colorHex: ft.colorHex,
+        remaining: totalRemaining,
+        threshold,
+        spoolCount: ft.spools.length,
+        severity,
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
 
   return NextResponse.json({ productAlerts, spoolAlerts });
 }

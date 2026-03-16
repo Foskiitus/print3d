@@ -24,9 +24,10 @@ export function NewFilamentTypeDialog({
 
   const [form, setForm] = useState({
     brand: "",
-    material: "", // Ex: PLA Basic, PLA Matte
-    colorName: "", // Ex: 11101 Preto
-    colorHex: "#3b82f6", // Cor para o círculo (hexadecimal)
+    material: "",
+    colorName: "",
+    colorHex: "#3b82f6",
+    alertThreshold: "",
   });
 
   async function handleSubmit(e: React.FormEvent) {
@@ -43,14 +44,23 @@ export function NewFilamentTypeDialog({
           brand: form.brand,
           material: form.material,
           colorHex: form.colorHex,
-          colorName: form.colorName, // Assumindo que adicionaste ou usas material para o texto
+          colorName: form.colorName,
+          alertThreshold: form.alertThreshold
+            ? Number(form.alertThreshold)
+            : null,
         }),
       });
 
       if (!res.ok) throw new Error();
 
       toast({ title: "Material adicionado ao catálogo!" });
-      setForm({ brand: "", material: "", colorName: "", colorHex: "#3b82f6" });
+      setForm({
+        brand: "",
+        material: "",
+        colorName: "",
+        colorHex: "#3b82f6",
+        alertThreshold: "",
+      });
       setOpen(false);
       onCreated();
     } catch {
@@ -134,6 +144,28 @@ export function NewFilamentTypeDialog({
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>
+              Alerta de stock mínimo (g){" "}
+              <span className="text-muted-foreground font-normal">
+                (opcional)
+              </span>
+            </Label>
+            <Input
+              type="number"
+              min="0"
+              placeholder="Padrão: 500g"
+              value={form.alertThreshold}
+              onChange={(e) =>
+                setForm({ ...form, alertThreshold: e.target.value })
+              }
+            />
+            <p className="text-[10px] text-muted-foreground">
+              Recebe um alerta quando o total deste filamento baixar deste
+              valor. Se não definires, usa 500g.
+            </p>
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>

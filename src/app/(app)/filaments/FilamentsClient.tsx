@@ -124,6 +124,14 @@ export function FilamentsClient({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {types.map((type) => {
               const isSelected = selectedTypeId === type.id;
+              // ✅ Contar apenas bobines com filamento restante (> 0)
+              const activeCount = spools.filter(
+                (s) => s.filamentTypeId === type.id && s.remaining > 0,
+              ).length;
+              // Total de gramas disponível deste tipo
+              const totalRemaining = spools
+                .filter((s) => s.filamentTypeId === type.id && s.remaining > 0)
+                .reduce((sum, s) => sum + s.remaining, 0);
 
               return (
                 <Card
@@ -155,12 +163,25 @@ export function FilamentsClient({
                         </div>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <Badge
-                          variant={isSelected ? "default" : "secondary"}
-                          className="text-[10px]"
-                        >
-                          {type._count?.spools || 0} rolos
-                        </Badge>
+                        <div className="text-right">
+                          <Badge
+                            variant={isSelected ? "default" : "secondary"}
+                            className="text-[10px]"
+                          >
+                            {activeCount} rolo(s) activo(s)
+                          </Badge>
+                          {totalRemaining > 0 && (
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              {totalRemaining.toFixed(0)}g disponíveis
+                              {type.alertThreshold != null &&
+                                totalRemaining <= type.alertThreshold && (
+                                  <span className="text-destructive ml-1">
+                                    ⚠️
+                                  </span>
+                                )}
+                            </p>
+                          )}
+                        </div>
                         <div onClick={(e) => e.stopPropagation()}>
                           <Button
                             variant="ghost"

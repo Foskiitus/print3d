@@ -28,7 +28,8 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { brand, material, colorName, colorHex } = await req.json();
+    const { brand, material, colorName, colorHex, alertThreshold } =
+      await req.json();
 
     if (!brand || !material || !colorName || !colorHex) {
       return NextResponse.json(
@@ -44,6 +45,7 @@ export async function POST(req: Request) {
         material,
         colorName,
         colorHex,
+        alertThreshold: alertThreshold != null ? Number(alertThreshold) : null,
       },
       include: {
         _count: { select: { spools: true } },
