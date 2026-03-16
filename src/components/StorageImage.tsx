@@ -3,7 +3,7 @@
 import { useSignedUrl } from "@/hooks/useSignedUrl";
 import { Package } from "lucide-react";
 
-interface BlobImageProps {
+interface StorageImageProps {
   src: string | null | undefined;
   alt: string;
   className?: string;
@@ -12,9 +12,14 @@ interface BlobImageProps {
 
 /**
  * Componente de imagem que gera automaticamente URLs assinados
- * para ficheiros privados no Vercel Blob.
+ * para ficheiros privados no Cloudflare R2.
  */
-export function BlobImage({ src, alt, className, fallback }: BlobImageProps) {
+export function StorageImage({
+  src,
+  alt,
+  className,
+  fallback,
+}: StorageImageProps) {
   const { signedUrl, loading } = useSignedUrl(src);
 
   if (!src) {

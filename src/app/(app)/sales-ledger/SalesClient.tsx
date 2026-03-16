@@ -8,6 +8,7 @@ import { NewSaleDialog } from "@/components/forms/NewSaleDialog";
 import { formatCurrency } from "@/lib/utils";
 import { ArrowUpDown, Search, Trash2, Pencil, Check, X } from "lucide-react";
 import { toast } from "@/components/ui/toaster";
+import { refreshAlerts } from "@/lib/refreshAlerts";
 import {
   Select,
   SelectContent,
@@ -99,6 +100,7 @@ export function SalesClient({
       toast({ title: "Venda atualizada" });
       cancelEdit();
       refresh();
+      refreshAlerts();
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -118,6 +120,7 @@ export function SalesClient({
       if (!res.ok) throw new Error(data.error);
       toast({ title: "Venda apagada" });
       refresh();
+      refreshAlerts();
     } catch (error: any) {
       toast({
         title: "Erro",
