@@ -4,16 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { PrintersClient } from "./PrintersClient";
 
 export const metadata = {
-  title: "Gestão de Impressoras | Print3D",
+  title: "Impressoras",
   description: "Configure os custos operacionais e consumo das suas máquinas.",
 };
 
 export default async function PrintersPage() {
   const session = await auth();
-
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
+  if (!session?.user?.id) redirect("/login");
 
   const isAdmin = (session.user as any).role === "admin";
 
@@ -30,23 +27,18 @@ export default async function PrintersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          Impressoras 3D
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Gerencie o seu parque de máquinas para garantir cálculos de custo
-          energético e manutenção precisos.
+      <div>
+        <h1 className="text-xl font-semibold text-foreground">Impressoras</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Gere o parque de máquinas para cálculos de custo energético precisos.
         </p>
       </div>
 
-      <div className="border-t border-muted pt-6">
-        <PrintersClient
-          initialPrinters={printers as any}
-          presets={presets as any}
-          isAdmin={isAdmin}
-        />
-      </div>
+      <PrintersClient
+        initialPrinters={printers as any}
+        presets={presets as any}
+        isAdmin={isAdmin}
+      />
 
       <div className="bg-primary/5 border border-primary/10 rounded-lg p-4">
         <h4 className="text-sm font-semibold text-primary mb-1">
@@ -55,8 +47,7 @@ export default async function PrintersPage() {
         <p className="text-xs text-muted-foreground leading-relaxed">
           O <strong>Custo Horário</strong> deve incluir a amortização da máquina
           e manutenção preventiva. O <strong>Consumo (W)</strong> é usado para
-          calcular o gasto elétrico com base no tempo de impressão de cada
-          produto no seu inventário.
+          calcular o gasto elétrico com base no tempo de impressão.
         </p>
       </div>
     </div>

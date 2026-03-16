@@ -21,6 +21,7 @@ import {
 import { toast } from "@/components/ui/toaster";
 import { refreshAlerts } from "@/lib/refreshAlerts";
 import { SlidersHorizontal } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const REASONS = [
   "Impressão falhada",
@@ -45,13 +46,8 @@ export function SpoolAdjustDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
-    type: "waste", // "waste" = desperdício (-), "correction" = correção (+/-)
-    amount: "",
-    reason: "",
-  });
+  const [form, setForm] = useState({ type: "waste", amount: "", reason: "" });
 
-  // Calcula o valor final que vai ser enviado à API
   const adjustAmount =
     form.amount === ""
       ? 0
@@ -75,7 +71,6 @@ export function SpoolAdjustDialog({
           reason: form.reason || null,
         }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro desconhecido");
 
@@ -143,22 +138,24 @@ export function SpoolAdjustDialog({
               <button
                 type="button"
                 onClick={() => setForm({ ...form, type: "waste" })}
-                className={`p-2.5 rounded-lg border text-sm font-medium transition-colors ${
+                className={cn(
+                  "p-2.5 rounded-lg border text-sm font-medium transition-colors",
                   form.type === "waste"
                     ? "border-destructive bg-destructive/10 text-destructive"
-                    : "border-border text-muted-foreground hover:border-foreground/30"
-                }`}
+                    : "border-border text-muted-foreground hover:border-foreground/30",
+                )}
               >
                 — Desperdício
               </button>
               <button
                 type="button"
                 onClick={() => setForm({ ...form, type: "correction" })}
-                className={`p-2.5 rounded-lg border text-sm font-medium transition-colors ${
+                className={cn(
+                  "p-2.5 rounded-lg border text-sm font-medium transition-colors",
                   form.type === "correction"
                     ? "border-primary bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground hover:border-foreground/30"
-                }`}
+                    : "border-border text-muted-foreground hover:border-foreground/30",
+                )}
               >
                 ± Correção
               </button>
@@ -206,11 +203,12 @@ export function SpoolAdjustDialog({
           {/* Preview do resultado */}
           {form.amount !== "" && Number(form.amount) !== 0 && (
             <div
-              className={`p-3 rounded-lg text-sm ${
+              className={cn(
+                "p-3 rounded-lg text-sm space-y-1",
                 newRemaining < 0
                   ? "bg-destructive/10 text-destructive"
-                  : "bg-muted/40"
-              }`}
+                  : "bg-muted/40",
+              )}
             >
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Peso atual</span>
@@ -218,9 +216,10 @@ export function SpoolAdjustDialog({
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Ajuste</span>
+                {/* ✅ text-success em vez de text-green-500 */}
                 <span
                   className={
-                    adjustAmount < 0 ? "text-destructive" : "text-green-500"
+                    adjustAmount < 0 ? "text-destructive" : "text-success"
                   }
                 >
                   {adjustAmount > 0 ? "+" : ""}

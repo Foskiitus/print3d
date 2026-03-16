@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export const metadata = { title: "Alertas | Print3D" };
+export const metadata = { title: "Alertas" };
 
 export default async function AlertsPage() {
   const session = await auth();
@@ -53,7 +53,7 @@ export default async function AlertsPage() {
       const sold =
         salesTotals.find((t) => t.productId === p.id)?._sum.quantity ?? 0;
       const stock = produced - sold;
-      if (produced === 0) return null; // nunca produzido — não alertar
+      if (produced === 0) return null;
       if (stock > p.alertThreshold!) return null;
       const severity = stock === 0 ? "critical" : "warning";
       return {
@@ -106,10 +106,12 @@ export default async function AlertsPage() {
         )}
       </div>
 
+      {/* ── Tudo em ordem ── */}
       {totalAlerts === 0 && (
         <div className="border border-dashed rounded-lg py-16 text-center space-y-2">
-          <CheckCircle size={32} className="text-emerald-400 mx-auto" />
-          <p className="text-sm font-medium">Tudo em ordem!</p>
+          {/* ✅ text-success em vez de text-emerald-400 */}
+          <CheckCircle size={32} className="text-success mx-auto" />
+          <p className="text-sm font-medium text-foreground">Tudo em ordem!</p>
           <p className="text-xs text-muted-foreground">
             Nenhum produto ou bobine abaixo do limite de alerta.
           </p>
@@ -121,7 +123,7 @@ export default async function AlertsPage() {
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Package size={14} className="text-muted-foreground" />
-            <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+            <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
               Produtos
             </h2>
             <Badge variant="destructive" className="text-[10px]">
@@ -132,32 +134,36 @@ export default async function AlertsPage() {
             {productAlerts.map((p) => (
               <Card
                 key={p.id}
-                className={
+                className={cn(
                   p.severity === "critical"
                     ? "border-destructive/30 bg-destructive/5"
-                    : "border-yellow-500/30 bg-yellow-500/5"
-                }
+                    : /* ✅ border-warning/30 bg-warning/5 em vez de border-yellow-500 */
+                      "border-warning/30 bg-warning/5",
+                )}
               >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <AlertTriangle
                         size={16}
-                        className={
+                        className={cn(
+                          "flex-shrink-0",
                           p.severity === "critical"
-                            ? "text-destructive flex-shrink-0"
-                            : "text-yellow-500 flex-shrink-0"
-                        }
+                            ? "text-destructive"
+                            : "text-warning",
+                        )}
                       />
                       <div>
-                        <p className="font-medium text-sm">{p.name}</p>
+                        <p className="font-medium text-sm text-foreground">
+                          {p.name}
+                        </p>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           <span
                             className={cn(
                               "font-medium",
                               p.severity === "critical"
                                 ? "text-destructive"
-                                : "text-yellow-500",
+                                : "text-warning",
                             )}
                           >
                             {p.stock} unidades
@@ -185,7 +191,7 @@ export default async function AlertsPage() {
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Droplets size={14} className="text-muted-foreground" />
-            <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+            <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
               Bobines de filamento
             </h2>
             <Badge variant="destructive" className="text-[10px]">
@@ -196,11 +202,11 @@ export default async function AlertsPage() {
             {spoolAlerts.map((s) => (
               <Card
                 key={s.id}
-                className={
+                className={cn(
                   s.severity === "critical"
                     ? "border-destructive/30 bg-destructive/5"
-                    : "border-yellow-500/30 bg-yellow-500/5"
-                }
+                    : "border-warning/30 bg-warning/5",
+                )}
               >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between gap-4">
@@ -211,16 +217,18 @@ export default async function AlertsPage() {
                           "flex-shrink-0",
                           s.severity === "critical"
                             ? "text-destructive"
-                            : "text-yellow-500",
+                            : "text-warning",
                         )}
                       />
                       <div>
                         <div className="flex items-center gap-2">
                           <div
-                            className="w-3 h-3 rounded-full flex-shrink-0"
+                            className="w-3 h-3 rounded-full flex-shrink-0 ring-1 ring-border/30"
                             style={{ backgroundColor: s.colorHex }}
                           />
-                          <p className="font-medium text-sm">{s.name}</p>
+                          <p className="font-medium text-sm text-foreground">
+                            {s.name}
+                          </p>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           <span
@@ -228,7 +236,7 @@ export default async function AlertsPage() {
                               "font-medium",
                               s.severity === "critical"
                                 ? "text-destructive"
-                                : "text-yellow-500",
+                                : "text-warning",
                             )}
                           >
                             {s.remaining.toFixed(0)}g
@@ -261,7 +269,7 @@ export default async function AlertsPage() {
         </div>
       )}
 
-      {/* ── Info sobre como configurar ── */}
+      {/* ── Como configurar ── */}
       <div className="rounded-lg border border-border bg-muted/20 p-4 text-xs text-muted-foreground space-y-1">
         <p className="font-medium text-foreground text-sm">
           Como configurar alertas

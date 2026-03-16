@@ -35,7 +35,6 @@ export function AddProductionDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-
   const [productId, setProductId] = useState("");
   const [printerId, setPrinterId] = useState("");
   const [printHours, setPrintHours] = useState("");
@@ -45,7 +44,6 @@ export function AddProductionDialog({
   const selectedProduct = products.find((p) => p.id === productId);
   const quantity = selectedProduct?.unitsPerPrint ?? 1;
 
-  // ✅ Pré-preencher campos com valores do produto ao selecionar
   const handleProductChange = (id: string) => {
     setProductId(id);
     const product = products.find((p) => p.id === id);
@@ -55,10 +53,7 @@ export function AddProductionDialog({
         totalMinutes > 0 ? String(Math.floor(totalMinutes / 60)) : "",
       );
       setPrintMinutes(totalMinutes > 0 ? String(totalMinutes % 60) : "");
-      // ✅ Pré-selecionar impressora do produto se existir
-      if (product.printerId) {
-        setPrinterId(product.printerId);
-      }
+      if (product.printerId) setPrinterId(product.printerId);
     }
   };
 
@@ -91,7 +86,6 @@ export function AddProductionDialog({
           notes: notes.trim() || null,
         }),
       });
-
       const data = await res.json();
       if (!res.ok)
         throw new Error(data.error || "Não foi possível registar a produção.");
@@ -157,11 +151,11 @@ export function AddProductionDialog({
             </Select>
           </div>
 
-          {/* Impressora — só leitura, vem do produto */}
+          {/* Impressora */}
           <div className="space-y-1.5">
             <Label>Impressora</Label>
             {selectedProduct?.printerId ? (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-muted/30 text-sm">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-muted/30 text-sm">
                 <span className="font-medium">
                   {printers.find((p) => p.id === selectedProduct.printerId)
                     ?.name ?? "—"}
@@ -192,7 +186,7 @@ export function AddProductionDialog({
             )}
           </div>
 
-          {/* Resumo automático do produto selecionado */}
+          {/* Resumo do produto selecionado */}
           {selectedProduct &&
             (() => {
               const totalFilament =
@@ -206,9 +200,8 @@ export function AddProductionDialog({
                     <span className="text-muted-foreground">
                       Unidades produzidas
                     </span>
-                    <span className="font-bold text-emerald-400">
-                      +{quantity}
-                    </span>
+                    {/* ✅ text-success em vez de text-emerald-400 */}
+                    <span className="font-bold text-success">+{quantity}</span>
                   </div>
                   {totalFilament > 0 && (
                     <div className="flex justify-between">
@@ -250,7 +243,7 @@ export function AddProductionDialog({
               );
             })()}
 
-          {/* Tempo real de impressão */}
+          {/* Tempo de impressão */}
           <div className="space-y-1.5">
             <Label>Tempo de impressão</Label>
             <div className="flex gap-2">
@@ -288,7 +281,6 @@ export function AddProductionDialog({
             </p>
           </div>
 
-          {/* Filamento real usado */}
           {/* Notas */}
           <div className="space-y-1.5">
             <Label>

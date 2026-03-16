@@ -6,9 +6,20 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { NewSaleDialog } from "@/components/forms/NewSaleDialog";
 import { formatCurrency } from "@/lib/utils";
-import { ArrowUpDown, Search, Trash2, Pencil, Check, X } from "lucide-react";
+import {
+  ArrowUpDown,
+  Search,
+  Trash2,
+  Pencil,
+  Check,
+  X,
+  ShoppingCart,
+  TrendingUp,
+  Receipt,
+} from "lucide-react";
 import { toast } from "@/components/ui/toaster";
 import { refreshAlerts } from "@/lib/refreshAlerts";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -42,7 +53,6 @@ export function SalesClient({
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
-  // Estado de edição inline
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     customerId: "",
@@ -185,7 +195,53 @@ export function SalesClient({
   }
 
   return (
-    <>
+    <div className="space-y-6">
+      {/* ── Resumo ── */}
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          {
+            label: "Transações",
+            value: String(filtered.length),
+            icon: ShoppingCart,
+            color: "bg-primary/10 text-primary",
+          },
+          {
+            label: "Receita total",
+            value: formatCurrency(totalRevenue),
+            icon: Receipt,
+            color: "bg-info/10 text-info",
+          },
+          {
+            label: "Lucro estimado",
+            value: formatCurrency(totalProfit),
+            icon: TrendingUp,
+            color: "bg-success/10 text-success",
+          },
+        ].map(({ label, value, icon: Icon, color }) => (
+          <Card key={label}>
+            <CardContent className="p-5">
+              <div className="flex items-start justify-between mb-3">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                  {label}
+                </p>
+                <div
+                  className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
+                    color,
+                  )}
+                >
+                  <Icon size={15} />
+                </div>
+              </div>
+              <p className="text-2xl font-display font-bold text-foreground leading-none">
+                {value}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* ── Search + botão ── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-xs">
           <Search
@@ -202,64 +258,46 @@ export function SalesClient({
         <NewSaleDialog products={productsList} onCreated={refresh} />
       </div>
 
-      {/* Resumo */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: "Transações", value: String(filtered.length) },
-          { label: "Receita total", value: formatCurrency(totalRevenue) },
-          { label: "Lucro estimado", value: formatCurrency(totalProfit) },
-        ].map(({ label, value }) => (
-          <div
-            key={label}
-            className="bg-card border border-border rounded-lg px-4 py-3"
-          >
-            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-              {label}
-            </p>
-            <p className="text-lg font-semibold text-foreground">{value}</p>
-          </div>
-        ))}
-      </div>
-
-      <Card>
+      {/* ── Tabela ── */}
+      <Card className="overflow-hidden">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-widest">
                     <span className="flex items-center gap-1">
                       Data <SortButton col="date" />
                     </span>
                   </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-widest">
                     <span className="flex items-center gap-1">
                       Produto <SortButton col="product" />
                     </span>
                   </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-widest">
                     <span className="flex items-center gap-1">
                       Cliente <SortButton col="customerName" />
                     </span>
                   </th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-widest">
                     Qtd
                   </th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-widest">
                     <span className="flex items-center gap-1 justify-end">
                       Preço/un <SortButton col="salePrice" />
                     </span>
                   </th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-widest">
                     Total
                   </th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-widest">
                     Lucro
                   </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-widest">
                     Notas
                   </th>
-                  <th className="px-4 py-3"></th>
+                  <th className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody>
@@ -276,18 +314,19 @@ export function SalesClient({
                   return (
                     <tr
                       key={sale.id}
-                      className={`border-b border-border last:border-0 transition-colors ${
-                        isEditing ? "bg-primary/5" : "hover:bg-accent/30"
-                      }`}
+                      className={cn(
+                        "border-b border-border last:border-0 transition-colors",
+                        isEditing ? "bg-primary/5" : "hover:bg-muted/20",
+                      )}
                     >
-                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap text-xs">
                         {formatDate(sale.date)}
                       </td>
-                      <td className="px-4 py-3 font-medium">
+                      <td className="px-4 py-3 font-medium text-foreground">
                         {sale.product.name}
                       </td>
 
-                      {/* Cliente — dropdown editável */}
+                      {/* Cliente */}
                       <td className="px-4 py-3">
                         {isEditing ? (
                           <Select
@@ -311,13 +350,13 @@ export function SalesClient({
                             </SelectContent>
                           </Select>
                         ) : (
-                          <span className="text-muted-foreground">
+                          <span className="text-muted-foreground text-xs">
                             {sale.customer?.name ?? sale.customerName ?? "—"}
                           </span>
                         )}
                       </td>
 
-                      {/* Quantidade — editável */}
+                      {/* Quantidade */}
                       <td className="px-4 py-3 text-right">
                         {isEditing ? (
                           <Input
@@ -333,23 +372,27 @@ export function SalesClient({
                             className="h-7 text-xs w-16 text-right ml-auto"
                           />
                         ) : (
-                          <span className="text-muted-foreground">
+                          <span className="text-muted-foreground tabular-nums">
                             {sale.quantity}
                           </span>
                         )}
                       </td>
 
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-right tabular-nums">
                         {formatCurrency(sale.salePrice)}
                       </td>
-                      <td className="px-4 py-3 text-right font-medium">
+                      <td className="px-4 py-3 text-right font-medium tabular-nums">
                         {formatCurrency(total)}
                       </td>
-                      <td className="px-4 py-3 text-right">
+
+                      {/* Lucro — ✅ text-success / text-destructive em vez de text-emerald-400 / text-red-400 */}
+                      <td className="px-4 py-3 text-right tabular-nums">
                         {hasRealCost ? (
                           <span
                             className={
-                              profit >= 0 ? "text-emerald-400" : "text-red-400"
+                              profit >= 0
+                                ? "text-success font-medium"
+                                : "text-destructive font-medium"
                             }
                           >
                             {formatCurrency(profit)}
@@ -361,7 +404,7 @@ export function SalesClient({
                         )}
                       </td>
 
-                      {/* Notas — editável */}
+                      {/* Notas */}
                       <td className="px-4 py-3">
                         {isEditing ? (
                           <Input
@@ -384,13 +427,13 @@ export function SalesClient({
 
                       {/* Ações */}
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 justify-end">
                           {isEditing ? (
                             <>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 text-primary"
+                                className="h-7 w-7 text-primary hover:bg-primary/10"
                                 onClick={() => handleSave(sale)}
                                 disabled={saving}
                               >
@@ -419,7 +462,7 @@ export function SalesClient({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 text-destructive/40 hover:text-destructive"
+                                className="h-7 w-7 text-destructive/40 hover:text-destructive hover:bg-destructive/10"
                                 onClick={() => handleDelete(sale.id)}
                               >
                                 <Trash2 size={13} />
@@ -435,7 +478,7 @@ export function SalesClient({
                   <tr>
                     <td
                       colSpan={9}
-                      className="px-4 py-8 text-center text-muted-foreground text-sm"
+                      className="px-4 py-12 text-center text-muted-foreground text-sm"
                     >
                       {search
                         ? "Nenhuma venda encontrada."
@@ -448,6 +491,6 @@ export function SalesClient({
           </div>
         </CardContent>
       </Card>
-    </>
+    </div>
   );
 }

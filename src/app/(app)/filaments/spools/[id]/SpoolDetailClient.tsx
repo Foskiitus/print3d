@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { formatCurrency } from "@/lib/utils";
 import { SpoolAdjustDialog } from "@/components/forms/SpoolAdjustDialog";
 import { toast } from "@/components/ui/toaster";
 import { refreshAlerts } from "@/lib/refreshAlerts";
+import { cn } from "@/lib/utils";
 
 function formatDate(date: string | Date) {
   return new Date(date).toLocaleDateString("pt-PT", {
@@ -95,44 +96,45 @@ export function SpoolDetailClient({
   // Estatísticas calculadas
   const totalWaste = spool.adjustments
     .filter((a: any) => a.amount < 0)
-    .reduce((sum: number, a: any) => sum + Math.abs(a.amount), 0);
-
+    .reduce((s: number, a: any) => s + Math.abs(a.amount), 0);
   const totalCorrections = spool.adjustments
     .filter((a: any) => a.amount > 0)
-    .reduce((sum: number, a: any) => sum + a.amount, 0);
-
-  const totalProduced = productionUsage.reduce((sum: number, log: any) => {
+    .reduce((s: number, a: any) => s + a.amount, 0);
+  const totalProduced = productionUsage.reduce((s: number, log: any) => {
     const usage = log.product.filamentUsage[0];
-    return sum + (usage ? usage.weight * log.quantity : 0);
+    return s + (usage ? usage.weight * log.quantity : 0);
   }, 0);
 
   const percentRemaining = Math.min(
     100,
     Math.max(0, (spool.remaining / spool.spoolWeight) * 100),
   );
+  const isLow = percentRemaining < 20;
 
   return (
     <div className="space-y-6">
-      {/* ── Secção 1: Resumo da bobine ── */}
+      {/* ── Resumo da bobine ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card principal — estado atual */}
+        {/* Card principal */}
         <Card className="sm:col-span-2">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4 mb-4">
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4 mb-5">
               <div
-                className="w-10 h-10 rounded-full border border-white/20 flex-shrink-0"
+                className="w-10 h-10 rounded-full flex-shrink-0 ring-2 ring-border/30"
                 style={{
                   backgroundColor: spool.filamentType.colorHex,
                   boxShadow: `0 0 16px ${spool.filamentType.colorHex}55`,
                 }}
               />
-              <div>
-                <p className="font-bold">{spool.filamentType.brand}</p>
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-foreground">
+                  {spool.filamentType.brand}
+                </p>
                 <p className="text-sm text-muted-foreground">
                   {spool.filamentType.material} · {spool.filamentType.colorName}
                 </p>
               </div>
-              <div className="ml-auto">
+              <div className="flex-shrink-0">
                 <SpoolAdjustDialog spool={spool} onAdjusted={refreshSpool} />
               </div>
             </div>
@@ -140,25 +142,37 @@ export function SpoolDetailClient({
             {/* Barra de progresso */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="font-medium">
+                <span
+                  className={cn(
+                    "font-medium",
+                    isLow ? "text-warning" : "text-foreground",
+                  )}
+                >
                   {spool.remaining}g restantes
                 </span>
                 <span className="text-muted-foreground">
                   de {spool.spoolWeight}g
                 </span>
               </div>
-              <div className="w-full bg-secondary/30 rounded-full h-2.5 overflow-hidden">
+              <div className="w-full bg-muted/40 rounded-full h-2.5 overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{
                     width: `${percentRemaining}%`,
-                    backgroundColor: spool.filamentType.colorHex,
+                    backgroundColor: isLow
+                      ? "hsl(var(--warning))"
+                      : spool.filamentType.colorHex,
                   }}
                 />
               </div>
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{percentRemaining.toFixed(0)}% restante</span>
-                <span>Compra: {formatCurrency(spool.price)}</span>
+                <span className={cn(isLow && "text-warning")}>
+                  {percentRemaining.toFixed(0)}% restante
+                </span>
+                <span>
+                  Compra: {formatCurrency(spool.price)} ·{" "}
+                  {formatDate(spool.purchaseDate)}
+                </span>
               </div>
             </div>
 
@@ -200,16 +214,20 @@ export function SpoolDetailClient({
           </CardContent>
         </Card>
 
-        {/* Desperdício total */}
+        {/* Desperdício */}
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingDown size={14} className="text-destructive" />
-              <span className="text-xs text-muted-foreground uppercase tracking-wider">
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-7 h-7 rounded-lg bg-destructive/10 flex items-center justify-center">
+                <TrendingDown size={14} className="text-destructive" />
+              </div>
+              <span className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-widest">
                 Desperdiçado
               </span>
             </div>
-            <p className="text-2xl font-bold">{totalWaste.toFixed(1)}g</p>
+            <p className="text-2xl font-display font-bold text-foreground">
+              {totalWaste.toFixed(1)}g
+            </p>
             <p className="text-xs text-muted-foreground mt-1">
               {spool.adjustments.filter((a: any) => a.amount < 0).length}{" "}
               ajuste(s)
@@ -217,16 +235,20 @@ export function SpoolDetailClient({
           </CardContent>
         </Card>
 
-        {/* Produção total */}
+        {/* Em produção */}
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 mb-1">
-              <Package size={14} className="text-primary" />
-              <span className="text-xs text-muted-foreground uppercase tracking-wider">
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Package size={14} className="text-primary" />
+              </div>
+              <span className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-widest">
                 Em Produção
               </span>
             </div>
-            <p className="text-2xl font-bold">{totalProduced.toFixed(1)}g</p>
+            <p className="text-2xl font-display font-bold text-foreground">
+              {totalProduced.toFixed(1)}g
+            </p>
             <p className="text-xs text-muted-foreground mt-1">
               {productionUsage.length} produção(ões)
             </p>
@@ -235,9 +257,9 @@ export function SpoolDetailClient({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* ── Secção 2: Histórico de ajustes ── */}
+        {/* ── Histórico de ajustes ── */}
         <div className="space-y-3">
-          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+          <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
             Histórico de Ajustes
           </h2>
 
@@ -255,11 +277,12 @@ export function SpoolDetailClient({
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div
-                          className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          className={cn(
+                            "w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0",
                             adj.amount < 0
-                              ? "bg-destructive/15 text-destructive"
-                              : "bg-green-500/15 text-green-500"
-                          }`}
+                              ? "bg-destructive/10 text-destructive"
+                              : "bg-success/10 text-success",
+                          )}
                         >
                           {adj.amount < 0 ? (
                             <TrendingDown size={13} />
@@ -270,11 +293,12 @@ export function SpoolDetailClient({
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <span
-                              className={`text-sm font-bold ${
+                              className={cn(
+                                "text-sm font-bold",
                                 adj.amount < 0
                                   ? "text-destructive"
-                                  : "text-green-500"
-                              }`}
+                                  : "text-success",
+                              )}
                             >
                               {adj.amount > 0 ? "+" : ""}
                               {adj.amount}g
@@ -309,9 +333,9 @@ export function SpoolDetailClient({
           )}
         </div>
 
-        {/* ── Secção 3: Uso em produção ── */}
+        {/* ── Uso em produção ── */}
         <div className="space-y-3">
-          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+          <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
             Uso em Produção
           </h2>
 
@@ -326,14 +350,13 @@ export function SpoolDetailClient({
               {productionUsage.map((log: any) => {
                 const usage = log.product.filamentUsage[0];
                 const gramsUsed = usage ? usage.weight * log.quantity : 0;
-
                 return (
                   <Card key={log.id} className="bg-muted/20 border-none">
                     <CardContent className="p-3">
                       <div className="flex items-center justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium truncate">
+                            <span className="text-sm font-medium truncate text-foreground">
                               {log.product.name}
                             </span>
                             <Badge
@@ -348,7 +371,7 @@ export function SpoolDetailClient({
                           </p>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className="text-sm font-bold">
+                          <p className="text-sm font-display font-bold text-foreground">
                             {gramsUsed.toFixed(1)}g
                           </p>
                           <p className="text-[10px] text-muted-foreground">

@@ -3,12 +3,11 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { FilamentsClient } from "./FilamentsClient";
 
+export const metadata = { title: "Filamentos" };
+
 export default async function FilamentsPage() {
   const session = await auth();
-
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
+  if (!session?.user?.id) redirect("/login");
 
   const userId = session.user.id;
 
@@ -22,7 +21,7 @@ export default async function FilamentsPage() {
       where: { userId },
       include: {
         filamentType: true,
-        _count: { select: { adjustments: true } }, // ✅ necessário para controlar botão apagar
+        _count: { select: { adjustments: true } },
       },
       orderBy: { purchaseDate: "desc" },
     }),
@@ -31,14 +30,11 @@ export default async function FilamentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">
-          Gestão de Materiais
-        </h1>
+        <h1 className="text-xl font-semibold text-foreground">Filamentos</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Controle os tipos de filamento e o stock físico de bobines.
+          Controla os tipos de material e o stock físico de bobines.
         </p>
       </div>
-
       <FilamentsClient
         initialTypes={types as any}
         initialSpools={spools as any}

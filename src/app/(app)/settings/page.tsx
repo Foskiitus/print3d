@@ -4,16 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { SettingsClient } from "./SettingsClient";
 
 export const metadata = {
-  title: "Configurações | Print3D",
+  title: "Configurações",
   description: "Gerencie categorias e extras para os seus produtos.",
 };
 
 export default async function SettingsPage() {
   const session = await auth();
-
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
+  if (!session?.user?.id) redirect("/login");
 
   const userId = session.user.id;
   const isAdmin = (session.user as any).role === "admin";
@@ -41,7 +38,6 @@ export default async function SettingsPage() {
   const electricityPrice = electricitySetting
     ? Number(electricitySetting.value)
     : 0.2;
-
   const uploadLimitMb = uploadLimitSetting
     ? Number(uploadLimitSetting.value)
     : 100;
@@ -54,7 +50,6 @@ export default async function SettingsPage() {
           Gerencie as categorias e extras disponíveis para os seus produtos.
         </p>
       </div>
-
       <SettingsClient
         initialCategories={categories as any}
         initialExtras={extras as any}

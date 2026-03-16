@@ -19,6 +19,7 @@ import { AddSpoolDialog } from "@/components/forms/AddSpoolDialog";
 import { SpoolAdjustDialog } from "@/components/forms/SpoolAdjustDialog";
 import { toast } from "@/components/ui/toaster";
 import { EditFilamentTypeDialog } from "@/components/forms/EditFilamentTypeDialog";
+import { cn } from "@/lib/utils";
 
 function formatDate(date: string | Date) {
   return new Date(date).toLocaleDateString("pt-PT", {
@@ -103,21 +104,15 @@ export function FilamentsClient({
   };
 
   const handleTypeClick = (typeId: string) => {
-    // Toggle: clicar no mesmo material limpa o filtro
     setSelectedTypeId((prev) => (prev === typeId ? null : typeId));
-    // Se há histórico e o filtro está a ser aplicado, abre-o automaticamente
     setHistoryOpen(true);
   };
 
   const selectedType = types.find((t) => t.id === selectedTypeId);
-
-  // Filtrar por material selecionado (ou mostrar todos se nenhum selecionado)
   const filteredSpools = selectedTypeId
     ? spools.filter((s) => s.filamentTypeId === selectedTypeId)
     : spools;
-
   const activeSpools = filteredSpools.filter((s) => s.remaining > 0);
-
   const emptySpools = filteredSpools
     .filter((s) => s.remaining <= 0)
     .sort(
@@ -133,11 +128,12 @@ export function FilamentsClient({
         onOpenChange={setEditOpen}
         onUpdated={refreshData}
       />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Coluna 1 e 2: Catálogo */}
+        {/* ── Catálogo de materiais ── */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+            <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
               Catálogo de Materiais
             </h2>
             <NewFilamentTypeDialog onCreated={refreshData} />
@@ -146,28 +142,38 @@ export function FilamentsClient({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {types.map((type) => {
               const isSelected = selectedTypeId === type.id;
-              // ✅ Contar apenas bobines com filamento restante (> 0)
               const activeCount = spools.filter(
                 (s) => s.filamentTypeId === type.id && s.remaining > 0,
               ).length;
-              // Total de gramas disponível deste tipo
+
+              const typeSpools = spools.filter(
+                (s) => s.filamentTypeId === type.id,
+              );
+              const hasSpools = typeSpools.length > 0;
+              const hasConsumption = typeSpools.some(
+                (s) => s.remaining < s.spoolWeight,
+              );
+              const canDeleteType = !hasSpools && !hasConsumption;
               const totalRemaining = spools
                 .filter((s) => s.filamentTypeId === type.id && s.remaining > 0)
                 .reduce((sum, s) => sum + s.remaining, 0);
+              const isLow =
+                type.alertThreshold != null &&
+                totalRemaining <= type.alertThreshold;
 
               return (
                 <Card
                   key={type.id}
-                  className={`transition-all relative group overflow-hidden cursor-pointer ${
+                  className={cn(
+                    "transition-all relative group overflow-hidden cursor-pointer",
                     isSelected
                       ? "border-primary bg-primary/5"
-                      : "hover:border-primary/50"
-                  }`}
+                      : "hover:border-primary/50",
+                  )}
                   onClick={() => handleTypeClick(type.id)}
                 >
                   <CardContent className="pt-6">
                     <div className="flex justify-between items-start gap-2">
-                      {/* Lado esquerdo: cor + nome + info */}
                       <div className="flex items-start gap-3 min-w-0 flex-1">
                         <div
                           className="w-5 h-5 rounded-full border border-white/20 flex-shrink-0 mt-0.5"
@@ -183,7 +189,6 @@ export function FilamentsClient({
                           <p className="text-[10px] text-muted-foreground truncate">
                             {type.material} • {type.colorName}
                           </p>
-                          {/* Badge e gramas abaixo do nome */}
                           <div className="flex items-center gap-2 mt-2 flex-wrap">
                             <Badge
                               variant={isSelected ? "default" : "secondary"}
@@ -194,75 +199,80 @@ export function FilamentsClient({
                             {totalRemaining > 0 && (
                               <span className="text-[10px] text-muted-foreground">
                                 {totalRemaining.toFixed(0)}g
-                                {type.alertThreshold != null &&
-                                  totalRemaining <= type.alertThreshold && (
-                                    <span className="text-destructive ml-1">
-                                      ⚠️
-                                    </span>
-                                  )}
+                                {isLow && (
+                                  <span className="text-warning ml-1">
+                                    ⚠ stock baixo
+                                  </span>
+                                )}
                               </span>
                             )}
                           </div>
                         </div>
                       </div>
 
-                      {/* Lado direito: botões editar + apagar */}
+                      {/* Ações — visíveis no hover */}
                       <div
+                        className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
                         onClick={(e) => e.stopPropagation()}
-                        className="flex gap-1 flex-shrink-0"
                       >
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-foreground"
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
                           onClick={(e) => handleEditType(e, type)}
                         >
                           <Pencil size={13} />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => handleDeleteType(type.id)}
-                        >
-                          <Trash2 size={14} />
-                        </Button>
+                        {canDeleteType && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive/40 hover:text-destructive hover:bg-destructive/10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteType(type.id);
+                            }}
+                          >
+                            <Trash2 size={13} />
+                          </Button>
+                        )}
                       </div>
                     </div>
-
-                    {/* Indicador de filtro ativo */}
-                    {isSelected && (
-                      <div className="mt-3 flex items-center gap-1 text-[10px] text-primary">
-                        <span>A filtrar rolos por este material</span>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               );
             })}
+
+            {types.length === 0 && (
+              <div className="md:col-span-2 border border-dashed rounded-lg py-12 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Nenhum material criado ainda.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Coluna 3: Bobines ativas */}
+        {/* ── Bobines em stock ── */}
         <div className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
                 Bobines em Stock
               </h2>
-              <div className="flex-shrink-0">
-                <AddSpoolDialog types={types} onAdded={refreshData} />
-              </div>
+              {selectedType && (
+                <button
+                  onClick={() => setSelectedTypeId(null)}
+                  className="flex items-center gap-1 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full hover:bg-primary/20 transition-colors"
+                >
+                  <span>{selectedType.colorName}</span>
+                  <X size={10} className="flex-shrink-0" />
+                </button>
+              )}
             </div>
-            {selectedType && (
-              <button
-                onClick={() => setSelectedTypeId(null)}
-                className="flex items-center gap-1 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full hover:bg-primary/20 transition-colors"
-              >
-                <span>{selectedType.colorName}</span>
-                <X size={10} className="flex-shrink-0" />
-              </button>
-            )}
+            <div className="flex-shrink-0">
+              <AddSpoolDialog types={types} onAdded={refreshData} />
+            </div>
           </div>
 
           <div className="space-y-3">
@@ -273,17 +283,25 @@ export function FilamentsClient({
                   : "Nenhuma bobine em stock."}
               </p>
             )}
+
             {activeSpools.map((spool) => {
               const hasAdjustments = spool._count?.adjustments > 0;
+              const hasConsumption = spool.remaining < spool.spoolWeight;
+              const canDelete = !hasAdjustments && !hasConsumption;
+              const pct = Math.min(
+                100,
+                (spool.remaining / spool.spoolWeight) * 100,
+              );
+              const isLow = pct < 20;
 
               return (
                 <Card
                   key={spool.id}
-                  className="bg-muted/30 border-none relative group cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="bg-secondary border border-border relative group cursor-pointer hover:border-primary/30 hover:bg-secondary/80 transition-colors"
                   onClick={() => router.push(`/filaments/spools/${spool.id}`)}
                 >
                   <CardContent className="p-4">
-                    <div className="flex items-center justify-between gap-2 mb-4">
+                    <div className="flex items-center justify-between gap-2 mb-3">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div
                           className="w-3 h-3 rounded-full flex-shrink-0"
@@ -310,7 +328,7 @@ export function FilamentsClient({
                           spool={spool}
                           onAdjusted={refreshData}
                         />
-                        {!hasAdjustments && (
+                        {canDelete && (
                           <Button
                             variant="ghost"
                             size="icon"
@@ -323,21 +341,28 @@ export function FilamentsClient({
                       </div>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <div className="flex justify-between text-[10px]">
-                        <span className="text-muted-foreground">
+                        <span
+                          className={cn(
+                            "font-medium",
+                            isLow ? "text-warning" : "text-muted-foreground",
+                          )}
+                        >
                           {spool.remaining}g / {spool.spoolWeight}g
                         </span>
-                        <span className="font-bold">
+                        <span className="text-muted-foreground font-medium">
                           {formatCurrency(spool.price)}
                         </span>
                       </div>
-                      <div className="w-full bg-secondary/30 rounded-full h-1.5 overflow-hidden">
+                      <div className="w-full bg-muted/40 rounded-full h-1.5 overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all duration-500"
                           style={{
-                            width: `${(spool.remaining / spool.spoolWeight) * 100}%`,
-                            backgroundColor: spool.filamentType.colorHex,
+                            width: `${pct}%`,
+                            backgroundColor: isLow
+                              ? "hsl(var(--warning))"
+                              : spool.filamentType.colorHex,
                           }}
                         />
                       </div>
@@ -350,7 +375,7 @@ export function FilamentsClient({
         </div>
       </div>
 
-      {/* ── Secção: Histórico de Bobines Vazias ── */}
+      {/* ── Histórico de bobines vazias ── */}
       {emptySpools.length > 0 && (
         <div className="space-y-3">
           <button
@@ -358,7 +383,7 @@ export function FilamentsClient({
             className="flex items-center gap-2 w-full text-left"
           >
             <History size={14} className="text-muted-foreground" />
-            <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+            <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
               Histórico de Bobines
             </h2>
             <Badge variant="secondary" className="text-[10px]">
@@ -385,11 +410,12 @@ export function FilamentsClient({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {emptySpools.map((spool) => {
                 const hasAdjustments = spool._count?.adjustments > 0;
-
+                const hasConsumption = spool.remaining < spool.spoolWeight;
+                const canDelete = !hasAdjustments && !hasConsumption;
                 return (
                   <Card
                     key={spool.id}
-                    className="bg-muted/10 border-dashed cursor-pointer hover:bg-muted/20 transition-colors group"
+                    className="bg-secondary/50 border border-dashed cursor-pointer hover:bg-secondary/70 transition-colors group"
                     onClick={() => router.push(`/filaments/spools/${spool.id}`)}
                   >
                     <CardContent className="p-3">
@@ -414,7 +440,7 @@ export function FilamentsClient({
                           className="flex-shrink-0"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          {!hasAdjustments && (
+                          {canDelete && (
                             <Button
                               variant="ghost"
                               size="icon"
@@ -433,8 +459,7 @@ export function FilamentsClient({
                         </span>
                         <span>{formatDate(spool.purchaseDate)}</span>
                       </div>
-
-                      <div className="w-full bg-secondary/20 rounded-full h-1 mt-2" />
+                      <div className="w-full bg-muted/20 rounded-full h-1 mt-2" />
                     </CardContent>
                   </Card>
                 );

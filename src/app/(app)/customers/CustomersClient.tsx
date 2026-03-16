@@ -21,6 +21,7 @@ import {
 import { toast } from "@/components/ui/toaster";
 import { CustomerDialog } from "@/components/forms/CustomerDialog";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 export function CustomersClient({
   initialCustomers,
@@ -155,70 +156,53 @@ export function CustomersClient({
             return (
               <Card
                 key={customer.id}
-                className={`transition-colors ${isEditing ? "border-primary/40 bg-primary/5" : "hover:border-primary/20"}`}
+                className={cn(
+                  "transition-colors",
+                  isEditing
+                    ? "border-primary/40 bg-primary/5"
+                    : "hover:border-primary/20",
+                )}
               >
                 <CardContent className="p-4">
                   {isEditing ? (
                     /* ── Modo edição ── */
                     <div className="space-y-3">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <label className="text-xs text-muted-foreground">
-                            Nome *
-                          </label>
-                          <Input
-                            value={editForm.name}
-                            onChange={(e) =>
-                              setEditForm({ ...editForm, name: e.target.value })
-                            }
-                            className="h-8 text-sm"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-xs text-muted-foreground">
-                            Email
-                          </label>
-                          <Input
-                            value={editForm.email}
-                            onChange={(e) =>
-                              setEditForm({
-                                ...editForm,
-                                email: e.target.value,
-                              })
-                            }
-                            className="h-8 text-sm"
-                            placeholder="email@exemplo.com"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-xs text-muted-foreground">
-                            Telefone
-                          </label>
-                          <Input
-                            value={editForm.phone}
-                            onChange={(e) =>
-                              setEditForm({
-                                ...editForm,
-                                phone: e.target.value,
-                              })
-                            }
-                            className="h-8 text-sm"
-                            placeholder="9XX XXX XXX"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-xs text-muted-foreground">
-                            NIF
-                          </label>
-                          <Input
-                            value={editForm.nif}
-                            onChange={(e) =>
-                              setEditForm({ ...editForm, nif: e.target.value })
-                            }
-                            className="h-8 text-sm"
-                            placeholder="123456789"
-                          />
-                        </div>
+                        {[
+                          { key: "name", label: "Nome *", placeholder: "" },
+                          {
+                            key: "email",
+                            label: "Email",
+                            placeholder: "email@exemplo.com",
+                          },
+                          {
+                            key: "phone",
+                            label: "Telefone",
+                            placeholder: "9XX XXX XXX",
+                          },
+                          {
+                            key: "nif",
+                            label: "NIF",
+                            placeholder: "123456789",
+                          },
+                        ].map(({ key, label, placeholder }) => (
+                          <div key={key} className="space-y-1">
+                            <label className="text-xs text-muted-foreground">
+                              {label}
+                            </label>
+                            <Input
+                              value={editForm[key]}
+                              onChange={(e) =>
+                                setEditForm({
+                                  ...editForm,
+                                  [key]: e.target.value,
+                                })
+                              }
+                              className="h-8 text-sm"
+                              placeholder={placeholder}
+                            />
+                          </div>
+                        ))}
                         <div className="space-y-1 sm:col-span-2">
                           <label className="text-xs text-muted-foreground">
                             Morada
@@ -266,7 +250,7 @@ export function CustomersClient({
                           onClick={() => handleSave(customer.id)}
                           disabled={saving || !editForm.name.trim()}
                         >
-                          <Check size={13} className="mr-1" />{" "}
+                          <Check size={13} className="mr-1" />
                           {saving ? "A guardar..." : "Guardar"}
                         </Button>
                       </div>
@@ -340,7 +324,7 @@ export function CustomersClient({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 text-destructive/40 hover:text-destructive"
+                          className="h-7 w-7 text-destructive/40 hover:text-destructive hover:bg-destructive/10"
                           onClick={() => handleDelete(customer.id)}
                         >
                           <Trash2 size={13} />

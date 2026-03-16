@@ -13,6 +13,7 @@ import {
   Package,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 function formatDate(date: string | Date) {
   return new Date(date).toLocaleDateString("pt-PT", {
@@ -35,12 +36,12 @@ export function CustomerDetailClient({
 }) {
   return (
     <div className="space-y-6">
-      {/* ── Info do cliente + métricas ── */}
+      {/* ── Info + métricas ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Info */}
+        {/* Info do cliente */}
         <Card>
           <CardContent className="p-5 space-y-3">
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
               Informação
             </p>
             {customer.email && (
@@ -103,7 +104,7 @@ export function CustomerDetailClient({
         {/* Métricas */}
         <Card className="lg:col-span-2">
           <CardContent className="p-5">
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-4">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 mb-4">
               Resumo
             </p>
             <div className="grid grid-cols-3 gap-4">
@@ -112,27 +113,34 @@ export function CustomerDetailClient({
                   label: "Total gasto",
                   value: formatCurrency(stats.totalSpent),
                   icon: TrendingUp,
-                  color: "text-emerald-400",
+                  color: "bg-success/10 text-success",
                 },
                 {
                   label: "Unidades compradas",
                   value: stats.totalUnits.toString(),
                   icon: ShoppingBag,
-                  color: "text-blue-400",
+                  color: "bg-info/10 text-info",
                 },
                 {
                   label: "Lucro gerado",
                   value: formatCurrency(stats.totalProfit),
                   icon: TrendingUp,
-                  color: "text-primary",
+                  color: "bg-primary/10 text-primary",
                 },
               ].map(({ label, value, icon: Icon, color }) => (
-                <div key={label} className="space-y-1">
-                  <div className="flex items-center gap-1.5">
-                    <Icon size={13} className={color} />
-                    <p className="text-xs text-muted-foreground">{label}</p>
+                <div key={label} className="space-y-2">
+                  <div
+                    className={cn(
+                      "w-8 h-8 rounded-lg flex items-center justify-center",
+                      color,
+                    )}
+                  >
+                    <Icon size={15} />
                   </div>
-                  <p className="text-xl font-bold">{value}</p>
+                  <p className="text-xl font-display font-bold text-foreground leading-none">
+                    {value}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{label}</p>
                 </div>
               ))}
             </div>
@@ -141,12 +149,12 @@ export function CustomerDetailClient({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Produtos favoritos */}
+        {/* Produtos mais comprados */}
         <Card>
           <CardContent className="p-5">
             <div className="flex items-center gap-2 mb-4">
               <Package size={13} className="text-muted-foreground" />
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
                 Produtos mais comprados
               </p>
             </div>
@@ -158,12 +166,14 @@ export function CustomerDetailClient({
               <div className="space-y-3">
                 {topProducts.map((p, i) => (
                   <div key={p.name} className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground w-4 flex-shrink-0">
+                    <span className="text-xs text-muted-foreground/50 w-4 flex-shrink-0 font-display font-bold">
                       {i + 1}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm truncate">{p.name}</p>
-                      <div className="w-full bg-muted/30 rounded-full h-1.5 mt-1">
+                      <p className="text-sm truncate text-foreground">
+                        {p.name}
+                      </p>
+                      <div className="w-full bg-muted/40 rounded-full h-1 mt-1.5">
                         <div
                           className="h-full rounded-full bg-primary"
                           style={{
@@ -173,8 +183,10 @@ export function CustomerDetailClient({
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="text-xs font-medium">{p.quantity} un.</p>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-xs font-medium tabular-nums">
+                        {p.quantity} un.
+                      </p>
+                      <p className="text-[10px] text-muted-foreground tabular-nums">
                         {formatCurrency(p.revenue)}
                       </p>
                     </div>
@@ -185,104 +197,96 @@ export function CustomerDetailClient({
           </CardContent>
         </Card>
 
-        {/* Histórico de vendas */}
-        <Card className="lg:col-span-2">
-          <CardContent className="p-0">
-            <div className="px-5 py-4 border-b border-border flex items-center gap-2">
-              <ShoppingBag size={13} className="text-muted-foreground" />
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Histórico de compras
-              </p>
-              <Badge variant="secondary" className="text-[10px] ml-auto">
-                {sales.length} venda(s)
-              </Badge>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/30">
-                    <th className="text-left px-5 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      Data
-                    </th>
-                    <th className="text-left px-5 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      Produto
-                    </th>
-                    <th className="text-right px-5 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      Qtd
-                    </th>
-                    <th className="text-right px-5 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      Preço/un
-                    </th>
-                    <th className="text-right px-5 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      Total
-                    </th>
-                    <th className="text-right px-5 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      Lucro
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sales.map((sale) => {
-                    const total = sale.salePrice * sale.quantity;
-                    const costPerUnit = sale.costPerUnit ?? 0;
-                    const profit =
-                      (sale.salePrice - costPerUnit) * sale.quantity;
-                    const hasRealCost = sale.costPerUnit != null;
+        {/* Histórico de compras */}
+        <Card className="lg:col-span-2 overflow-hidden">
+          <div className="px-5 py-4 border-b border-border flex items-center gap-2">
+            <ShoppingBag size={13} className="text-muted-foreground" />
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+              Histórico de compras
+            </p>
+            <Badge variant="secondary" className="text-[10px] ml-auto">
+              {sales.length} venda(s)
+            </Badge>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  {["Data", "Produto", "Qtd", "Preço/un", "Total", "Lucro"].map(
+                    (h, i) => (
+                      <th
+                        key={h}
+                        className={cn(
+                          "px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-widest",
+                          i >= 2 ? "text-right" : "text-left",
+                        )}
+                      >
+                        {h}
+                      </th>
+                    ),
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {sales.map((sale) => {
+                  const total = sale.salePrice * sale.quantity;
+                  const costPerUnit = sale.costPerUnit ?? 0;
+                  const profit = (sale.salePrice - costPerUnit) * sale.quantity;
+                  const hasRealCost = sale.costPerUnit != null;
 
-                    return (
-                      <tr
-                        key={sale.id}
-                        className="border-b border-border last:border-0 hover:bg-accent/30 transition-colors"
-                      >
-                        <td className="px-5 py-3 text-muted-foreground whitespace-nowrap">
-                          {formatDate(sale.date)}
-                        </td>
-                        <td className="px-5 py-3 font-medium">
-                          {sale.product.name}
-                        </td>
-                        <td className="px-5 py-3 text-right text-muted-foreground">
-                          {sale.quantity}
-                        </td>
-                        <td className="px-5 py-3 text-right">
-                          {formatCurrency(sale.salePrice)}
-                        </td>
-                        <td className="px-5 py-3 text-right font-medium">
-                          {formatCurrency(total)}
-                        </td>
-                        <td className="px-5 py-3 text-right">
-                          {hasRealCost ? (
-                            <span
-                              className={
-                                profit >= 0
-                                  ? "text-emerald-400"
-                                  : "text-red-400"
-                              }
-                            >
-                              {formatCurrency(profit)}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground text-xs">
-                              —
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {sales.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={6}
-                        className="px-5 py-8 text-center text-muted-foreground text-sm"
-                      >
-                        Nenhuma compra registada.
+                  return (
+                    <tr
+                      key={sale.id}
+                      className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors"
+                    >
+                      <td className="px-5 py-3 text-muted-foreground whitespace-nowrap text-xs">
+                        {formatDate(sale.date)}
+                      </td>
+                      <td className="px-5 py-3 font-medium text-foreground">
+                        {sale.product.name}
+                      </td>
+                      <td className="px-5 py-3 text-right text-muted-foreground tabular-nums">
+                        {sale.quantity}
+                      </td>
+                      <td className="px-5 py-3 text-right tabular-nums">
+                        {formatCurrency(sale.salePrice)}
+                      </td>
+                      <td className="px-5 py-3 text-right font-medium tabular-nums">
+                        {formatCurrency(total)}
+                      </td>
+                      {/* ✅ text-success / text-destructive em vez de text-emerald-400 / text-red-400 */}
+                      <td className="px-5 py-3 text-right tabular-nums">
+                        {hasRealCost ? (
+                          <span
+                            className={cn(
+                              "font-medium",
+                              profit >= 0 ? "text-success" : "text-destructive",
+                            )}
+                          >
+                            {formatCurrency(profit)}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">
+                            —
+                          </span>
+                        )}
                       </td>
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
+                  );
+                })}
+                {sales.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-5 py-8 text-center text-muted-foreground text-sm"
+                    >
+                      Nenhuma compra registada.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </Card>
       </div>
     </div>

@@ -31,6 +31,19 @@ import {
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 
+// ─── Dot de cor reutilizável ──────────────────────────────────────────────────
+function ColorDot({ hex }: { hex: string }) {
+  return (
+    <div
+      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+      style={{
+        backgroundColor: hex,
+        boxShadow: `0 0 5px ${hex}99`,
+      }}
+    />
+  );
+}
+
 export function AddSpoolDialog({
   types,
   onAdded,
@@ -42,7 +55,6 @@ export function AddSpoolDialog({
   trigger?: React.ReactNode;
   onOpenChange?: (open: boolean) => void;
 }) {
-  // ✅ Constante no topo para evitar timezone bugs, recalculos e corrigir o escopo do JSX
   const today = new Date().toISOString().split("T")[0];
 
   const [open, setOpen] = useState(false);
@@ -53,13 +65,16 @@ export function AddSpoolDialog({
     spoolWeight: "1000",
     price: "",
     quantity: "1",
-    purchaseDate: today, // ✅ Usado na inicialização
+    purchaseDate: today,
   });
 
   const handleOpenChange = (v: boolean) => {
     setOpen(v);
     onOpenChangeProp?.(v);
   };
+
+  // Tipo selecionado atualmente (para o trigger)
+  const selectedType = types.find((t) => t.id === form.filamentTypeId);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -68,7 +83,6 @@ export function AddSpoolDialog({
     if (!form.filamentTypeId || !form.price) return;
 
     if (form.purchaseDate > today) {
-      // ✅ Usado na validação
       toast({
         title: "Data inválida",
         description: "A data de compra não pode ser no futuro.",
@@ -87,25 +101,32 @@ export function AddSpoolDialog({
           spoolWeight: Number(form.spoolWeight),
           price: Number(form.price),
           quantity: Number(form.quantity),
-          purchaseDate: new Date(form.purchaseDate).toISOString(),
+          purchaseDate: (() => {
+            const now = new Date();
+            const [year, month, day] = form.purchaseDate.split("-").map(Number);
+            return new Date(
+              year,
+              month - 1,
+              day,
+              now.getHours(),
+              now.getMinutes(),
+              now.getSeconds(),
+            ).toISOString();
+          })(),
         }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro desconhecido");
 
-      toast({
-        title: `${form.quantity} bobine(s) registadas no inventário!`,
-      });
-
+      toast({ title: `${form.quantity} bobine(s) registadas no inventário!` });
       setForm({
         filamentTypeId: "",
         spoolWeight: "1000",
         price: "",
         quantity: "1",
-        purchaseDate: today, // ✅ Usado no reset do form
+        purchaseDate: today,
       });
-
       setOpen(false);
       refreshAlerts();
       onAdded();
@@ -142,18 +163,37 @@ export function AddSpoolDialog({
                 value={form.filamentTypeId}
                 onValueChange={(v) => setForm({ ...form, filamentTypeId: v })}
               >
+                {/* ── Trigger: mostra dot + label quando selecionado ── */}
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o material..." />
+                  {selectedType ? (
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <ColorDot hex={selectedType.colorHex} />
+                      <span className="truncate text-sm">
+                        {selectedType.brand} {selectedType.material} (
+                        {selectedType.colorName})
+                      </span>
+                    </div>
+                  ) : (
+                    <SelectValue placeholder="Selecione o material..." />
+                  )}
                 </SelectTrigger>
+
+                {/* ── Dropdown: cada item com dot de cor ── */}
                 <SelectContent>
                   {types.map((t) => (
                     <SelectItem key={t.id} value={t.id}>
-                      {t.brand} {t.material} ({t.colorName})
+                      <div className="flex items-center gap-2.5">
+                        <ColorDot hex={t.colorHex} />
+                        <span>
+                          {t.brand} {t.material} ({t.colorName})
+                        </span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="weight">Peso Líquido (g)</Label>
@@ -197,12 +237,13 @@ export function AddSpoolDialog({
                 />
               </div>
             </div>
+
             <div className="space-y-1.5 flex flex-col mt-2">
               <Label htmlFor="date">Data de Compra</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
-                    variant={"outline"}
+                    variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
                       !form.purchaseDate && "text-muted-foreground",
@@ -217,7 +258,7 @@ export function AddSpoolDialog({
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent
-                  className="w-auto p-0 bg-white dark:bg-zinc-950 border shadow-md"
+                  className="w-auto p-0 bg-card border shadow-md"
                   align="start"
                 >
                   <Calendar
@@ -225,26 +266,22 @@ export function AddSpoolDialog({
                     selected={new Date(form.purchaseDate)}
                     onSelect={(date) => {
                       if (date) {
-                        // Mantemos o formato "YYYY-MM-DD" no estado para compatibilidade com o teu código
-                        // Adicionamos as horas para evitar bugs de fuso horário no split
-                        const adjustedDate = new Date(
+                        const adjusted = new Date(
                           date.getTime() - date.getTimezoneOffset() * 60000,
                         );
                         setForm({
                           ...form,
-                          purchaseDate: adjustedDate
-                            .toISOString()
-                            .split("T")[0],
+                          purchaseDate: adjusted.toISOString().split("T")[0],
                         });
                       }
                     }}
-                    // É ESTA LINHA QUE DESATIVA OS DIAS E LHES APLICA O RISCADO!
                     disabled={(date) => date > new Date()}
                     initialFocus
                   />
                 </PopoverContent>
               </Popover>
             </div>
+
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "A registar..." : "Adicionar ao Stock"}
             </Button>

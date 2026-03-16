@@ -5,21 +5,57 @@ import { Toaster } from "@/components/ui/toaster";
 import { SessionProvider } from "next-auth/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
+import { DM_Sans, Space_Grotesk } from "next/font/google";
+import "./globals.css";
+import { ThemeProvider } from "next-themes";
+
+// ─── Fonts ───────────────────────────────────────────────────────────────────
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-display",
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
+// ─── Metadata ────────────────────────────────────────────────────────────────
 export const metadata: Metadata = {
-  title: "Print3D Manager",
-  description: "Gerenciamento de negócio de impressão 3D",
+  title: {
+    default: "SpoolIQ",
+    template: "%s · SpoolIQ",
+  },
+  description: "Smart filament management for makers who mean business.",
 };
 
+// ─── Root layout ─────────────────────────────────────────────────────────────
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-PT" className="dark">
-      <body suppressHydrationWarning>
+    <html
+      lang="pt"
+      className={`${dmSans.variable} ${spaceGrotesk.variable}`}
+      suppressHydrationWarning
+    >
+      <body className="font-sans antialiased bg-background text-foreground">
         <SessionProvider>
-          {children}
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem={false}
+            storageKey="spooliq-theme"
+          >
+            {children}
+          </ThemeProvider>
+
           <SpeedInsights />
         </SessionProvider>
         <Toaster />

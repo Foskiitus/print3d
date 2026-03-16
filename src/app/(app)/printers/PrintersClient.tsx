@@ -76,13 +76,13 @@ export function PrintersClient({
 
   return (
     <div className="space-y-10">
-      {/* ── Secção Admin: Presets ── */}
+      {/* ── Presets globais (admin) ── */}
       {isAdmin && (
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <ShieldCheck size={14} className="text-primary" />
-              <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+              <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
                 Presets Globais
               </h2>
               <Badge
@@ -114,7 +114,9 @@ export function PrintersClient({
                           <Monitor className="text-primary" size={20} />
                         </div>
                         <div>
-                          <h3 className="font-bold">{preset.name}</h3>
+                          <h3 className="font-bold text-foreground">
+                            {preset.name}
+                          </h3>
                           <p className="text-[10px] text-primary/60 mt-0.5">
                             Preset global
                           </p>
@@ -123,7 +125,7 @@ export function PrintersClient({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="opacity-0 group-hover:opacity-100 text-destructive transition-opacity h-8 w-8"
+                        className="opacity-0 group-hover:opacity-100 text-destructive/40 hover:text-destructive hover:bg-destructive/10 transition-opacity h-8 w-8"
                         onClick={() => handleDeletePreset(preset.id)}
                       >
                         <Trash2 size={14} />
@@ -131,15 +133,21 @@ export function PrintersClient({
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-primary/10">
+                      {/* ✅ text-warning em vez de text-yellow-500 */}
                       <div className="flex items-center gap-1.5">
-                        <Zap size={12} className="text-yellow-500" />
-                        <span className="text-xs font-medium">
+                        <div className="w-6 h-6 rounded-md bg-warning/10 flex items-center justify-center">
+                          <Zap size={11} className="text-warning" />
+                        </div>
+                        <span className="text-xs font-medium text-foreground">
                           {preset.powerWatts}W
                         </span>
                       </div>
+                      {/* ✅ text-success em vez de text-green-600 */}
                       <div className="flex items-center gap-1.5">
-                        <Euro size={12} className="text-green-600" />
-                        <span className="text-xs font-medium">
+                        <div className="w-6 h-6 rounded-md bg-success/10 flex items-center justify-center">
+                          <Euro size={11} className="text-success" />
+                        </div>
+                        <span className="text-xs font-medium text-foreground">
                           {formatCurrency(preset.hourlyCost)}/h
                         </span>
                       </div>
@@ -152,10 +160,10 @@ export function PrintersClient({
         </div>
       )}
 
-      {/* ── Secção: Minhas Impressoras ── */}
+      {/* ── Minhas impressoras ── */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+          <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
             Minhas Máquinas
           </h2>
           <NewPrinterDialog presets={allPresets} onCreated={refreshPrinters} />
@@ -179,7 +187,9 @@ export function PrintersClient({
                         <Monitor className="text-primary" size={24} />
                       </div>
                       <div>
-                        <h3 className="font-bold text-lg">{printer.name}</h3>
+                        <h3 className="font-bold text-lg text-foreground">
+                          {printer.name}
+                        </h3>
                         {printer.preset && (
                           <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
                             <ShieldCheck size={9} className="text-primary" />
@@ -191,23 +201,27 @@ export function PrintersClient({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="opacity-0 group-hover:opacity-100 text-destructive transition-opacity"
+                      className="opacity-0 group-hover:opacity-100 text-destructive/40 hover:text-destructive hover:bg-destructive/10 transition-opacity"
                       onClick={() => handleDeletePrinter(printer.id)}
                     >
                       <Trash2 size={16} />
                     </Button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-muted">
+                  <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-border">
                     <div className="flex items-center gap-2">
-                      <Zap size={14} className="text-yellow-500" />
-                      <span className="text-sm font-medium">
+                      <div className="w-7 h-7 rounded-lg bg-warning/10 flex items-center justify-center">
+                        <Zap size={13} className="text-warning" />
+                      </div>
+                      <span className="text-sm font-medium text-foreground">
                         {printer.powerWatts}W
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Euro size={14} className="text-green-600" />
-                      <span className="text-sm font-medium">
+                      <div className="w-7 h-7 rounded-lg bg-success/10 flex items-center justify-center">
+                        <Euro size={13} className="text-success" />
+                      </div>
+                      <span className="text-sm font-medium text-foreground">
                         {formatCurrency(printer.hourlyCost)}/h
                       </span>
                     </div>

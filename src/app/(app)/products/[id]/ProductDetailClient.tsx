@@ -361,7 +361,7 @@ export function ProductDetailClient({
             )}
 
             <Card>
-              <CardContent className="p-4 space-y-3">
+              <CardContent className="p-5 space-y-3">
                 {product.description && (
                   <p className="text-sm text-muted-foreground">
                     {product.description}
@@ -400,11 +400,11 @@ export function ProductDetailClient({
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-4">
-                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
                     Estimativa de Custo (FIFO)
                   </p>
                   {product.unitsPerPrint > 1 && (
-                    <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
                       {product.unitsPerPrint} unidades/impressão
                     </span>
                   )}
@@ -431,7 +431,7 @@ export function ProductDetailClient({
                     </div>
                   )}
                   {!product.printerId && (
-                    <p className="text-[10px] text-yellow-500">
+                    <p className="text-[10px] text-warning">
                       ⚠️ Sem impressora definida — custos de máquina e energia
                       não incluídos.
                     </p>
@@ -468,7 +468,7 @@ export function ProductDetailClient({
 
             <Card>
               <CardContent className="p-5">
-                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 mb-3">
                   Filamentos
                 </p>
                 <div className="space-y-2">
@@ -499,7 +499,7 @@ export function ProductDetailClient({
             {product.extras.length > 0 && (
               <Card>
                 <CardContent className="p-5">
-                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 mb-3">
                     Extras
                   </p>
                   <div className="space-y-2">
@@ -526,7 +526,7 @@ export function ProductDetailClient({
 
         {product.productionLogs.length > 0 && (
           <div className="space-y-3">
-            <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+            <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
               Histórico de Produção
             </h2>
             <div className="space-y-2">
@@ -621,7 +621,7 @@ export function ProductDetailClient({
                     imageUrl: null,
                   })
                 }
-                className="absolute top-2 right-2 w-7 h-7 bg-destructive text-white rounded-full flex items-center justify-center"
+                className="absolute top-2 right-2 w-7 h-7 bg-destructive text-white rounded-lg flex items-center justify-center"
               >
                 <X size={12} />
               </button>
@@ -733,7 +733,7 @@ export function ProductDetailClient({
 
           {/* Info básica */}
           <Card>
-            <CardContent className="p-4 space-y-3">
+            <CardContent className="p-5 space-y-3">
               <div className="space-y-1.5">
                 <Label>Nome</Label>
                 <Input
@@ -874,11 +874,11 @@ export function ProductDetailClient({
           <Card>
             <CardContent className="p-5">
               <div className="flex items-center justify-between mb-4">
-                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
                   Estimativa de Custo (FIFO)
                 </p>
                 {Number(form.unitsPerPrint) > 1 && (
-                  <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
                     {form.unitsPerPrint} unidades/impressão
                   </span>
                 )}
@@ -905,7 +905,7 @@ export function ProductDetailClient({
                   </div>
                 )}
                 {!form.printerId && (
-                  <p className="text-[10px] text-yellow-500">
+                  <p className="text-[10px] text-warning">
                     ⚠️ Seleciona uma impressora para incluir custos de máquina e
                     energia.
                   </p>
@@ -944,7 +944,7 @@ export function ProductDetailClient({
           <Card>
             <CardContent className="p-5 space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
                   Filamentos
                 </p>
                 <Button
@@ -1029,7 +1029,7 @@ export function ProductDetailClient({
           <Card>
             <CardContent className="p-5 space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
                   Extras
                 </p>
                 <Button

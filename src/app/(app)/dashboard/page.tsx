@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { DashboardClient } from "./DashboardClient";
 
-export const metadata = { title: "Dashboard | Print3D" };
+export const metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -15,7 +15,6 @@ export default async function DashboardPage() {
   const since = new Date(now);
   since.setDate(since.getDate() - 30);
 
-  // ── Dados em paralelo ──────────────────────────────────────────
   const [
     sales,
     productions,
@@ -25,41 +24,34 @@ export default async function DashboardPage() {
     salesTotals,
     productionTotals,
   ] = await Promise.all([
-    // Vendas últimos 30 dias
     prisma.sale.findMany({
       where: { userId, date: { gte: since } },
       include: { product: true, customer: true },
       orderBy: { date: "asc" },
     }),
-    // Produções últimos 30 dias
     prisma.productionLog.findMany({
       where: { userId, date: { gte: since } },
       include: { product: true },
       orderBy: { date: "asc" },
     }),
-    // Todos os produtos com filamentos
     prisma.product.findMany({
       where: { userId },
       orderBy: { name: "asc" },
     }),
-    // Bobines com stock
     prisma.filamentSpool.findMany({
       where: { userId },
       include: { filamentType: true },
     }),
-    // Custo médio por produção
     prisma.productionLog.groupBy({
       by: ["productId"],
       where: { userId },
       _avg: { totalCost: true },
     }),
-    // Total vendido por produto (para stock)
     prisma.sale.groupBy({
       by: ["productId"],
       where: { userId },
       _sum: { quantity: true },
     }),
-    // Total produzido por produto (para stock)
     prisma.productionLog.groupBy({
       by: ["productId"],
       where: { userId },
@@ -67,9 +59,8 @@ export default async function DashboardPage() {
     }),
   ]);
 
-  // ── Calcular métricas ──────────────────────────────────────────
+  // ── Calcular métricas ─────────────────────────────────────────────────────
 
-  // Custo por unidade por produto
   const costMap = Object.fromEntries(
     productionCosts.map((p) => [
       p.productId,
@@ -78,17 +69,13 @@ export default async function DashboardPage() {
     ]),
   );
 
-  // Receita e lucro
   const revenue = sales.reduce((s, x) => s + x.salePrice * x.quantity, 0);
   const profit = sales.reduce((s, x) => {
     const cost = costMap[x.productId] ?? 0;
     return s + (x.salePrice - cost) * x.quantity;
   }, 0);
 
-  // Unidades produzidas
   const unitsProduced = productions.reduce((s, p) => s + p.quantity, 0);
-
-  // Filamento consumido
   const filamentConsumed = productions.reduce(
     (s, p) => s + (p.filamentUsed ?? 0),
     0,
@@ -105,7 +92,7 @@ export default async function DashboardPage() {
     }),
   );
 
-  // Produtos mais vendidos (todos os tempos)
+  // Top 5 produtos mais vendidos
   const topProducts = [...salesTotals]
     .sort((a, b) => (b._sum.quantity ?? 0) - (a._sum.quantity ?? 0))
     .slice(0, 5)
@@ -114,7 +101,7 @@ export default async function DashboardPage() {
       quantity: t._sum.quantity ?? 0,
     }));
 
-  // Evolução diária de receita (últimos 30 dias)
+  // Evolução diária — últimos 30 dias
   const revenueByDay: Record<string, number> = {};
   const productionByDay: Record<string, number> = {};
 
@@ -128,31 +115,24 @@ export default async function DashboardPage() {
 
   for (const sale of sales) {
     const key = new Date(sale.date).toISOString().split("T")[0];
-    if (key in revenueByDay) {
+    if (key in revenueByDay)
       revenueByDay[key] += sale.salePrice * sale.quantity;
-    }
   }
 
   for (const prod of productions) {
     const key = new Date(prod.date).toISOString().split("T")[0];
-    if (key in productionByDay) {
-      productionByDay[key] += prod.quantity;
-    }
+    if (key in productionByDay) productionByDay[key] += prod.quantity;
   }
 
   const dailyRevenue = Object.entries(revenueByDay).map(([date, value]) => ({
     date,
     value: Math.round(value * 100) / 100,
   }));
-
   const dailyProduction = Object.entries(productionByDay).map(
-    ([date, value]) => ({
-      date,
-      value,
-    }),
+    ([date, value]) => ({ date, value }),
   );
 
-  // Filamento restante por tipo
+  // Filamento restante por tipo (máx. 8, ordenado por menos restante)
   const filamentStock = Object.values(
     spools.reduce((acc: any, spool) => {
       const key = spool.filamentTypeId;
@@ -178,7 +158,6 @@ export default async function DashboardPage() {
         <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Últimos 30 dias</p>
       </div>
-
       <DashboardClient
         metrics={{ revenue, profit, unitsProduced, filamentConsumed }}
         dailyRevenue={dailyRevenue}

@@ -308,7 +308,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
         <form onSubmit={handleSubmit} className="space-y-6 mt-2">
           {/* Informação básica */}
           <div className="space-y-4">
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
               Informação básica
             </p>
 
@@ -427,7 +427,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
           {/* Filamentos */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
                 Filamentos usados
               </p>
               <Button
@@ -511,7 +511,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
           {/* Extras */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
                 Extras
               </p>
               <Button
@@ -636,9 +636,11 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
               return (
                 <div className="p-4 rounded-lg bg-muted/40 space-y-2 text-sm">
                   <div className="flex items-center justify-between">
-                    <p className="font-medium">Estimativa de custo</p>
+                    <p className="font-semibold text-foreground">
+                      Estimativa de custo
+                    </p>
                     {units > 1 && (
-                      <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
                         {units} unidades/impressão
                       </span>
                     )}
@@ -665,7 +667,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                       </div>
                     )}
                     {!form.printerId && (
-                      <p className="text-[10px] text-yellow-500">
+                      <p className="text-[10px] text-warning">
                         ⚠️ Seleciona uma impressora para incluir custos de
                         máquina e energia.
                       </p>
@@ -690,7 +692,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                     </div>
                   </div>
                   {costData.missingSpools?.length > 0 && (
-                    <p className="text-[10px] text-yellow-500 mt-1">
+                    <p className="text-[10px] text-warning mt-1">
                       ⚠️ Sem bobines em stock para:{" "}
                       {costData.missingSpools.join(", ")}. Custo estimado a 0€.
                     </p>
@@ -701,7 +703,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
 
           {/* Ficheiros */}
           <div className="space-y-4">
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
               Ficheiros
             </p>
 
@@ -721,7 +723,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                       setImageFile(null);
                       setImagePreview(null);
                     }}
-                    className="absolute -top-2 -right-2 w-5 h-5 bg-destructive text-white rounded-full flex items-center justify-center"
+                    className="absolute -top-2 -right-2 w-5 h-5 bg-destructive text-white rounded-lg flex items-center justify-center"
                   >
                     <X size={10} />
                   </button>

@@ -178,7 +178,7 @@ export function EditFilamentTypeDialog({
                   onChange={(color) => setForm({ ...form, colorHex: color })}
                 />
                 <div
-                  className="flex-1 rounded-md border flex items-center justify-center text-[10px] font-mono uppercase"
+                  className="flex-1 rounded-lg border flex items-center justify-center text-[10px] font-mono uppercase"
                   style={{
                     backgroundColor: form.colorHex,
                     boxShadow: `0 0 10px ${form.colorHex}`,

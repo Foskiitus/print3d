@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Trash2, Package, Clock, Layers, Printer } from "lucide-react";
 import { NewProductDialog } from "@/components/forms/NewProductDialog";
@@ -44,7 +43,6 @@ export function ProductsClient({
     }
   };
 
-  // Filtrar por categoria primeiro
   const filtered = selectedCategory
     ? products.filter((p) => p.categoryId === selectedCategory)
     : products;
@@ -72,7 +70,6 @@ export function ProductsClient({
       .products.push(p);
   }
 
-  // Ordenar: grupos com impressora primeiro, "Sem impressora" no fim
   grouped.sort((a, b) => {
     if (a.printerId === null) return 1;
     if (b.printerId === null) return -1;
@@ -146,92 +143,73 @@ export function ProductsClient({
                 <div className="flex-1 h-px bg-border" />
               </div>
 
-              {/* Grid de produtos do grupo */}
+              {/* Grid de produtos */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {group.products.map((product) => {
-                  const stock = product.stock ?? 0;
-                  const stockVariant =
-                    stock <= 0
-                      ? "destructive"
-                      : stock <= 3
-                        ? "outline"
-                        : "secondary";
+                {group.products.map((product) => (
+                  <Card
+                    key={product.id}
+                    className="group cursor-pointer hover:border-primary/50 transition-colors overflow-hidden"
+                    onClick={() => router.push(`/products/${product.id}`)}
+                  >
+                    {product.imageUrl ? (
+                      <div className="aspect-square overflow-hidden bg-muted">
+                        <StorageImage
+                          src={product.imageKey ?? product.imageUrl}
+                          alt={product.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+                    ) : (
+                      <div className="aspect-square bg-muted/40 flex items-center justify-center">
+                        <Package
+                          size={32}
+                          className="text-muted-foreground/30"
+                        />
+                      </div>
+                    )}
 
-                  return (
-                    <Card
-                      key={product.id}
-                      className="group cursor-pointer hover:border-primary/50 transition-colors overflow-hidden"
-                      onClick={() => router.push(`/products/${product.id}`)}
-                    >
-                      {product.imageUrl ? (
-                        <div className="aspect-square overflow-hidden bg-muted">
-                          <StorageImage
-                            src={product.imageKey ?? product.imageUrl}
-                            alt={product.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                        </div>
-                      ) : (
-                        <div className="aspect-square bg-muted/40 flex items-center justify-center">
-                          <Package
-                            size={32}
-                            className="text-muted-foreground/30"
-                          />
-                        </div>
-                      )}
-
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-sm truncate">
-                              {product.name}
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-sm truncate">
+                            {product.name}
+                          </p>
+                          {product.category && (
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              {product.category.name}
                             </p>
-                            {product.category && (
-                              <p className="text-[10px] text-muted-foreground mt-0.5">
-                                {product.category.name}
-                              </p>
-                            )}
-                          </div>
-                          <div onClick={(e) => e.stopPropagation()}>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-destructive/40 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={(e) => handleDelete(e, product.id)}
-                            >
-                              <Trash2 size={13} />
-                            </Button>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-3 mt-3 text-[10px] text-muted-foreground">
-                          {product.productionTime && (
-                            <span className="flex items-center gap-1">
-                              <Clock size={10} />
-                              {Math.floor(product.productionTime / 60) > 0 &&
-                                `${Math.floor(product.productionTime / 60)}h `}
-                              {product.productionTime % 60 > 0 &&
-                                `${product.productionTime % 60}min`}
-                            </span>
                           )}
-                          <span className="flex items-center gap-1">
-                            <Layers size={10} />
-                            {product.filamentUsage.length} filamento(s)
-                          </span>
                         </div>
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive/40 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => handleDelete(e, product.id)}
+                          >
+                            <Trash2 size={13} />
+                          </Button>
+                        </div>
+                      </div>
 
-                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-muted">
-                          <span className="text-[10px] text-muted-foreground">
-                            Stock
+                      <div className="flex items-center gap-3 mt-3 text-[10px] text-muted-foreground">
+                        {product.productionTime && (
+                          <span className="flex items-center gap-1">
+                            <Clock size={10} />
+                            {Math.floor(product.productionTime / 60) > 0 &&
+                              `${Math.floor(product.productionTime / 60)}h `}
+                            {product.productionTime % 60 > 0 &&
+                              `${product.productionTime % 60}min`}
                           </span>
-                          <Badge variant={stockVariant} className="text-[10px]">
-                            {stock <= 0 ? "Sem stock" : `${stock} un.`}
-                          </Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                        )}
+                        <span className="flex items-center gap-1">
+                          <Layers size={10} />
+                          {product.filamentUsage.length} filamento(s)
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </div>
           ))}

@@ -1,15 +1,26 @@
 "use client";
 
 import { useState } from "react";
+import { useTheme } from "next-themes";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash2, Tag, Package, Zap, Check, Lock } from "lucide-react";
+import {
+  Trash2,
+  Tag,
+  Package,
+  Zap,
+  Check,
+  Lock,
+  Sun,
+  Moon,
+} from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { NewCategoryDialog } from "@/components/forms/NewCategoryDialog";
 import { NewExtraDialog } from "@/components/forms/NewExtraDialog";
 import { toast } from "@/components/ui/toaster";
+import { cn } from "@/lib/utils";
 
 export function SettingsClient({
   initialCategories,
@@ -34,6 +45,8 @@ export function SettingsClient({
     String(initialUploadLimitMb),
   );
   const [savingUploadLimit, setSavingUploadLimit] = useState(false);
+
+  const { theme, setTheme } = useTheme();
 
   const refreshCategories = async () => {
     const res = await fetch("/api/categories");
@@ -143,11 +156,11 @@ export function SettingsClient({
 
   return (
     <div className="space-y-10">
-      {/* ── Secção: Preferências Pessoais ── */}
+      {/* ── Preferências Pessoais ── */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Zap size={14} className="text-muted-foreground" />
-          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+          <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
             Preferências Pessoais
           </h2>
         </div>
@@ -155,11 +168,55 @@ export function SettingsClient({
           Configurações individuais — cada utilizador define os seus próprios
           valores.
         </p>
+
         <Card>
-          <CardContent className="p-5">
+          <CardContent className="p-5 space-y-5">
+            {/* Tema */}
             <div className="flex items-start justify-between gap-6 flex-wrap">
               <div className="space-y-1 flex-1 min-w-[200px]">
-                <p className="text-sm font-medium">Preço da eletricidade</p>
+                <p className="text-sm font-medium text-foreground">
+                  Tema da interface
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Escolhe entre o modo escuro e claro. A preferência é guardada
+                  no browser.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                {(["dark", "light"] as const).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setTheme(t)}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors",
+                      theme === t
+                        ? "bg-primary/10 text-primary border-primary/30"
+                        : "border-border text-muted-foreground hover:border-primary/20 hover:text-foreground",
+                    )}
+                  >
+                    {t === "dark" ? (
+                      <>
+                        <Moon size={14} /> Escuro
+                      </>
+                    ) : (
+                      <>
+                        <Sun size={14} /> Claro
+                      </>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="border-t border-border" />
+
+            {/* Preço da eletricidade */}
+            <div className="flex items-start justify-between gap-6 flex-wrap">
+              <div className="space-y-1 flex-1 min-w-[200px]">
+                <p className="text-sm font-medium text-foreground">
+                  Preço da eletricidade
+                </p>
                 <p className="text-xs text-muted-foreground">
                   Usado para calcular o custo de energia em cada produção. O
                   valor padrão é 0.20€/kWh.
@@ -199,12 +256,12 @@ export function SettingsClient({
         </Card>
       </div>
 
-      {/* ── Secção: Configurações da Plataforma (apenas admin) ── */}
+      {/* ── Configurações da Plataforma (admin) ── */}
       {isAdmin && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Lock size={14} className="text-muted-foreground" />
-            <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+            <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
               Configurações da Plataforma
             </h2>
             <Badge variant="secondary" className="text-[10px]">
@@ -219,7 +276,7 @@ export function SettingsClient({
             <CardContent className="p-5">
               <div className="flex items-start justify-between gap-6 flex-wrap">
                 <div className="space-y-1 flex-1 min-w-[200px]">
-                  <p className="text-sm font-medium">
+                  <p className="text-sm font-medium text-foreground">
                     Limite de upload de ficheiros
                   </p>
                   <p className="text-xs text-muted-foreground">
@@ -263,12 +320,12 @@ export function SettingsClient({
         </div>
       )}
 
-      {/* ── Secção: Categorias ── */}
+      {/* ── Categorias ── */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Tag size={14} className="text-muted-foreground" />
-            <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+            <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
               Categorias
             </h2>
             <Badge variant="secondary" className="text-[10px]">
@@ -298,7 +355,7 @@ export function SettingsClient({
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm truncate">
+                      <p className="font-semibold text-sm truncate text-foreground">
                         {cat.name}
                       </p>
                       {cat.description && (
@@ -316,7 +373,7 @@ export function SettingsClient({
                       <Trash2 size={13} />
                     </Button>
                   </div>
-                  <div className="mt-3 pt-3 border-t border-muted">
+                  <div className="mt-3 pt-3 border-t border-border">
                     <Badge variant="secondary" className="text-[10px]">
                       {cat._count?.products || 0} produto(s)
                     </Badge>
@@ -328,12 +385,12 @@ export function SettingsClient({
         )}
       </div>
 
-      {/* ── Secção: Extras ── */}
+      {/* ── Extras ── */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Package size={14} className="text-muted-foreground" />
-            <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+            <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
               Extras
             </h2>
             <Badge variant="secondary" className="text-[10px]">
@@ -366,7 +423,7 @@ export function SettingsClient({
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm truncate">
+                      <p className="font-semibold text-sm truncate text-foreground">
                         {extra.name}
                       </p>
                       {extra.description && (
@@ -384,9 +441,8 @@ export function SettingsClient({
                       <Trash2 size={13} />
                     </Button>
                   </div>
-
-                  <div className="mt-3 pt-3 border-t border-muted flex items-center justify-between">
-                    <span className="text-sm font-bold">
+                  <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
+                    <span className="text-sm font-bold text-foreground">
                       {formatCurrency(extra.price)}
                       {extra.unit && (
                         <span className="text-xs font-normal text-muted-foreground ml-1">

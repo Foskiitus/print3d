@@ -12,7 +12,8 @@ function AlertBadge({ items }: { items: any[] }) {
     <span
       className={cn(
         "absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full text-white text-[9px] font-bold flex items-center justify-center",
-        hasCritical ? "bg-destructive" : "bg-yellow-500",
+        // ✅ bg-warning em vez de bg-yellow-500
+        hasCritical ? "bg-destructive" : "bg-warning",
       )}
     >
       {items.length > 9 ? "9+" : items.length}
@@ -21,7 +22,8 @@ function AlertBadge({ items }: { items: any[] }) {
 }
 
 function severityClass(severity: string) {
-  return severity === "critical" ? "text-destructive" : "text-yellow-500";
+  // ✅ text-warning em vez de text-yellow-500
+  return severity === "critical" ? "text-destructive" : "text-warning";
 }
 
 function AlertDropdown({
@@ -58,11 +60,12 @@ function AlertDropdown({
       <button
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "relative p-2 rounded-md transition-colors",
+          "relative p-2 rounded-lg transition-colors",
           items.length > 0
             ? hasCritical
               ? "text-destructive hover:bg-destructive/10"
-              : "text-yellow-500 hover:bg-yellow-500/10"
+              : // ✅ text-warning / hover:bg-warning/10
+                "text-warning hover:bg-warning/10"
             : "text-muted-foreground hover:bg-accent hover:text-foreground",
         )}
       >
@@ -71,11 +74,12 @@ function AlertDropdown({
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-72 bg-card border border-border rounded-lg shadow-lg z-50 overflow-hidden">
+        // ✅ rounded-xl em vez de rounded-lg
+        <div className="absolute right-0 top-full mt-2 w-72 bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <div className="flex items-center gap-2">
               <Icon size={13} className="text-muted-foreground" />
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
                 {title}
               </p>
             </div>
@@ -85,7 +89,7 @@ function AlertDropdown({
                   "text-[10px] px-1.5 py-0.5 rounded-full font-medium",
                   hasCritical
                     ? "bg-destructive/10 text-destructive"
-                    : "bg-yellow-500/10 text-yellow-500",
+                    : "bg-warning/10 text-warning",
                 )}
               >
                 {items.length} alerta(s)
@@ -103,7 +107,7 @@ function AlertDropdown({
                 {items.slice(0, 5).map((item) => (
                   <div
                     key={item.id}
-                    className="px-4 py-2.5 hover:bg-accent/50 transition-colors"
+                    className="px-4 py-2.5 hover:bg-muted/20 transition-colors"
                   >
                     {renderItem(item)}
                   </div>
@@ -134,10 +138,9 @@ export function AlertsHeader() {
 
   useEffect(() => {
     const CACHE_KEY = "alerts_cache";
-    const CACHE_TTL = 60 * 1000; // 60 segundos
+    const CACHE_TTL = 60 * 1000;
 
     const load = async () => {
-      // Verificar cache em memória
       try {
         const cached = sessionStorage.getItem(CACHE_KEY);
         if (cached) {
@@ -150,7 +153,6 @@ export function AlertsHeader() {
         }
       } catch {}
 
-      // Buscar dados frescos
       try {
         const res = await fetch("/api/alerts");
         const data = await res.json();
@@ -165,7 +167,6 @@ export function AlertsHeader() {
 
     load();
 
-    // Refrescar a cada 5 minutos
     const interval = setInterval(
       () => {
         sessionStorage.removeItem("alerts_cache");
@@ -187,7 +188,9 @@ export function AlertsHeader() {
         linkHref="/alerts"
         renderItem={(item) => (
           <Link href={`/products/${item.id}`} className="block">
-            <p className="text-sm font-medium truncate">{item.name}</p>
+            <p className="text-sm font-medium truncate text-foreground">
+              {item.name}
+            </p>
             <p
               className={cn("text-[10px] mt-0.5", severityClass(item.severity))}
             >
@@ -209,7 +212,9 @@ export function AlertsHeader() {
                 className="w-2 h-2 rounded-full flex-shrink-0"
                 style={{ backgroundColor: item.colorHex }}
               />
-              <p className="text-sm font-medium truncate">{item.name}</p>
+              <p className="text-sm font-medium truncate text-foreground">
+                {item.name}
+              </p>
             </div>
             <p className={cn("text-[10px]", severityClass(item.severity))}>
               {item.remaining.toFixed(0)}g no total · alerta abaixo de{" "}

@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { ExportClient } from "./ExportClient";
 
-export const metadata = { title: "Exportação | Print3D" };
+export const metadata = { title: "Exportação" };
 
 export default async function ExportPage() {
   const session = await auth();

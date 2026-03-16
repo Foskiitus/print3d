@@ -5,11 +5,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash2, Pencil, Check, X } from "lucide-react";
+import { Trash2, Pencil, Check, X, Factory, Package } from "lucide-react";
 import { AddProductionDialog } from "@/components/forms/AddProductionDialog";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "@/components/ui/toaster";
 import { refreshAlerts } from "@/lib/refreshAlerts";
+import { cn } from "@/lib/utils";
 
 function formatDate(date: string | Date) {
   return new Date(date).toLocaleDateString("pt-PT", {
@@ -39,7 +40,6 @@ export function ProductionClient({
 }) {
   const [logs, setLogs] = useState(initialLogs);
 
-  // Estado da linha em edição
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     printHours: "",
@@ -84,7 +84,6 @@ export function ProductionClient({
           notes: editForm.notes.trim() || null,
         }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
@@ -121,42 +120,57 @@ export function ProductionClient({
     }
   };
 
+  const thisMonth = new Date().getMonth();
+
   const totalThisMonth = logs
-    .filter((l) => new Date(l.date).getMonth() === new Date().getMonth())
+    .filter((l) => new Date(l.date).getMonth() === thisMonth)
     .reduce((s, l) => s + l.quantity, 0);
 
   const totalCostThisMonth = logs
-    .filter((l) => new Date(l.date).getMonth() === new Date().getMonth())
+    .filter((l) => new Date(l.date).getMonth() === thisMonth)
     .reduce((s, l) => s + (l.totalCost || 0), 0);
 
   return (
-    <div className="space-y-4">
-      {/* Resumo do mês */}
+    <div className="space-y-6">
+      {/* ── Resumo do mês ── */}
       <div className="grid grid-cols-2 gap-4">
         <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-              Produzido este mês
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between mb-3">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                Produzido este mês
+              </p>
+              <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
+                <Package size={15} className="text-success" />
+              </div>
+            </div>
+            <p className="text-2xl font-display font-bold text-foreground leading-none">
+              {totalThisMonth}
             </p>
-            <p className="text-2xl font-bold">{totalThisMonth}</p>
-            <p className="text-xs text-muted-foreground">unidades</p>
+            <p className="text-xs text-muted-foreground mt-1">unidades</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-              Custo este mês
-            </p>
-            <p className="text-2xl font-bold">
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between mb-3">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                Custo este mês
+              </p>
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Factory size={15} className="text-primary" />
+              </div>
+            </div>
+            <p className="text-2xl font-display font-bold text-foreground leading-none">
               {formatCurrency(totalCostThisMonth)}
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground mt-1">
               em materiais e máquina
             </p>
           </CardContent>
         </Card>
       </div>
 
+      {/* ── Header da tabela ── */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
           {logs.length} registo(s) no total
@@ -168,43 +182,48 @@ export function ProductionClient({
         />
       </div>
 
-      <Card>
+      {/* ── Tabela ── */}
+      <Card className="overflow-hidden">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Data
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Produto
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Impressora
-                  </th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Qtd
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Tempo
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Filamento
-                  </th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Custo total
-                  </th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Custo/un
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Notas
-                  </th>
-                  <th className="px-4 py-3"></th>
+                  {[
+                    { label: "Data", align: "left" },
+                    { label: "Produto", align: "left" },
+                    { label: "Impressora", align: "left" },
+                    { label: "Qtd", align: "right" },
+                    { label: "Tempo", align: "left" },
+                    { label: "Filamento", align: "left" },
+                    { label: "Custo total", align: "right" },
+                    { label: "Custo/un", align: "right" },
+                    { label: "Notas", align: "left" },
+                    { label: "", align: "right" },
+                  ].map(({ label, align }) => (
+                    <th
+                      key={label}
+                      className={cn(
+                        "px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-widest",
+                        align === "right" ? "text-right" : "text-left",
+                      )}
+                    >
+                      {label}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
+                {logs.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={10}
+                      className="px-4 py-12 text-center text-muted-foreground text-sm"
+                    >
+                      Nenhuma produção registada ainda.
+                    </td>
+                  </tr>
+                )}
                 {logs.map((log) => {
                   const isEditing = editingId === log.id;
                   const costPerUnit =
@@ -215,26 +234,26 @@ export function ProductionClient({
                   return (
                     <tr
                       key={log.id}
-                      className={`border-b border-border last:border-0 transition-colors ${
-                        isEditing ? "bg-primary/5" : "hover:bg-accent/30"
-                      }`}
+                      className={cn(
+                        "border-b border-border last:border-0 transition-colors",
+                        isEditing ? "bg-primary/5" : "hover:bg-muted/20",
+                      )}
                     >
-                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap text-xs">
                         {formatDate(log.date)}
                       </td>
-                      <td className="px-4 py-3 font-medium">
+                      <td className="px-4 py-3 font-medium text-foreground">
                         {log.product.name}
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">
+                      <td className="px-4 py-3 text-muted-foreground text-xs">
                         {log.printer?.name ?? "—"}
                       </td>
+
+                      {/* Quantidade */}
                       <td className="px-4 py-3 text-right">
-                        <Badge
-                          variant="secondary"
-                          className="text-emerald-400 font-medium"
-                        >
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-success/10 text-success border border-success/20">
                           +{log.quantity}
-                        </Badge>
+                        </span>
                       </td>
 
                       {/* Tempo — editável */}
@@ -278,25 +297,23 @@ export function ProductionClient({
                             </div>
                           </div>
                         ) : (
-                          <span className="text-muted-foreground">
+                          <span className="text-muted-foreground text-xs">
                             {minutesToHM(log.printTime)}
                           </span>
                         )}
                       </td>
 
-                      {/* Filamento — só leitura */}
-                      <td className="px-4 py-3">
-                        <span className="text-muted-foreground">
-                          {log.filamentUsed != null
-                            ? `${log.filamentUsed}g`
-                            : "—"}
-                        </span>
+                      {/* Filamento */}
+                      <td className="px-4 py-3 text-muted-foreground text-xs">
+                        {log.filamentUsed != null
+                          ? `${log.filamentUsed}g`
+                          : "—"}
                       </td>
 
                       <td className="px-4 py-3 text-right font-medium">
                         {log.totalCost ? formatCurrency(log.totalCost) : "—"}
                       </td>
-                      <td className="px-4 py-3 text-right text-muted-foreground">
+                      <td className="px-4 py-3 text-right text-muted-foreground text-xs tabular-nums">
                         {costPerUnit ? formatCurrency(costPerUnit) : "—"}
                       </td>
 
@@ -315,7 +332,7 @@ export function ProductionClient({
                             className="h-7 text-xs min-w-[120px]"
                           />
                         ) : (
-                          <span className="text-muted-foreground">
+                          <span className="text-muted-foreground text-xs">
                             {log.notes || "—"}
                           </span>
                         )}
@@ -323,13 +340,13 @@ export function ProductionClient({
 
                       {/* Ações */}
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 justify-end">
                           {isEditing ? (
                             <>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 text-primary hover:text-primary"
+                                className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10"
                                 onClick={() => handleSave(log.id)}
                                 disabled={saving}
                               >
@@ -358,7 +375,7 @@ export function ProductionClient({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 text-destructive/40 hover:text-destructive"
+                                className="h-7 w-7 text-destructive/40 hover:text-destructive hover:bg-destructive/10"
                                 onClick={() => handleDelete(log.id)}
                               >
                                 <Trash2 size={13} />
@@ -370,16 +387,6 @@ export function ProductionClient({
                     </tr>
                   );
                 })}
-                {logs.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={10}
-                      className="px-4 py-8 text-center text-muted-foreground text-sm"
-                    >
-                      Nenhuma produção registada ainda.
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>

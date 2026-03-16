@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -79,17 +80,20 @@ export function UsersClient({ users: initial }: { users: User[] }) {
 
   return (
     <div className="space-y-6">
+      {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Utilizadores</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Gestão de acessos ao sistema
+          <h1 className="text-xl font-semibold text-foreground">
+            Utilizadores
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Gestão de acessos ao sistema.
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button size="sm" className="gap-2">
-              <UserPlus size={15} /> Novo Utilizador
+              <UserPlus size={14} /> Novo Utilizador
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -153,66 +157,76 @@ export function UsersClient({ users: initial }: { users: User[] }) {
         </Dialog>
       </div>
 
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted/30">
-              <th className="text-left px-4 py-3 text-muted-foreground font-medium">
-                Nome
-              </th>
-              <th className="text-left px-4 py-3 text-muted-foreground font-medium">
-                Email
-              </th>
-              <th className="text-left px-4 py-3 text-muted-foreground font-medium">
-                Role
-              </th>
-              <th className="text-left px-4 py-3 text-muted-foreground font-medium">
-                Criado em
-              </th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr
-                key={user.id}
-                className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors"
-              >
-                <td className="px-4 py-3 font-medium text-foreground">
-                  {user.name}
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {user.email}
-                </td>
-                <td className="px-4 py-3">
-                  <Badge
-                    variant={user.role === "admin" ? "default" : "secondary"}
-                    className="gap-1"
+      {/* ── Tabela ── */}
+      <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/30">
+                {["Nome", "Email", "Role", "Criado em", ""].map((h, i) => (
+                  <th
+                    key={i}
+                    className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-widest text-left"
                   >
-                    {user.role === "admin" ? (
-                      <Shield size={11} />
-                    ) : (
-                      <Eye size={11} />
-                    )}
-                    {user.role === "admin" ? "Admin" : "Viewer"}
-                  </Badge>
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {new Date(user.createdAt).toLocaleDateString("pt-PT")}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <button
-                    onClick={() => handleDelete(user.id)}
-                    className="text-muted-foreground hover:text-destructive transition-colors p-1"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </td>
+                    {h}
+                  </th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {users.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-4 py-12 text-center text-muted-foreground text-sm"
+                  >
+                    Nenhum utilizador encontrado.
+                  </td>
+                </tr>
+              )}
+              {users.map((user) => (
+                <tr
+                  key={user.id}
+                  className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors"
+                >
+                  <td className="px-4 py-3 font-medium text-foreground">
+                    {user.name}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {user.email}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge
+                      variant={user.role === "admin" ? "default" : "secondary"}
+                      className="gap-1"
+                    >
+                      {user.role === "admin" ? (
+                        <Shield size={11} />
+                      ) : (
+                        <Eye size={11} />
+                      )}
+                      {user.role === "admin" ? "Admin" : "Viewer"}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground text-xs">
+                    {new Date(user.createdAt).toLocaleDateString("pt-PT")}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive/40 hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => handleDelete(user.id)}
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
     </div>
   );
 }

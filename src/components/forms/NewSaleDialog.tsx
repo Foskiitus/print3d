@@ -23,6 +23,7 @@ import { toast } from "@/components/ui/toaster";
 import { refreshAlerts } from "@/lib/refreshAlerts";
 import { ShoppingCart, UserPlus } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 export function NewSaleDialog({
   products,
@@ -44,7 +45,6 @@ export function NewSaleDialog({
   const selectedProduct = products.find((p) => p.id === productId);
   const availableStock = selectedProduct?.stock ?? 0;
 
-  // Carregar clientes quando o dialog abre
   useEffect(() => {
     if (!open) return;
     fetch("/api/customers")
@@ -80,6 +80,13 @@ export function NewSaleDialog({
     setNotes("");
   };
 
+  // ─── Stock color helper ───────────────────────────────────────────────────
+  function stockColor(stock: number) {
+    if (stock <= 0) return "text-destructive";
+    if (stock <= 3) return "text-warning"; // ✅ text-warning em vez de text-yellow-500
+    return "text-muted-foreground";
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!productId || !salePrice || !quantity) return;
@@ -97,7 +104,6 @@ export function NewSaleDialog({
           notes: notes.trim() || null,
         }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro ao registar venda");
 
@@ -153,14 +159,12 @@ export function NewSaleDialog({
                   <SelectItem key={p.id} value={p.id} disabled={p.stock <= 0}>
                     <div className="flex items-center justify-between w-full gap-3">
                       <span>{p.name}</span>
+                      {/* ✅ stockColor usa text-warning em vez de text-yellow-500 */}
                       <span
-                        className={`text-xs font-medium ${
-                          p.stock <= 0
-                            ? "text-destructive"
-                            : p.stock <= 3
-                              ? "text-yellow-500"
-                              : "text-muted-foreground"
-                        }`}
+                        className={cn(
+                          "text-xs font-medium",
+                          stockColor(p.stock),
+                        )}
                       >
                         ({p.stock} un.)
                       </span>
@@ -170,15 +174,7 @@ export function NewSaleDialog({
               </SelectContent>
             </Select>
             {selectedProduct && (
-              <p
-                className={`text-[10px] ${
-                  availableStock <= 0
-                    ? "text-destructive"
-                    : availableStock <= 3
-                      ? "text-yellow-500"
-                      : "text-muted-foreground"
-                }`}
-              >
+              <p className={cn("text-[10px]", stockColor(availableStock))}>
                 {availableStock <= 0
                   ? "Sem stock disponível"
                   : `${availableStock} unidade(s) disponível(eis)`}
@@ -231,8 +227,12 @@ export function NewSaleDialog({
               {profit !== null && (
                 <div className="flex justify-between items-center border-t border-border pt-2">
                   <span className="text-muted-foreground">Lucro estimado</span>
+                  {/* ✅ text-success em vez de text-emerald-400 */}
                   <span
-                    className={`font-bold ${profit >= 0 ? "text-emerald-400" : "text-destructive"}`}
+                    className={cn(
+                      "font-bold",
+                      profit >= 0 ? "text-success" : "text-destructive",
+                    )}
                   >
                     {profit >= 0 ? "+" : ""}
                     {formatCurrency(profit)}
@@ -242,7 +242,7 @@ export function NewSaleDialog({
             </div>
           )}
 
-          {/* Cliente do sistema */}
+          {/* Cliente */}
           <div className="space-y-1.5">
             <Label>
               Cliente{" "}
@@ -273,7 +273,6 @@ export function NewSaleDialog({
                     </SelectItem>
                   ))
                 )}
-                {/* Link para criar novo cliente */}
                 <div className="px-2 py-1.5 border-t border-border mt-1">
                   <a
                     href="/customers"
