@@ -63,21 +63,18 @@ export async function PATCH(
       printerId,
       productionTime,
       margin,
-      imageUrl,
-      fileUrl,
+      imageKey,
+      fileKey,
       filamentUsages,
       extraUsages,
       unitsPerPrint,
       alertThreshold,
     } = await req.json();
 
-    // Atualizar produto + substituir filamentos e extras numa transação
     const product = await prisma.$transaction(async (tx) => {
-      // Apagar filamentos e extras antigos
       await tx.productFilamentUsage.deleteMany({ where: { productId: id } });
       await tx.productExtra.deleteMany({ where: { productId: id } });
 
-      // Atualizar produto com novos dados
       return tx.product.update({
         where: { id },
         data: {
@@ -93,8 +90,8 @@ export async function PATCH(
                 ? Number(alertThreshold)
                 : null
               : existing.alertThreshold,
-          imageUrl: imageUrl ?? null,
-          fileUrl: fileUrl ?? null,
+          imageKey: imageKey ?? null,
+          fileKey: fileKey ?? null,
           filamentUsage: {
             create: filamentUsages.map((f: any) => ({
               filamentTypeId: f.filamentTypeId,

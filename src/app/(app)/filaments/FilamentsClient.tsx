@@ -5,12 +5,20 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2, History, ChevronDown, ChevronUp, X } from "lucide-react";
+import {
+  Trash2,
+  History,
+  ChevronDown,
+  ChevronUp,
+  X,
+  Pencil,
+} from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { NewFilamentTypeDialog } from "@/components/forms/NewFilamentTypeDialog";
 import { AddSpoolDialog } from "@/components/forms/AddSpoolDialog";
 import { SpoolAdjustDialog } from "@/components/forms/SpoolAdjustDialog";
 import { toast } from "@/components/ui/toaster";
+import { EditFilamentTypeDialog } from "@/components/forms/EditFilamentTypeDialog";
 
 function formatDate(date: string | Date) {
   return new Date(date).toLocaleDateString("pt-PT", {
@@ -32,6 +40,8 @@ export function FilamentsClient({
   const [spools, setSpools] = useState(initialSpools);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingType, setEditingType] = useState<any | null>(null);
 
   const refreshData = async () => {
     try {
@@ -44,6 +54,12 @@ export function FilamentsClient({
     } catch (err) {
       console.error("Erro ao atualizar dados:", err);
     }
+  };
+
+  const handleEditType = (e: React.MouseEvent, type: any) => {
+    e.stopPropagation();
+    setEditingType(type);
+    setEditOpen(true);
   };
 
   const handleDeleteType = async (id: string) => {
@@ -111,6 +127,12 @@ export function FilamentsClient({
 
   return (
     <div className="space-y-8">
+      <EditFilamentTypeDialog
+        type={editingType}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        onUpdated={refreshData}
+      />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Coluna 1 e 2: Catálogo */}
         <div className="lg:col-span-2 space-y-4">
@@ -184,11 +206,19 @@ export function FilamentsClient({
                         </div>
                       </div>
 
-                      {/* Lado direito: só botão apagar */}
+                      {/* Lado direito: botões editar + apagar */}
                       <div
                         onClick={(e) => e.stopPropagation()}
-                        className="flex-shrink-0"
+                        className="flex gap-1 flex-shrink-0"
                       >
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-foreground"
+                          onClick={(e) => handleEditType(e, type)}
+                        >
+                          <Pencil size={13} />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"

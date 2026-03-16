@@ -17,25 +17,33 @@ export default async function SettingsPage() {
 
   const userId = session.user.id;
 
-  const [categories, extras, electricitySetting] = await Promise.all([
-    prisma.category.findMany({
-      where: { userId },
-      include: { _count: { select: { products: true } } },
-      orderBy: { name: "asc" },
-    }),
-    prisma.extra.findMany({
-      where: { userId },
-      include: { _count: { select: { usages: true } } },
-      orderBy: { name: "asc" },
-    }),
-    prisma.settings.findUnique({
-      where: { userId_key: { userId, key: "electricityPrice" } },
-    }),
-  ]);
+  const [categories, extras, electricitySetting, uploadLimitSetting] =
+    await Promise.all([
+      prisma.category.findMany({
+        where: { userId },
+        include: { _count: { select: { products: true } } },
+        orderBy: { name: "asc" },
+      }),
+      prisma.extra.findMany({
+        where: { userId },
+        include: { _count: { select: { usages: true } } },
+        orderBy: { name: "asc" },
+      }),
+      prisma.settings.findUnique({
+        where: { userId_key: { userId, key: "electricityPrice" } },
+      }),
+      prisma.settings.findUnique({
+        where: { userId_key: { userId, key: "uploadLimitMb" } },
+      }),
+    ]);
 
   const electricityPrice = electricitySetting
     ? Number(electricitySetting.value)
     : 0.2;
+
+  const uploadLimitMb = uploadLimitSetting
+    ? Number(uploadLimitSetting.value)
+    : 100;
 
   return (
     <div className="space-y-6">
@@ -50,6 +58,7 @@ export default async function SettingsPage() {
         initialCategories={categories as any}
         initialExtras={extras as any}
         initialElectricityPrice={electricityPrice}
+        initialUploadLimitMb={uploadLimitMb}
       />
     </div>
   );

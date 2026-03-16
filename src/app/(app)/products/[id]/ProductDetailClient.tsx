@@ -29,11 +29,13 @@ import {
   Plus,
   Upload,
   Printer,
+  FileBox,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { AddSpoolDialog } from "@/components/forms/AddSpoolDialog";
 import { toast } from "@/components/ui/toaster";
 import { useSignedUrl } from "@/hooks/useSignedUrl";
+import { useUploadLimit } from "@/hooks/useUploadLimit";
 
 function formatDate(date: string | Date) {
   return new Date(date).toLocaleDateString("pt-PT", {
@@ -67,6 +69,7 @@ export function ProductDetailClient({
 
   // ✅ URL assinado para imagem privada
   const { signedUrl: signedImageUrl } = useSignedUrl(product.imageUrl);
+  const { limitMb, limitBytes } = useUploadLimit();
 
   const [categories, setCategories] = useState<any[]>([]);
   const [filamentTypes, setFilamentTypes] = useState<any[]>([]);
@@ -152,7 +155,8 @@ export function ProductDetailClient({
       imagePreview: product.imageUrl ?? null,
       imageUrl: product.imageUrl ?? null,
       threemfFile: null,
-      fileUrl: null, // removido suporte a .3mf por limitação de upload
+      threemfUploading: false,
+      fileUrl: product.fileUrl ?? null,
       filamentUsages: product.filamentUsage.map((fu: any) => ({
         filamentTypeId: fu.filamentTypeId,
         weight: String(fu.weight),
@@ -247,7 +251,18 @@ export function ProductDetailClient({
         imageUrl = d.url;
       }
 
-      let fileUrl = null; // .3mf removido por limitação de upload
+      let fileUrl = form.fileUrl;
+      if (form.threemfFile) {
+        setForm((f: any) => ({ ...f, threemfUploading: true }));
+        const fd = new FormData();
+        fd.append("file", form.threemfFile);
+        fd.append("type", "3mf");
+        const r = await fetch("/api/upload", { method: "POST", body: fd });
+        const d = await r.json();
+        setForm((f: any) => ({ ...f, threemfUploading: false }));
+        if (!r.ok) throw new Error(d.error);
+        fileUrl = d.url;
+      }
 
       const res = await fetch(`/api/products/${product.id}`, {
         method: "PATCH",
@@ -335,11 +350,13 @@ export function ProductDetailClient({
 
             {product.fileUrl && (
               <a
-                href="#"
-                className="flex items-center gap-2 w-full justify-center border border-dashed rounded-lg p-3 text-xs text-muted-foreground opacity-50 cursor-not-allowed"
+                href={product.fileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 w-full justify-center border border-dashed rounded-lg p-3 text-xs text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors"
               >
                 <Download size={13} />
-                Ficheiro .3mf (download indisponível)
+                Descarregar ficheiro de impressão
               </a>
             )}
 
@@ -565,9 +582,17 @@ export function ProductDetailClient({
             <X size={13} className="mr-1.5" />
             Cancelar
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={saving}>
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={saving || form?.threemfUploading}
+          >
             <Check size={13} className="mr-1.5" />
-            {saving ? "A guardar..." : "Guardar"}
+            {form?.threemfUploading
+              ? "A fazer upload..."
+              : saving
+                ? "A guardar..."
+                : "Guardar"}
           </Button>
         </div>
       </div>
@@ -623,6 +648,88 @@ export function ProductDetailClient({
               />
             </label>
           )}
+
+          {/* Ficheiro 3MF / STL */}
+          <div className="space-y-2">
+            <Label>
+              Ficheiro de impressão{" "}
+              <span className="text-muted-foreground font-normal">
+                (opcional)
+              </span>
+            </Label>
+            {form.threemfFile ? (
+              <div className="flex items-center gap-3 border rounded-lg px-3 py-2 bg-muted/30">
+                <FileBox size={16} className="text-primary flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate">
+                    {form.threemfFile.name}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {(form.threemfFile.size / 1024 / 1024).toFixed(1)} MB
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, threemfFile: null })}
+                  className="text-muted-foreground hover:text-destructive transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : form.fileUrl ? (
+              <div className="flex items-center gap-3 border rounded-lg px-3 py-2 bg-muted/30">
+                <FileBox size={16} className="text-primary flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate">
+                    Ficheiro existente
+                  </p>
+                  <a
+                    href={form.fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-primary hover:underline"
+                  >
+                    Ver ficheiro atual
+                  </a>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, fileUrl: null })}
+                  className="text-muted-foreground hover:text-destructive transition-colors"
+                  title="Remover ficheiro"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <label className="flex items-center gap-2 w-fit cursor-pointer border border-dashed rounded-lg px-4 py-2 text-xs text-muted-foreground hover:border-primary/40 transition-colors">
+                <FileBox size={14} />
+                Escolher .3mf ou .stl
+                <input
+                  type="file"
+                  accept=".3mf,.stl"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > limitBytes) {
+                      toast({
+                        title: "Ficheiro demasiado grande",
+                        description: `O limite máximo é ${limitMb} MB. Este ficheiro tem ${(file.size / 1024 / 1024).toFixed(1)} MB.`,
+                        variant: "destructive",
+                      });
+                      e.target.value = "";
+                      return;
+                    }
+                    setForm({ ...form, threemfFile: file });
+                  }}
+                />
+              </label>
+            )}
+            <p className="text-[10px] text-muted-foreground">
+              Limite máximo: {limitMb} MB · Formatos aceites: .3mf, .stl
+            </p>
+          </div>
 
           {/* Info básica */}
           <Card>

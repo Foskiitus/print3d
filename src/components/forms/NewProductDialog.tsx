@@ -20,17 +20,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
-import { Plus, Trash2, Upload, X } from "lucide-react";
+import { Plus, Trash2, Upload, X, FileBox } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { AddSpoolDialog } from "@/components/forms/AddSpoolDialog";
+import { useUploadLimit } from "@/hooks/useUploadLimit";
 
 export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false);
+  const { limitMb, limitBytes } = useUploadLimit();
   const [loading, setLoading] = useState(false);
   const [costData, setCostData] = useState<any>(null);
   const [isChildDialogOpen, setIsChildDialogOpen] = useState(false);
 
-  // Dados de suporte
   const [categories, setCategories] = useState<any[]>([]);
   const [filamentTypes, setFilamentTypes] = useState<any[]>([]);
   const [extras, setExtras] = useState<any[]>([]);
@@ -41,7 +42,6 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
     if (res.ok) setFilamentTypes(await res.json());
   };
 
-  // Formulário base
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -54,21 +54,19 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
     alertThreshold: "",
   });
 
-  // Filamentos usados
   const [filamentUsages, setFilamentUsages] = useState<
     { filamentTypeId: string; weight: string }[]
   >([{ filamentTypeId: "", weight: "" }]);
 
-  // Extras usados
   const [extraUsages, setExtraUsages] = useState<
     { extraId: string; quantity: string }[]
   >([]);
 
-  // Upload
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [threemfFile, setThreemfFile] = useState<File | null>(null);
+  const [threemfUploading, setThreemfUploading] = useState(false);
 
-  // Carregar dados quando o dialog abre
   useEffect(() => {
     if (!open) return;
     Promise.all([
@@ -84,7 +82,6 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
     });
   }, [open]);
 
-  // Calcular custo estimado sempre que filamentos/extras/margem mudam
   useEffect(() => {
     if (!open) return;
     const validFilaments = filamentUsages.filter(
@@ -136,6 +133,21 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
     setImagePreview(URL.createObjectURL(file));
   };
 
+  const handleThreemfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > limitBytes) {
+      toast({
+        title: "Ficheiro demasiado grande",
+        description: `O limite máximo é ${limitMb} MB. Este ficheiro tem ${(file.size / 1024 / 1024).toFixed(1)} MB.`,
+        variant: "destructive",
+      });
+      e.target.value = "";
+      return;
+    }
+    setThreemfFile(file);
+  };
+
   const addFilament = () =>
     setFilamentUsages([...filamentUsages, { filamentTypeId: "", weight: "" }]);
 
@@ -176,6 +188,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
     setExtraUsages([]);
     setImageFile(null);
     setImagePreview(null);
+    setThreemfFile(null);
     setCostData(null);
   };
 
@@ -196,7 +209,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
 
     setLoading(true);
     try {
-      // Upload imagem se existir
+      // Upload imagem
       let imageUrl = null;
       if (imageFile) {
         const fd = new FormData();
@@ -206,6 +219,20 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
         const d = await r.json();
         if (!r.ok) throw new Error(d.error);
         imageUrl = d.url;
+      }
+
+      // Upload .3mf / .stl
+      let fileUrl = null;
+      if (threemfFile) {
+        setThreemfUploading(true);
+        const fd = new FormData();
+        fd.append("file", threemfFile);
+        fd.append("type", "3mf");
+        const r = await fetch("/api/upload", { method: "POST", body: fd });
+        const d = await r.json();
+        setThreemfUploading(false);
+        if (!r.ok) throw new Error(d.error);
+        fileUrl = d.url;
       }
 
       const res = await fetch("/api/products", {
@@ -228,7 +255,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
             ? Number(form.alertThreshold)
             : null,
           imageUrl,
-          fileUrl: null,
+          fileUrl,
           filamentUsages: validFilaments.map((f) => ({
             filamentTypeId: f.filamentTypeId,
             weight: Number(f.weight),
@@ -254,6 +281,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
       });
     } finally {
       setLoading(false);
+      setThreemfUploading(false);
     }
   }
 
@@ -261,7 +289,6 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
     <Dialog
       open={open}
       onOpenChange={(v) => {
-        // ✅ Não fechar o dialog do produto enquanto o dialog da bobine estiver aberto
         if (!v && isChildDialogOpen) return;
         setOpen(v);
         if (!v) resetForm();
@@ -279,7 +306,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 mt-2">
-          {/* ── Informação básica ── */}
+          {/* Informação básica */}
           <div className="space-y-4">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Informação básica
@@ -397,7 +424,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
             </div>
           </div>
 
-          {/* ── Filamentos ── */}
+          {/* Filamentos */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -437,7 +464,6 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                           </div>
                         </SelectItem>
                       ))}
-                      {/* ✅ Opção rápida para registar nova bobine */}
                       <div className="px-2 py-1.5 border-t border-border mt-1">
                         <AddSpoolDialog
                           types={filamentTypes}
@@ -448,8 +474,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                               type="button"
                               className="flex items-center gap-2 w-full text-xs text-primary hover:text-primary/80 transition-colors py-1"
                             >
-                              <Plus size={12} />
-                              Registar nova bobine
+                              <Plus size={12} /> Registar nova bobine
                             </button>
                           }
                         />
@@ -483,7 +508,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
             ))}
           </div>
 
-          {/* ── Extras ── */}
+          {/* Extras */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -549,7 +574,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
             ))}
           </div>
 
-          {/* ── Margem e unidades por impressão ── */}
+          {/* Margem e unidades */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="margin">Margem de lucro (%)</Label>
@@ -569,7 +594,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                 id="unitsPerPrint"
                 type="number"
                 min="1"
-                placeholder="ex: 31"
+                placeholder="ex: 1"
                 value={form.unitsPerPrint}
                 onChange={(e) =>
                   setForm({ ...form, unitsPerPrint: e.target.value })
@@ -602,7 +627,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
             </div>
           </div>
 
-          {/* ── Preview de custo ── */}
+          {/* Preview de custo */}
           {costData &&
             (() => {
               const units = Number(form.unitsPerPrint) || 1;
@@ -674,7 +699,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
               );
             })()}
 
-          {/* ── Ficheiros ── */}
+          {/* Ficheiros */}
           <div className="space-y-4">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Ficheiros
@@ -714,10 +739,62 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                 </label>
               )}
             </div>
+
+            {/* Ficheiro 3MF / STL */}
+            <div className="space-y-2">
+              <Label>
+                Ficheiro de impressão{" "}
+                <span className="text-muted-foreground font-normal">
+                  (opcional)
+                </span>
+              </Label>
+              {threemfFile ? (
+                <div className="flex items-center gap-3 border rounded-lg px-3 py-2 bg-muted/30">
+                  <FileBox size={16} className="text-primary flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate">
+                      {threemfFile.name}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {(threemfFile.size / 1024 / 1024).toFixed(1)} MB
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setThreemfFile(null)}
+                    className="text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex items-center gap-2 w-fit cursor-pointer border border-dashed rounded-lg px-4 py-2 text-xs text-muted-foreground hover:border-primary/40 transition-colors">
+                  <FileBox size={14} />
+                  Escolher .3mf ou .stl
+                  <input
+                    type="file"
+                    accept=".3mf,.stl"
+                    className="hidden"
+                    onChange={handleThreemfChange}
+                  />
+                </label>
+              )}
+              <p className="text-[10px] text-muted-foreground">
+                Limite máximo: {limitMb} MB · Formatos aceites: .3mf, .stl
+              </p>
+            </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "A criar..." : "Criar Produto"}
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={loading || threemfUploading}
+          >
+            {threemfUploading
+              ? "A fazer upload do ficheiro..."
+              : loading
+                ? "A criar..."
+                : "Criar Produto"}
           </Button>
         </form>
       </DialogContent>

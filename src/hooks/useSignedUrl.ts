@@ -1,19 +1,37 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState, useEffect } from "react";
 
 /**
- * Converte um URL privado do Vercel Blob num URL proxy
- * que passa pelo servidor Next.js para servir o ficheiro.
- *
- * Não precisa de fetch — o URL proxy é calculado imediatamente.
- * O servidor faz a autenticação e serve o conteúdo.
+ * Dado um R2 object key, obtém uma URL assinada fresca via /api/signed-url.
+ * As URLs assinadas do R2 expiram em 6 dias — este hook gere isso automaticamente.
  */
-export function useSignedUrl(blobUrl: string | null | undefined) {
-  const signedUrl = useMemo(() => {
-    if (!blobUrl) return null;
-    return `/api/blob-url?url=${encodeURIComponent(blobUrl)}`;
-  }, [blobUrl]);
+export function useSignedUrl(
+  key: string | null | undefined,
+  bucket: string = "images",
+) {
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  return { signedUrl, loading: false };
+  useEffect(() => {
+    if (!key) {
+      setSignedUrl(null);
+      return;
+    }
+
+    // Se for uma URL completa (legado Supabase/Vercel), usa diretamente
+    if (key.startsWith("http")) {
+      setSignedUrl(key);
+      return;
+    }
+
+    setLoading(true);
+    fetch(`/api/signed-url?key=${encodeURIComponent(key)}&bucket=${bucket}`)
+      .then((r) => r.json())
+      .then((data) => setSignedUrl(data.url ?? null))
+      .catch(() => setSignedUrl(null))
+      .finally(() => setLoading(false));
+  }, [key, bucket]);
+
+  return { signedUrl, loading };
 }

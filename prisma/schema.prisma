@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
 }
 
 //////////////////////////////////////////////////////////
@@ -131,8 +131,10 @@ model Product {
   categoryId     String?
   productionTime Int?
   margin         Float    @default(0.3)
-  imageUrl       String?
-  fileUrl        String?
+  imageUrl       String?  // legacy — mantido para compatibilidade
+  fileUrl        String?  // legacy — mantido para compatibilidade
+  imageKey       String?  // R2 object key para imagem
+  fileKey        String?  // R2 object key para ficheiro .3mf/.stl
   printerId      String?                         // ✅ opcional — impressora escolhida na produção
   unitsPerPrint  Int  @default(1)   // ← adicionar
   createdAt      DateTime @default(now())

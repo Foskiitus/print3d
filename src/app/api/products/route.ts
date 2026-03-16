@@ -38,8 +38,8 @@ export async function POST(req: Request) {
       printerId,
       productionTime,
       margin,
-      imageUrl,
-      fileUrl,
+      imageKey,
+      fileKey,
       filamentUsages,
       extraUsages,
       unitsPerPrint,
@@ -71,8 +71,8 @@ export async function POST(req: Request) {
         margin: margin ?? 0.3,
         unitsPerPrint: unitsPerPrint ?? 1,
         alertThreshold: alertThreshold != null ? Number(alertThreshold) : null,
-        imageUrl: imageUrl || null,
-        fileUrl: fileUrl || null,
+        imageKey: imageKey || null,
+        fileKey: fileKey || null,
         filamentUsage: {
           create: filamentUsages.map((f: any) => ({
             filamentTypeId: f.filamentTypeId,

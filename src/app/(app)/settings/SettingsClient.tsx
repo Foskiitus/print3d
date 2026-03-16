@@ -15,10 +15,12 @@ export function SettingsClient({
   initialCategories,
   initialExtras,
   initialElectricityPrice,
+  initialUploadLimitMb,
 }: {
   initialCategories: any[];
   initialExtras: any[];
   initialElectricityPrice: number;
+  initialUploadLimitMb: number;
 }) {
   const [categories, setCategories] = useState(initialCategories);
   const [extras, setExtras] = useState(initialExtras);
@@ -26,6 +28,10 @@ export function SettingsClient({
     String(initialElectricityPrice),
   );
   const [savingElectricity, setSavingElectricity] = useState(false);
+  const [uploadLimitMb, setUploadLimitMb] = useState(
+    String(initialUploadLimitMb),
+  );
+  const [savingUploadLimit, setSavingUploadLimit] = useState(false);
 
   const refreshCategories = async () => {
     const res = await fetch("/api/categories");
@@ -61,6 +67,36 @@ export function SettingsClient({
       });
     } finally {
       setSavingElectricity(false);
+    }
+  };
+
+  const handleSaveUploadLimit = async () => {
+    const value = Number(uploadLimitMb);
+    if (isNaN(value) || value < 1 || value > 500) {
+      toast({
+        title: "Valor inválido. Deve estar entre 1 e 500 MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSavingUploadLimit(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "uploadLimitMb", value: String(value) }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast({ title: "Limite de upload guardado!" });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSavingUploadLimit(false);
     }
   };
 
@@ -143,6 +179,47 @@ export function SettingsClient({
                   disabled={savingElectricity}
                 >
                   {savingElectricity ? (
+                    "A guardar..."
+                  ) : (
+                    <>
+                      <Check size={13} className="mr-1.5" />
+                      Guardar
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+            <div className="border-t border-border pt-5 flex items-start justify-between gap-6 flex-wrap">
+              <div className="space-y-1 flex-1 min-w-[200px]">
+                <p className="text-sm font-medium">
+                  Limite de upload de ficheiros
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Tamanho máximo permitido para ficheiros .3mf e .stl. Máximo
+                  absoluto: 500 MB.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Input
+                    type="number"
+                    step="1"
+                    min="1"
+                    max="500"
+                    value={uploadLimitMb}
+                    onChange={(e) => setUploadLimitMb(e.target.value)}
+                    className="w-28 pr-10"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                    MB
+                  </span>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleSaveUploadLimit}
+                  disabled={savingUploadLimit}
+                >
+                  {savingUploadLimit ? (
                     "A guardar..."
                   ) : (
                     <>
