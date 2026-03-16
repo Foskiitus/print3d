@@ -53,6 +53,7 @@ export default async function AlertsPage() {
       const sold =
         salesTotals.find((t) => t.productId === p.id)?._sum.quantity ?? 0;
       const stock = produced - sold;
+      if (produced === 0) return null; // nunca produzido — não alertar
       if (stock > p.alertThreshold!) return null;
       const severity = stock === 0 ? "critical" : "warning";
       return {
@@ -233,7 +234,9 @@ export default async function AlertsPage() {
                             {s.remaining.toFixed(0)}g
                           </span>{" "}
                           no total
-                          {s.spoolCount > 1 ? ` (${s.spoolCount} bobines)` : ""}{" "}
+                          {s.spoolCount > 1
+                            ? ` (${s.spoolCount} bobines)`
+                            : ""}{" "}
                           · alerta abaixo de {s.threshold}g
                           {s.isDefault && (
                             <span className="text-muted-foreground">

@@ -48,6 +48,7 @@ export async function GET() {
       const sold =
         salesTotals.find((t) => t.productId === p.id)?._sum.quantity ?? 0;
       const stock = produced - sold;
+      if (produced === 0) return null; // nunca produzido — não alertar
       if (stock > p.alertThreshold!) return null;
       const severity = stock === 0 ? "critical" : "warning";
       return {

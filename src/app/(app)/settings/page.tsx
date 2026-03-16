@@ -16,6 +16,7 @@ export default async function SettingsPage() {
   }
 
   const userId = session.user.id;
+  const isAdmin = (session.user as any).role === "admin";
 
   const [categories, extras, electricitySetting, uploadLimitSetting] =
     await Promise.all([
@@ -59,6 +60,7 @@ export default async function SettingsPage() {
         initialExtras={extras as any}
         initialElectricityPrice={electricityPrice}
         initialUploadLimitMb={uploadLimitMb}
+        isAdmin={isAdmin}
       />
     </div>
   );
