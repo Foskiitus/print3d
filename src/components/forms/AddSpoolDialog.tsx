@@ -19,8 +19,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
-import { Plus } from "lucide-react";
+import { CalendarIcon, Plus } from "lucide-react";
 import { refreshAlerts } from "@/lib/refreshAlerts";
+import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { format } from "date-fns";
+import { pt } from "date-fns/locale";
 
 export function AddSpoolDialog({
   types,
@@ -31,26 +40,42 @@ export function AddSpoolDialog({
   types: any[];
   onAdded: () => void;
   trigger?: React.ReactNode;
-  onOpenChange?: (open: boolean) => void; // ✅ notifica o parent quando abre/fecha
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  // ✅ Constante no topo para evitar timezone bugs, recalculos e corrigir o escopo do JSX
+  const today = new Date().toISOString().split("T")[0];
 
-  const handleOpenChange = (v: boolean) => {
-    setOpen(v);
-    onOpenChangeProp?.(v); // notifica o dialog pai
-  };
+  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+
   const [form, setForm] = useState({
     filamentTypeId: "",
     spoolWeight: "1000",
     price: "",
-    purchaseDate: new Date().toISOString().split("T")[0],
+    quantity: "1",
+    purchaseDate: today, // ✅ Usado na inicialização
   });
+
+  const handleOpenChange = (v: boolean) => {
+    setOpen(v);
+    onOpenChangeProp?.(v);
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    e.stopPropagation(); // ✅ impede que o submit faça bubble para o form do produto
+    e.stopPropagation();
+
     if (!form.filamentTypeId || !form.price) return;
+
+    if (form.purchaseDate > today) {
+      // ✅ Usado na validação
+      toast({
+        title: "Data inválida",
+        description: "A data de compra não pode ser no futuro.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     try {
@@ -61,6 +86,7 @@ export function AddSpoolDialog({
           filamentTypeId: form.filamentTypeId,
           spoolWeight: Number(form.spoolWeight),
           price: Number(form.price),
+          quantity: Number(form.quantity),
           purchaseDate: new Date(form.purchaseDate).toISOString(),
         }),
       });
@@ -68,13 +94,18 @@ export function AddSpoolDialog({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro desconhecido");
 
-      toast({ title: "Bobine registada no inventário!" });
+      toast({
+        title: `${form.quantity} bobine(s) registadas no inventário!`,
+      });
+
       setForm({
         filamentTypeId: "",
         spoolWeight: "1000",
         price: "",
-        purchaseDate: new Date().toISOString().split("T")[0],
+        quantity: "1",
+        purchaseDate: today, // ✅ Usado no reset do form
       });
+
       setOpen(false);
       refreshAlerts();
       onAdded();
@@ -90,11 +121,9 @@ export function AddSpoolDialog({
   }
 
   return (
-    // ✅ stopPropagation aqui impede que cliques dentro fechem o dialog pai
     <div onClick={(e) => e.stopPropagation()}>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogTrigger asChild>
-          {/* ✅ Usa trigger customizado se fornecido, senão o botão padrão */}
           {trigger ?? (
             <Button size="sm">
               <Plus size={14} className="mr-1.5" />
@@ -145,23 +174,76 @@ export function AddSpoolDialog({
                   type="number"
                   step="0.01"
                   placeholder="0.00"
+                  min="1"
+                  max="1000"
                   value={form.price}
                   onChange={(e) => setForm({ ...form, price: e.target.value })}
                   required
                 />
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="quantity">Quantidade de Bobines</Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  min="1"
+                  max="100"
+                  step="1"
+                  value={form.quantity}
+                  onChange={(e) =>
+                    setForm({ ...form, quantity: e.target.value })
+                  }
+                  required
+                />
+              </div>
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 flex flex-col mt-2">
               <Label htmlFor="date">Data de Compra</Label>
-              <Input
-                id="date"
-                type="date"
-                value={form.purchaseDate}
-                onChange={(e) =>
-                  setForm({ ...form, purchaseDate: e.target.value })
-                }
-                required
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !form.purchaseDate && "text-muted-foreground",
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {form.purchaseDate ? (
+                      format(new Date(form.purchaseDate), "PPP", { locale: pt })
+                    ) : (
+                      <span>Escolha uma data</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-auto p-0 bg-white dark:bg-zinc-950 border shadow-md"
+                  align="start"
+                >
+                  <Calendar
+                    mode="single"
+                    selected={new Date(form.purchaseDate)}
+                    onSelect={(date) => {
+                      if (date) {
+                        // Mantemos o formato "YYYY-MM-DD" no estado para compatibilidade com o teu código
+                        // Adicionamos as horas para evitar bugs de fuso horário no split
+                        const adjustedDate = new Date(
+                          date.getTime() - date.getTimezoneOffset() * 60000,
+                        );
+                        setForm({
+                          ...form,
+                          purchaseDate: adjustedDate
+                            .toISOString()
+                            .split("T")[0],
+                        });
+                      }
+                    }}
+                    // É ESTA LINHA QUE DESATIVA OS DIAS E LHES APLICA O RISCADO!
+                    disabled={(date) => date > new Date()}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "A registar..." : "Adicionar ao Stock"}

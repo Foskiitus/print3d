@@ -1,17 +1,13 @@
-import { auth } from "@/lib/auth";
+import { getUserId } from "@/lib/getUserId";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 // GET /api/filaments/spools
 export async function GET() {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const userId = await getUserId();
 
   const spools = await prisma.filamentSpool.findMany({
-    where: { userId: session.user.id },
+    where: { userId },
     include: {
       filamentType: true,
       _count: { select: { adjustments: true } }, // ✅ para controlar visibilidade do botão apagar
@@ -24,15 +20,16 @@ export async function GET() {
 
 // POST /api/filaments/spools
 export async function POST(req: Request) {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const userId = await getUserId();
 
   try {
-    const { filamentTypeId, spoolWeight, price, purchaseDate } =
-      await req.json();
+    const {
+      filamentTypeId,
+      spoolWeight,
+      price,
+      purchaseDate,
+      quantity = 1,
+    } = await req.json();
 
     if (!filamentTypeId || !spoolWeight || !price || !purchaseDate) {
       return NextResponse.json(
@@ -45,19 +42,43 @@ export async function POST(req: Request) {
       where: { id: filamentTypeId },
     });
 
-    if (!filamentType || filamentType.userId !== session.user.id) {
+    if (!filamentType || filamentType.userId !== userId) {
       return NextResponse.json(
         { error: "Tipo de filamento inválido" },
         { status: 403 },
       );
     }
 
-    const spool = await prisma.filamentSpool.create({
-      data: {
-        userId: session.user.id,
+    const parsedQty = Number(quantity);
+
+    if (isNaN(parsedQty)) {
+      return NextResponse.json(
+        { error: "Quantidade inválida" },
+        { status: 400 },
+      );
+    }
+
+    const qty = Math.min(100, Math.max(1, parsedQty));
+
+    // cria as bobines
+    const spoolsData = Array.from({ length: qty }).map(() => ({
+      userId,
+      filamentTypeId,
+      spoolWeight,
+      remaining: spoolWeight,
+      price,
+      purchaseDate: new Date(purchaseDate),
+    }));
+
+    await prisma.filamentSpool.createMany({
+      data: spoolsData,
+    });
+
+    // buscar as bobines recém criadas para devolver ao frontend
+    const spools = await prisma.filamentSpool.findMany({
+      where: {
+        userId: userId,
         filamentTypeId,
-        spoolWeight,
-        remaining: spoolWeight,
         price,
         purchaseDate: new Date(purchaseDate),
       },
@@ -65,9 +86,11 @@ export async function POST(req: Request) {
         filamentType: true,
         _count: { select: { adjustments: true } },
       },
+      orderBy: { purchaseDate: "desc" },
+      take: qty,
     });
 
-    return NextResponse.json(spool, { status: 201 });
+    return NextResponse.json(spools, { status: 201 });
   } catch (error: any) {
     console.error("[POST /api/filaments/spools]", error);
     return NextResponse.json(
