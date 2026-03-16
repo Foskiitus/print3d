@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2, Package, Clock, Layers } from "lucide-react";
+import { Trash2, Package, Clock, Layers, Printer } from "lucide-react";
 import { NewProductDialog } from "@/components/forms/NewProductDialog";
 import { BlobImage } from "@/components/BlobImage";
 import { toast } from "@/components/ui/toaster";
@@ -44,9 +44,40 @@ export function ProductsClient({
     }
   };
 
+  // Filtrar por categoria primeiro
   const filtered = selectedCategory
     ? products.filter((p) => p.categoryId === selectedCategory)
     : products;
+
+  // Agrupar por impressora
+  const grouped: {
+    printerId: string | null;
+    printerName: string;
+    products: any[];
+  }[] = [];
+  const seen = new Set<string>();
+
+  for (const p of filtered) {
+    const key = p.printerId ?? "__none__";
+    if (!seen.has(key)) {
+      seen.add(key);
+      grouped.push({
+        printerId: p.printerId ?? null,
+        printerName: p.printer?.name ?? "Sem impressora",
+        products: [],
+      });
+    }
+    grouped
+      .find((g) => g.printerId === (p.printerId ?? null))!
+      .products.push(p);
+  }
+
+  // Ordenar: grupos com impressora primeiro, "Sem impressora" no fim
+  grouped.sort((a, b) => {
+    if (a.printerId === null) return 1;
+    if (b.printerId === null) return -1;
+    return a.printerName.localeCompare(b.printerName);
+  });
 
   return (
     <div className="space-y-6">
@@ -100,83 +131,110 @@ export function ProductsClient({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filtered.map((product) => {
-            const stock = product.stock ?? 0;
-            const stockVariant =
-              stock <= 0 ? "destructive" : stock <= 3 ? "outline" : "secondary";
+        <div className="space-y-8">
+          {grouped.map((group) => (
+            <div key={group.printerId ?? "__none__"} className="space-y-4">
+              {/* Cabeçalho do grupo */}
+              <div className="flex items-center gap-2">
+                <Printer size={14} className="text-muted-foreground" />
+                <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                  {group.printerName}
+                </h2>
+                <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                  {group.products.length} produto(s)
+                </span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
 
-            return (
-              <Card
-                key={product.id}
-                className="group cursor-pointer hover:border-primary/50 transition-colors overflow-hidden"
-                onClick={() => router.push(`/products/${product.id}`)}
-              >
-                {/* Imagem */}
-                {product.imageUrl ? (
-                  <div className="aspect-square overflow-hidden bg-muted">
-                    <BlobImage
-                      src={product.imageUrl}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                ) : (
-                  <div className="aspect-square bg-muted/40 flex items-center justify-center">
-                    <Package size={32} className="text-muted-foreground/30" />
-                  </div>
-                )}
+              {/* Grid de produtos do grupo */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {group.products.map((product) => {
+                  const stock = product.stock ?? 0;
+                  const stockVariant =
+                    stock <= 0
+                      ? "destructive"
+                      : stock <= 3
+                        ? "outline"
+                        : "secondary";
 
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm truncate">
-                        {product.name}
-                      </p>
-                      {product.category && (
-                        <p className="text-[10px] text-muted-foreground mt-0.5">
-                          {product.category.name}
-                        </p>
+                  return (
+                    <Card
+                      key={product.id}
+                      className="group cursor-pointer hover:border-primary/50 transition-colors overflow-hidden"
+                      onClick={() => router.push(`/products/${product.id}`)}
+                    >
+                      {product.imageUrl ? (
+                        <div className="aspect-square overflow-hidden bg-muted">
+                          <BlobImage
+                            src={product.imageUrl}
+                            alt={product.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        </div>
+                      ) : (
+                        <div className="aspect-square bg-muted/40 flex items-center justify-center">
+                          <Package
+                            size={32}
+                            className="text-muted-foreground/30"
+                          />
+                        </div>
                       )}
-                    </div>
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-destructive/40 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => handleDelete(e, product.id)}
-                      >
-                        <Trash2 size={13} />
-                      </Button>
-                    </div>
-                  </div>
 
-                  <div className="flex items-center gap-3 mt-3 text-[10px] text-muted-foreground">
-                    {product.productionTime && (
-                      <span className="flex items-center gap-1">
-                        <Clock size={10} />
-                        {product.productionTime}min
-                      </span>
-                    )}
-                    <span className="flex items-center gap-1">
-                      <Layers size={10} />
-                      {product.filamentUsage.length} filamento(s)
-                    </span>
-                  </div>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-sm truncate">
+                              {product.name}
+                            </p>
+                            {product.category && (
+                              <p className="text-[10px] text-muted-foreground mt-0.5">
+                                {product.category.name}
+                              </p>
+                            )}
+                          </div>
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-destructive/40 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={(e) => handleDelete(e, product.id)}
+                            >
+                              <Trash2 size={13} />
+                            </Button>
+                          </div>
+                        </div>
 
-                  {/* ✅ Stock em destaque */}
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-muted">
-                    <span className="text-[10px] text-muted-foreground">
-                      Stock
-                    </span>
-                    <Badge variant={stockVariant} className="text-[10px]">
-                      {stock <= 0 ? "Sem stock" : `${stock} un.`}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                        <div className="flex items-center gap-3 mt-3 text-[10px] text-muted-foreground">
+                          {product.productionTime && (
+                            <span className="flex items-center gap-1">
+                              <Clock size={10} />
+                              {Math.floor(product.productionTime / 60) > 0 &&
+                                `${Math.floor(product.productionTime / 60)}h `}
+                              {product.productionTime % 60 > 0 &&
+                                `${product.productionTime % 60}min`}
+                            </span>
+                          )}
+                          <span className="flex items-center gap-1">
+                            <Layers size={10} />
+                            {product.filamentUsage.length} filamento(s)
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-muted">
+                          <span className="text-[10px] text-muted-foreground">
+                            Stock
+                          </span>
+                          <Badge variant={stockVariant} className="text-[10px]">
+                            {stock <= 0 ? "Sem stock" : `${stock} un.`}
+                          </Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

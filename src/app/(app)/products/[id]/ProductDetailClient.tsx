@@ -28,6 +28,7 @@ import {
   Trash2,
   Plus,
   Upload,
+  Printer,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { AddSpoolDialog } from "@/components/forms/AddSpoolDialog";
@@ -363,6 +364,12 @@ export function ProductDetailClient({
                     <TrendingUp size={9} />
                     {(product.margin * 100).toFixed(0)}% margem
                   </Badge>
+                  {product.printer && (
+                    <Badge variant="secondary" className="text-[10px] gap-1">
+                      <Printer size={9} />
+                      {product.printer.name}
+                    </Badge>
+                  )}
                   <Badge variant="secondary" className="text-[10px] gap-1">
                     <Layers size={9} />
                     {product.filamentUsage.length} filamento(s)

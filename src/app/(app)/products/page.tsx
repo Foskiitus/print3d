@@ -20,6 +20,7 @@ export default async function ProductsPage() {
         where: { userId },
         include: {
           category: true,
+          printer: true,
           filamentUsage: { include: { filamentType: true } },
           extras: { include: { extra: true } },
           _count: { select: { productionLogs: true, sales: true } },

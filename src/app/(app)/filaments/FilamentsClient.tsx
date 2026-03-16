@@ -5,17 +5,9 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Trash2,
-  History,
-  ChevronDown,
-  ChevronUp,
-  X,
-  Pencil,
-} from "lucide-react";
+import { Trash2, History, ChevronDown, ChevronUp, X } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { NewFilamentTypeDialog } from "@/components/forms/NewFilamentTypeDialog";
-import { EditFilamentTypeDialog } from "@/components/forms/EditFilamentTypeDialog";
 import { AddSpoolDialog } from "@/components/forms/AddSpoolDialog";
 import { SpoolAdjustDialog } from "@/components/forms/SpoolAdjustDialog";
 import { toast } from "@/components/ui/toaster";
@@ -41,10 +33,6 @@ export function FilamentsClient({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
 
-  // Estado para o dialog de edição
-  const [editOpen, setEditOpen] = useState(false);
-  const [editingType, setEditingType] = useState<any | null>(null);
-
   const refreshData = async () => {
     try {
       const [resTypes, resSpools] = await Promise.all([
@@ -56,12 +44,6 @@ export function FilamentsClient({
     } catch (err) {
       console.error("Erro ao atualizar dados:", err);
     }
-  };
-
-  const handleEditType = (e: React.MouseEvent, type: any) => {
-    e.stopPropagation();
-    setEditingType(type);
-    setEditOpen(true);
   };
 
   const handleDeleteType = async (id: string) => {
@@ -105,12 +87,15 @@ export function FilamentsClient({
   };
 
   const handleTypeClick = (typeId: string) => {
+    // Toggle: clicar no mesmo material limpa o filtro
     setSelectedTypeId((prev) => (prev === typeId ? null : typeId));
+    // Se há histórico e o filtro está a ser aplicado, abre-o automaticamente
     setHistoryOpen(true);
   };
 
   const selectedType = types.find((t) => t.id === selectedTypeId);
 
+  // Filtrar por material selecionado (ou mostrar todos se nenhum selecionado)
   const filteredSpools = selectedTypeId
     ? spools.filter((s) => s.filamentTypeId === selectedTypeId)
     : spools;
@@ -126,14 +111,6 @@ export function FilamentsClient({
 
   return (
     <div className="space-y-8">
-      {/* Dialog de edição — controlado por estado, sem trigger no JSX */}
-      <EditFilamentTypeDialog
-        type={editingType}
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        onUpdated={refreshData}
-      />
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Coluna 1 e 2: Catálogo */}
         <div className="lg:col-span-2 space-y-4">
@@ -147,9 +124,11 @@ export function FilamentsClient({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {types.map((type) => {
               const isSelected = selectedTypeId === type.id;
+              // ✅ Contar apenas bobines com filamento restante (> 0)
               const activeCount = spools.filter(
                 (s) => s.filamentTypeId === type.id && s.remaining > 0,
               ).length;
+              // Total de gramas disponível deste tipo
               const totalRemaining = spools
                 .filter((s) => s.filamentTypeId === type.id && s.remaining > 0)
                 .reduce((sum, s) => sum + s.remaining, 0);
@@ -165,68 +144,68 @@ export function FilamentsClient({
                   onClick={() => handleTypeClick(type.id)}
                 >
                   <CardContent className="pt-6">
-                    <div className="flex justify-between items-center gap-3">
-                      <div className="flex items-center gap-4 min-w-0 flex-1">
+                    <div className="flex justify-between items-start gap-2">
+                      {/* Lado esquerdo: cor + nome + info */}
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
                         <div
-                          className="w-5 h-5 rounded-full border border-white/20 flex-shrink-0"
+                          className="w-5 h-5 rounded-full border border-white/20 flex-shrink-0 mt-0.5"
                           style={{
                             backgroundColor: type.colorHex,
                             filter: `drop-shadow(0 0 8px ${type.colorHex})`,
                           }}
                         />
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="font-bold text-sm leading-none mb-1 truncate">
                             {type.brand}
                           </p>
                           <p className="text-[10px] text-muted-foreground truncate">
                             {type.material} • {type.colorName}
                           </p>
+                          {/* Badge e gramas abaixo do nome */}
+                          <div className="flex items-center gap-2 mt-2 flex-wrap">
+                            <Badge
+                              variant={isSelected ? "default" : "secondary"}
+                              className="text-[10px]"
+                            >
+                              {activeCount} rolo(s)
+                            </Badge>
+                            {totalRemaining > 0 && (
+                              <span className="text-[10px] text-muted-foreground">
+                                {totalRemaining.toFixed(0)}g
+                                {type.alertThreshold != null &&
+                                  totalRemaining <= type.alertThreshold && (
+                                    <span className="text-destructive ml-1">
+                                      ⚠️
+                                    </span>
+                                  )}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <div className="text-right">
-                          <Badge
-                            variant={isSelected ? "default" : "secondary"}
-                            className="text-[10px]"
-                          >
-                            {activeCount} rolo(s) activo(s)
-                          </Badge>
-                          {totalRemaining > 0 && (
-                            <p className="text-[10px] text-muted-foreground mt-0.5">
-                              {totalRemaining.toFixed(0)}g disponíveis
-                              {type.alertThreshold != null &&
-                                totalRemaining <= type.alertThreshold && (
-                                  <span className="text-destructive ml-1">
-                                    ⚠️
-                                  </span>
-                                )}
-                            </p>
-                          )}
-                        </div>
-                        {/* Botões editar + apagar */}
-                        <div
-                          className="flex gap-1"
-                          onClick={(e) => e.stopPropagation()}
+
+                      {/* Lado direito: só botão apagar */}
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-shrink-0"
+                      >
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => handleDeleteType(type.id)}
                         >
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-foreground"
-                            onClick={(e) => handleEditType(e, type)}
-                          >
-                            <Pencil size={13} />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => handleDeleteType(type.id)}
-                          >
-                            <Trash2 size={14} />
-                          </Button>
-                        </div>
+                          <Trash2 size={14} />
+                        </Button>
                       </div>
                     </div>
+
+                    {/* Indicador de filtro ativo */}
+                    {isSelected && (
+                      <div className="mt-3 flex items-center gap-1 text-[10px] text-primary">
+                        <span>A filtrar rolos por este material</span>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );
@@ -234,26 +213,26 @@ export function FilamentsClient({
           </div>
         </div>
 
-        {/* Coluna 3: Bobines */}
+        {/* Coluna 3: Bobines ativas */}
         <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
               <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
-                Stock de Bobines
+                Bobines em Stock
               </h2>
-              {selectedType && (
-                <button
-                  onClick={() => setSelectedTypeId(null)}
-                  className="flex items-center gap-1 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full hover:bg-primary/20 transition-colors flex-shrink-0"
-                >
-                  <span className="truncate max-w-[80px]">
-                    {selectedType.colorName}
-                  </span>
-                  <X size={10} />
-                </button>
-              )}
+              <div className="flex-shrink-0">
+                <AddSpoolDialog types={types} onAdded={refreshData} />
+              </div>
             </div>
-            <AddSpoolDialog types={types} onAdded={refreshData} />
+            {selectedType && (
+              <button
+                onClick={() => setSelectedTypeId(null)}
+                className="flex items-center gap-1 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full hover:bg-primary/20 transition-colors"
+              >
+                <span>{selectedType.colorName}</span>
+                <X size={10} className="flex-shrink-0" />
+              </button>
+            )}
           </div>
 
           <div className="space-y-3">
@@ -341,7 +320,7 @@ export function FilamentsClient({
         </div>
       </div>
 
-      {/* Histórico de Bobines Vazias */}
+      {/* ── Secção: Histórico de Bobines Vazias ── */}
       {emptySpools.length > 0 && (
         <div className="space-y-3">
           <button
