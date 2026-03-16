@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
 import { Plus } from "lucide-react";
 import { ColorPicker } from "@/components/ui/colorPicker";
+import { numericInputProps } from "@/lib/numericInput";
 
 export function NewFilamentTypeDialog({
   onCreated,
@@ -22,7 +23,6 @@ export function NewFilamentTypeDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-
   const [form, setForm] = useState({
     brand: "",
     material: "",
@@ -51,9 +51,7 @@ export function NewFilamentTypeDialog({
             : null,
         }),
       });
-
       if (!res.ok) throw new Error();
-
       toast({ title: "Material adicionado ao catálogo!" });
       setForm({
         brand: "",
@@ -97,7 +95,6 @@ export function NewFilamentTypeDialog({
               required
             />
           </div>
-
           <div className="space-y-1.5">
             <Label>Material</Label>
             <Input
@@ -107,7 +104,6 @@ export function NewFilamentTypeDialog({
               required
             />
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>Nome/Código da Cor</Label>
@@ -120,17 +116,16 @@ export function NewFilamentTypeDialog({
                 required
               />
             </div>
-
             <div className="space-y-1.5">
               <Label>Cor Visual (Glow)</Label>
               <div className="flex gap-2">
-                {/* ColorPicker customizado — funciona igual em todos os browsers */}
                 <ColorPicker
                   value={form.colorHex}
                   onChange={(color) => setForm({ ...form, colorHex: color })}
                 />
+                {/* ✅ rounded-lg em vez de rounded-md */}
                 <div
-                  className="flex-1 rounded-md border flex items-center justify-center text-[10px] font-mono uppercase"
+                  className="flex-1 rounded-lg border flex items-center justify-center text-[10px] font-mono uppercase"
                   style={{
                     backgroundColor: form.colorHex,
                     boxShadow: `0 0 10px ${form.colorHex}`,
@@ -143,7 +138,6 @@ export function NewFilamentTypeDialog({
               </div>
             </div>
           </div>
-
           <div className="space-y-1.5">
             <Label>
               Alerta de stock mínimo (g){" "}
@@ -159,13 +153,13 @@ export function NewFilamentTypeDialog({
               onChange={(e) =>
                 setForm({ ...form, alertThreshold: e.target.value })
               }
+              {...numericInputProps()}
             />
             <p className="text-[10px] text-muted-foreground">
               Recebe um alerta quando o total deste filamento baixar deste
               valor. Se não definires, usa 500g.
             </p>
           </div>
-
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "A processar..." : "Guardar no Catálogo"}
           </Button>

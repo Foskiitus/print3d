@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
 import { ColorPicker } from "@/components/ui/colorPicker";
+import { numericInputProps } from "@/lib/numericInput";
 import { Lock } from "lucide-react";
 import { refreshAlerts } from "@/lib/refreshAlerts";
 
@@ -208,6 +209,7 @@ export function EditFilamentTypeDialog({
               onChange={(e) =>
                 setForm({ ...form, alertThreshold: e.target.value })
               }
+              {...numericInputProps()}
             />
             <p className="text-[10px] text-muted-foreground">
               Recebe um alerta quando o total deste filamento baixar deste
