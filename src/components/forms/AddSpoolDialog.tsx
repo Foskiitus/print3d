@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
 import { Plus } from "lucide-react";
+import { refreshAlerts } from "@/lib/refreshAlerts";
 
 export function AddSpoolDialog({
   types,
@@ -75,6 +76,7 @@ export function AddSpoolDialog({
         purchaseDate: new Date().toISOString().split("T")[0],
       });
       setOpen(false);
+      refreshAlerts();
       onAdded();
     } catch (error: any) {
       toast({

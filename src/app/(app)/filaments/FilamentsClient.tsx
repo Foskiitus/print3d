@@ -5,9 +5,17 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2, History, ChevronDown, ChevronUp, X } from "lucide-react";
+import {
+  Trash2,
+  History,
+  ChevronDown,
+  ChevronUp,
+  X,
+  Pencil,
+} from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { NewFilamentTypeDialog } from "@/components/forms/NewFilamentTypeDialog";
+import { EditFilamentTypeDialog } from "@/components/forms/EditFilamentTypeDialog";
 import { AddSpoolDialog } from "@/components/forms/AddSpoolDialog";
 import { SpoolAdjustDialog } from "@/components/forms/SpoolAdjustDialog";
 import { toast } from "@/components/ui/toaster";
@@ -33,6 +41,10 @@ export function FilamentsClient({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
 
+  // Estado para o dialog de edição
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingType, setEditingType] = useState<any | null>(null);
+
   const refreshData = async () => {
     try {
       const [resTypes, resSpools] = await Promise.all([
@@ -44,6 +56,12 @@ export function FilamentsClient({
     } catch (err) {
       console.error("Erro ao atualizar dados:", err);
     }
+  };
+
+  const handleEditType = (e: React.MouseEvent, type: any) => {
+    e.stopPropagation();
+    setEditingType(type);
+    setEditOpen(true);
   };
 
   const handleDeleteType = async (id: string) => {
@@ -87,15 +105,12 @@ export function FilamentsClient({
   };
 
   const handleTypeClick = (typeId: string) => {
-    // Toggle: clicar no mesmo material limpa o filtro
     setSelectedTypeId((prev) => (prev === typeId ? null : typeId));
-    // Se há histórico e o filtro está a ser aplicado, abre-o automaticamente
     setHistoryOpen(true);
   };
 
   const selectedType = types.find((t) => t.id === selectedTypeId);
 
-  // Filtrar por material selecionado (ou mostrar todos se nenhum selecionado)
   const filteredSpools = selectedTypeId
     ? spools.filter((s) => s.filamentTypeId === selectedTypeId)
     : spools;
@@ -111,6 +126,14 @@ export function FilamentsClient({
 
   return (
     <div className="space-y-8">
+      {/* Dialog de edição — controlado por estado, sem trigger no JSX */}
+      <EditFilamentTypeDialog
+        type={editingType}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        onUpdated={refreshData}
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Coluna 1 e 2: Catálogo */}
         <div className="lg:col-span-2 space-y-4">
@@ -124,11 +147,9 @@ export function FilamentsClient({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {types.map((type) => {
               const isSelected = selectedTypeId === type.id;
-              // ✅ Contar apenas bobines com filamento restante (> 0)
               const activeCount = spools.filter(
                 (s) => s.filamentTypeId === type.id && s.remaining > 0,
               ).length;
-              // Total de gramas disponível deste tipo
               const totalRemaining = spools
                 .filter((s) => s.filamentTypeId === type.id && s.remaining > 0)
                 .reduce((sum, s) => sum + s.remaining, 0);
@@ -182,7 +203,19 @@ export function FilamentsClient({
                             </p>
                           )}
                         </div>
-                        <div onClick={(e) => e.stopPropagation()}>
+                        {/* Botões editar + apagar */}
+                        <div
+                          className="flex gap-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-foreground"
+                            onClick={(e) => handleEditType(e, type)}
+                          >
+                            <Pencil size={13} />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -194,13 +227,6 @@ export function FilamentsClient({
                         </div>
                       </div>
                     </div>
-
-                    {/* Indicador de filtro ativo */}
-                    {isSelected && (
-                      <div className="mt-3 flex items-center gap-1 text-[10px] text-primary">
-                        <span>A filtrar rolos por este material</span>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               );
@@ -208,13 +234,12 @@ export function FilamentsClient({
           </div>
         </div>
 
-        {/* Coluna 3: Bobines ativas */}
+        {/* Coluna 3: Bobines */}
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            {/* Cabeçalho com indicador de filtro ativo */}
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-2">
               <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
-                Bobines em Stock
+                Stock de Bobines
               </h2>
               {selectedType && (
                 <button
@@ -316,7 +341,7 @@ export function FilamentsClient({
         </div>
       </div>
 
-      {/* ── Secção: Histórico de Bobines Vazias ── */}
+      {/* Histórico de Bobines Vazias */}
       {emptySpools.length > 0 && (
         <div className="space-y-3">
           <button

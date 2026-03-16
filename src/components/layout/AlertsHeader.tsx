@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { Package, Droplets, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -132,20 +132,29 @@ export function AlertsHeader() {
   const [productAlerts, setProductAlerts] = useState<any[]>([]);
   const [spoolAlerts, setSpoolAlerts] = useState<any[]>([]);
 
-  useEffect(() => {
-    const load = () => {
-      fetch("/api/alerts")
-        .then((r) => r.json())
-        .then((data) => {
-          setProductAlerts(data.productAlerts ?? []);
-          setSpoolAlerts(data.spoolAlerts ?? []);
-        })
-        .catch(() => {});
-    };
-    load();
-    const interval = setInterval(load, 5 * 60 * 1000);
-    return () => clearInterval(interval);
+  const load = useCallback(async () => {
+    try {
+      const r = await fetch("/api/alerts");
+      const data = await r.json();
+      setProductAlerts(data.productAlerts ?? []);
+      setSpoolAlerts(data.spoolAlerts ?? []);
+    } catch {}
   }, []);
+
+  useEffect(() => {
+    load();
+
+    // Recarrega a cada 5 minutos
+    const interval = setInterval(load, 5 * 60 * 1000);
+
+    // Recarrega imediatamente quando qualquer ação modifica dados
+    window.addEventListener("refresh-alerts", load);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("refresh-alerts", load);
+    };
+  }, [load]);
 
   return (
     <div className="flex items-center gap-1">

@@ -1,28 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
-import { Plus } from "lucide-react";
 import { ColorPicker } from "@/components/ui/colorPicker";
+import { Lock } from "lucide-react";
+import { refreshAlerts } from "@/lib/refreshAlerts";
 
-export function NewFilamentTypeDialog({
-  onCreated,
+type FilamentType = {
+  id: string;
+  brand: string;
+  material: string;
+  colorName: string;
+  colorHex: string;
+  alertThreshold: number | null;
+  _count?: { spools: number };
+};
+
+export function EditFilamentTypeDialog({
+  type,
+  open,
+  onOpenChange,
+  onUpdated,
 }: {
-  onCreated: () => void;
+  type: FilamentType | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onUpdated: () => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-
   const [form, setForm] = useState({
     brand: "",
     material: "",
@@ -31,19 +45,34 @@ export function NewFilamentTypeDialog({
     alertThreshold: "",
   });
 
+  const hasSpools = (type?._count?.spools ?? 0) > 0;
+
+  useEffect(() => {
+    if (type) {
+      setForm({
+        brand: type.brand,
+        material: type.material,
+        colorName: type.colorName,
+        colorHex: type.colorHex,
+        alertThreshold: type.alertThreshold?.toString() ?? "",
+      });
+    }
+  }, [type]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.brand || !form.material || !form.colorName || !form.colorHex)
-      return;
+    if (!type) return;
 
     setLoading(true);
     try {
-      const res = await fetch("/api/filaments/types", {
-        method: "POST",
+      const res = await fetch(`/api/filaments/types/${type.id}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          // Campos bloqueados: envia os originais sem alteração
           brand: form.brand,
           material: form.material,
+          // Campos sempre editáveis
           colorHex: form.colorHex,
           colorName: form.colorName,
           alertThreshold: form.alertThreshold
@@ -54,20 +83,14 @@ export function NewFilamentTypeDialog({
 
       if (!res.ok) throw new Error();
 
-      toast({ title: "Material adicionado ao catálogo!" });
-      setForm({
-        brand: "",
-        material: "",
-        colorName: "",
-        colorHex: "#3b82f6",
-        alertThreshold: "",
-      });
-      setOpen(false);
-      onCreated();
+      toast({ title: "Material atualizado!" });
+      onOpenChange(false);
+      refreshAlerts();
+      onUpdated();
     } catch {
       toast({
         title: "Erro",
-        description: "Falha ao comunicar com a base de dados.",
+        description: "Falha ao atualizar o material.",
         variant: "destructive",
       });
     } finally {
@@ -76,39 +99,64 @@ export function NewFilamentTypeDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="outline">
-          <Plus size={14} className="mr-1.5" />
-          Novo Material
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Registar Novo Filamento</DialogTitle>
+          <DialogTitle>Editar Material</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+
+        {/* Aviso quando há bobines associadas */}
+        {hasSpools && (
+          <div className="flex items-start gap-2 text-[11px] text-muted-foreground bg-muted/40 border border-border rounded-lg px-3 py-2">
+            <Lock
+              size={12}
+              className="mt-0.5 flex-shrink-0 text-muted-foreground"
+            />
+            <span>
+              Este material tem bobines associadas. A <strong>Marca</strong> e o{" "}
+              <strong>Material</strong> estão bloqueados para proteger o
+              histórico de consumo.
+            </span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4 mt-1">
+          {/* Marca — bloqueada se tiver bobines */}
           <div className="space-y-1.5">
-            <Label>Marca</Label>
+            <Label className={hasSpools ? "text-muted-foreground" : ""}>
+              Marca
+              {hasSpools && (
+                <Lock size={11} className="inline ml-1.5 opacity-50" />
+              )}
+            </Label>
             <Input
               placeholder="Ex: Bambu Lab"
               value={form.brand}
               onChange={(e) => setForm({ ...form, brand: e.target.value })}
+              disabled={hasSpools}
               required
             />
           </div>
 
+          {/* Material — bloqueado se tiver bobines */}
           <div className="space-y-1.5">
-            <Label>Material</Label>
+            <Label className={hasSpools ? "text-muted-foreground" : ""}>
+              Material
+              {hasSpools && (
+                <Lock size={11} className="inline ml-1.5 opacity-50" />
+              )}
+            </Label>
             <Input
               placeholder="Ex: PLA Basic, PETG, ASA"
               value={form.material}
               onChange={(e) => setForm({ ...form, material: e.target.value })}
+              disabled={hasSpools}
               required
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
+            {/* Nome da cor — sempre editável */}
             <div className="space-y-1.5">
               <Label>Nome/Código da Cor</Label>
               <Input
@@ -121,10 +169,10 @@ export function NewFilamentTypeDialog({
               />
             </div>
 
+            {/* Cor visual — sempre editável */}
             <div className="space-y-1.5">
               <Label>Cor Visual (Glow)</Label>
               <div className="flex gap-2">
-                {/* ColorPicker customizado — funciona igual em todos os browsers */}
                 <ColorPicker
                   value={form.colorHex}
                   onChange={(color) => setForm({ ...form, colorHex: color })}
@@ -144,6 +192,7 @@ export function NewFilamentTypeDialog({
             </div>
           </div>
 
+          {/* Alerta de stock — sempre editável */}
           <div className="space-y-1.5">
             <Label>
               Alerta de stock mínimo (g){" "}
@@ -162,13 +211,23 @@ export function NewFilamentTypeDialog({
             />
             <p className="text-[10px] text-muted-foreground">
               Recebe um alerta quando o total deste filamento baixar deste
-              valor. Se não definires, usa 500g.
+              valor.
             </p>
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "A processar..." : "Guardar no Catálogo"}
-          </Button>
+          <div className="flex gap-2 pt-1">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" className="flex-1" disabled={loading}>
+              {loading ? "A guardar..." : "Guardar Alterações"}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

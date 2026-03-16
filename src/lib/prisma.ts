@@ -9,6 +9,7 @@ function createPrismaClient(): PrismaClient {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const adapter = new PrismaPg({
       connectionString: process.env.DATABASE_URL!,
+      max: 1, // Vercel serverless: 1 connection per function instance
     });
     return new PrismaClient({ adapter });
   }
@@ -17,8 +18,6 @@ function createPrismaClient(): PrismaClient {
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
-// ✅ Em desenvolvimento, reutilizar a instância entre hot-reloads
-// para não esgotar o connection pool do Supabase
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
