@@ -16,6 +16,7 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import { SpoolAdjustDialog } from "@/components/forms/SpoolAdjustDialog";
 import { toast } from "@/components/ui/toaster";
+import { refreshAlerts } from "@/lib/refreshAlerts";
 
 function formatDate(date: string | Date) {
   return new Date(date).toLocaleDateString("pt-PT", {
@@ -81,6 +82,7 @@ export function SpoolDetailClient({
       if (!res.ok) throw new Error(data.error);
       toast({ title: "Ajuste removido" });
       refreshSpool();
+      refreshAlerts();
     } catch (error: any) {
       toast({
         title: "Erro",

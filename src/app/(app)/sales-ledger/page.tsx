@@ -64,6 +64,7 @@ export default async function SalesLedgerPage() {
   const productsWithStock = products.map((p) => ({
     ...p,
     stock: stockMap[p.id] ?? 0,
+    costPerUnit: costMap[p.id] ?? null,
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
   }));

@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
+import { refreshAlerts } from "@/lib/refreshAlerts";
 import { Factory, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
@@ -102,6 +103,7 @@ export function AddProductionDialog({
 
       reset();
       setOpen(false);
+      refreshAlerts();
       onAdded();
     } catch (error: any) {
       toast({

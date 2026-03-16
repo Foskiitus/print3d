@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
+import { refreshAlerts } from "@/lib/refreshAlerts";
 import { SlidersHorizontal } from "lucide-react";
 
 const REASONS = [
@@ -84,6 +85,7 @@ export function SpoolAdjustDialog({
       });
       setForm({ type: "waste", amount: "", reason: "" });
       setOpen(false);
+      refreshAlerts();
       onAdjusted();
     } catch (error: any) {
       toast({

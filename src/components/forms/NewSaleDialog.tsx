@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
+import { refreshAlerts } from "@/lib/refreshAlerts";
 import { ShoppingCart, UserPlus } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
@@ -65,6 +66,12 @@ export function NewSaleDialog({
   const quantityExceedsStock =
     quantity !== "" && Number(quantity) > availableStock;
 
+  const productionCost = selectedProduct?.costPerUnit ?? null;
+  const profit =
+    total !== null && productionCost !== null
+      ? total - productionCost * Number(quantity)
+      : null;
+
   const reset = () => {
     setProductId("");
     setQuantity("");
@@ -102,6 +109,7 @@ export function NewSaleDialog({
 
       reset();
       setOpen(false);
+      refreshAlerts();
       onCreated();
     } catch (error: any) {
       toast({
@@ -215,9 +223,22 @@ export function NewSaleDialog({
 
           {/* Total preview */}
           {total !== null && (
-            <div className="flex justify-between items-center p-3 rounded-lg bg-muted/40 text-sm">
-              <span className="text-muted-foreground">Total da venda</span>
-              <span className="font-bold">{formatCurrency(total)}</span>
+            <div className="p-3 rounded-lg bg-muted/40 text-sm space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Total da venda</span>
+                <span className="font-bold">{formatCurrency(total)}</span>
+              </div>
+              {profit !== null && (
+                <div className="flex justify-between items-center border-t border-border pt-2">
+                  <span className="text-muted-foreground">Lucro estimado</span>
+                  <span
+                    className={`font-bold ${profit >= 0 ? "text-emerald-400" : "text-destructive"}`}
+                  >
+                    {profit >= 0 ? "+" : ""}
+                    {formatCurrency(profit)}
+                  </span>
+                </div>
+              )}
             </div>
           )}
 

@@ -35,6 +35,7 @@ export function SalesClient({
   products: any[];
 }) {
   const [sales, setSales] = useState(initialSales);
+  const [productsList, setProductsList] = useState(products);
   const [customers, setCustomers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("date");
@@ -50,9 +51,13 @@ export function SalesClient({
   const [saving, setSaving] = useState(false);
 
   const refresh = useCallback(() => {
-    fetch("/api/sales")
-      .then((r) => r.json())
-      .then(setSales);
+    Promise.all([
+      fetch("/api/sales").then((r) => r.json()),
+      fetch("/api/sales/products-with-stock").then((r) => r.json()),
+    ]).then(([salesData, productsData]) => {
+      setSales(salesData);
+      if (Array.isArray(productsData)) setProductsList(productsData);
+    });
   }, []);
 
   useEffect(() => {
@@ -191,7 +196,7 @@ export function SalesClient({
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <NewSaleDialog products={products} onCreated={refresh} />
+        <NewSaleDialog products={productsList} onCreated={refresh} />
       </div>
 
       {/* Resumo */}

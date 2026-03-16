@@ -9,6 +9,7 @@ import { Trash2, Pencil, Check, X } from "lucide-react";
 import { AddProductionDialog } from "@/components/forms/AddProductionDialog";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "@/components/ui/toaster";
+import { refreshAlerts } from "@/lib/refreshAlerts";
 
 function formatDate(date: string | Date) {
   return new Date(date).toLocaleDateString("pt-PT", {
@@ -90,6 +91,7 @@ export function ProductionClient({
       toast({ title: "Registo atualizado" });
       cancelEdit();
       refresh();
+      refreshAlerts();
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -109,6 +111,7 @@ export function ProductionClient({
       if (!res.ok) throw new Error(data.error);
       toast({ title: "Registo apagado" });
       refresh();
+      refreshAlerts();
     } catch (error: any) {
       toast({
         title: "Erro",
