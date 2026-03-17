@@ -26,6 +26,25 @@ export async function requireApiAuth(): Promise<ApiAuthResult> {
       error: NextResponse.json({ error: "Não autenticado" }, { status: 401 }),
     };
   }
+
+  // Garantir que o utilizador existe na BD (caso o webhook ainda não tenha disparado)
+  const existing = await prisma.user.findUnique({ where: { id: userId } });
+  if (!existing) {
+    const clerkUser = await currentUser();
+    if (clerkUser) {
+      await prisma.user.create({
+        data: {
+          id: userId,
+          email: clerkUser.emailAddresses[0]?.emailAddress ?? "",
+          name:
+            `${clerkUser.firstName ?? ""} ${clerkUser.lastName ?? ""}`.trim() ||
+            null,
+          role: "user",
+        },
+      });
+    }
+  }
+
   return { userId, error: null };
 }
 
