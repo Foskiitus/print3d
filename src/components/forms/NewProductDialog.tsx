@@ -23,6 +23,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false);
   const { limitMb, limitBytes } = useUploadLimit();
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [costData, setCostData] = useState<any>(null);
   const [isChildDialogOpen, setIsChildDialogOpen] = useState(false);
 
@@ -184,22 +185,35 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
     setImagePreview(null);
     setThreemfFile(null);
     setCostData(null);
+    setErrors({});
   };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.name.trim()) return;
+
+    // Validação
+    const newErrors: Record<string, string> = {};
+    if (!form.name.trim()) newErrors.name = "O nome é obrigatório.";
+    if (!form.categoryId) newErrors.categoryId = "Seleciona uma categoria.";
+    if (!form.printerId) newErrors.printerId = "Seleciona uma impressora.";
+    const totalMinutes =
+      (parseInt(form.productionHours || "0") || 0) * 60 +
+      (parseInt(form.productionMinutes || "0") || 0);
+    if (totalMinutes <= 0)
+      newErrors.productionTime = "Define o tempo de impressão.";
 
     const validFilaments = filamentUsages.filter(
       (f) => f.filamentTypeId && f.weight && Number(f.weight) > 0,
     );
-    if (validFilaments.length === 0) {
-      toast({
-        title: "Adiciona pelo menos um filamento",
-        variant: "destructive",
-      });
+    if (validFilaments.length === 0)
+      newErrors.filaments =
+        "Adiciona pelo menos um filamento com peso definido.";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
+    setErrors({});
 
     setLoading(true);
     try {
@@ -312,9 +326,15 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                 id="name"
                 placeholder="ex: Porta-chaves Coração"
                 value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                required
+                onChange={(e) => {
+                  setForm({ ...form, name: e.target.value });
+                  setErrors((er) => ({ ...er, name: "" }));
+                }}
+                className={errors.name ? "border-destructive" : ""}
               />
+              {errors.name && (
+                <p className="text-xs text-destructive">{errors.name}</p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -344,10 +364,19 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                     label: c.name,
                   }))}
                   value={form.categoryId}
-                  onValueChange={(v) => setForm({ ...form, categoryId: v })}
+                  onValueChange={(v) => {
+                    setForm({ ...form, categoryId: v });
+                    setErrors((er) => ({ ...er, categoryId: "" }));
+                  }}
                   placeholder="Selecionar..."
                   searchPlaceholder="Pesquisar categoria..."
+                  className={errors.categoryId ? "border-destructive" : ""}
                 />
+                {errors.categoryId && (
+                  <p className="text-xs text-destructive">
+                    {errors.categoryId}
+                  </p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label>Impressora</Label>
@@ -357,25 +386,35 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                     label: p.name,
                   }))}
                   value={form.printerId}
-                  onValueChange={(v) => setForm({ ...form, printerId: v })}
+                  onValueChange={(v) => {
+                    setForm({ ...form, printerId: v });
+                    setErrors((er) => ({ ...er, printerId: "" }));
+                  }}
                   placeholder="Selecionar..."
                   searchPlaceholder="Pesquisar impressora..."
+                  className={errors.printerId ? "border-destructive" : ""}
                 />
+                {errors.printerId && (
+                  <p className="text-xs text-destructive">{errors.printerId}</p>
+                )}
               </div>
             </div>
 
             <div className="space-y-1.5">
               <Label>Tempo de impressão</Label>
-              <div className="flex items-center gap-2">
+              <div
+                className={`flex items-center gap-2 ${errors.productionTime ? "ring-1 ring-destructive rounded-lg" : ""}`}
+              >
                 <div className="relative flex-1">
                   <Input
                     type="number"
                     min="0"
                     placeholder="0"
                     value={form.productionHours}
-                    onChange={(e) =>
-                      setForm({ ...form, productionHours: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setForm({ ...form, productionHours: e.target.value });
+                      setErrors((er) => ({ ...er, productionTime: "" }));
+                    }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
                     h
@@ -388,9 +427,10 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                     max="59"
                     placeholder="0"
                     value={form.productionMinutes}
-                    onChange={(e) =>
-                      setForm({ ...form, productionMinutes: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setForm({ ...form, productionMinutes: e.target.value });
+                      setErrors((er) => ({ ...er, productionTime: "" }));
+                    }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
                     min
@@ -411,9 +451,16 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
           {/* Filamentos */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                Filamentos usados
-              </p>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                  Filamentos usados
+                </p>
+                {errors.filaments && (
+                  <p className="text-xs text-destructive mt-0.5">
+                    {errors.filaments}
+                  </p>
+                )}
+              </div>
               <Button
                 type="button"
                 variant="outline"

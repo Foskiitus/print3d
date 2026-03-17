@@ -30,6 +30,7 @@ import {
   Upload,
   Printer,
   FileBox,
+  ShoppingCart,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { AddSpoolDialog } from "@/components/forms/AddSpoolDialog";
@@ -65,12 +66,24 @@ export function ProductDetailClient({
   const [costs, setCosts] = useState(initialCosts);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [sales, setSales] = useState<any[]>([]);
+  const [salesLoading, setSalesLoading] = useState(true);
   const [isChildDialogOpen, setIsChildDialogOpen] = useState(false);
   const [editKey, setEditKey] = useState(0); // ✅ forçar recálculo ao entrar em edição
 
   // ✅ URL assinado para imagem privada
   const { signedUrl: signedImageUrl } = useSignedUrl(product.imageUrl);
   const { limitMb, limitBytes } = useUploadLimit();
+
+  useEffect(() => {
+    fetch(`/api/products/${initialProduct.id}/sales`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        setSales(data);
+        setSalesLoading(false);
+      })
+      .catch(() => setSalesLoading(false));
+  }, [initialProduct.id]);
 
   const [categories, setCategories] = useState<any[]>([]);
   const [filamentTypes, setFilamentTypes] = useState<any[]>([]);
@@ -564,6 +577,63 @@ export function ProductDetailClient({
             </div>
           </div>
         )}
+
+        {/* ── Histórico de Vendas ── */}
+        <div className="space-y-3">
+          <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+            Histórico de Vendas
+          </h2>
+          {salesLoading ? (
+            <p className="text-xs text-muted-foreground">A carregar...</p>
+          ) : sales.length === 0 ? (
+            <Card>
+              <CardContent className="py-6 text-center text-sm text-muted-foreground">
+                Nenhuma venda registada ainda.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {sales.map((sale: any) => (
+                <Card key={sale.id} className="bg-muted/20 border-none">
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between gap-4 text-sm">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] flex-shrink-0"
+                        >
+                          ×{sale.quantity}
+                        </Badge>
+                        <div className="min-w-0">
+                          <span className="text-muted-foreground text-xs truncate block">
+                            {formatDate(sale.date)}
+                            {sale.customer?.name && (
+                              <> · {sale.customer.name}</>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <ShoppingCart
+                          size={12}
+                          className="text-muted-foreground"
+                        />
+                        <span className="font-medium text-xs tabular-nums">
+                          {formatCurrency(sale.salePrice * sale.quantity)}
+                        </span>
+                      </div>
+                    </div>
+                    {sale.notes && (
+                      <p className="text-[10px] text-muted-foreground mt-1.5 ml-8">
+                        {sale.notes}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
