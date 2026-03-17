@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Sidebar } from "@/components/layout/Sidebar";
 import { Toaster } from "@/components/ui/toaster";
-import { SessionProvider } from "next-auth/react";
+import { ClerkProvider } from "@clerk/nextjs";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { DM_Sans, Space_Grotesk } from "next/font/google";
@@ -41,13 +40,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="pt"
-      className={`${dmSans.variable} ${spaceGrotesk.variable}`}
-      suppressHydrationWarning
-    >
-      <body className="font-sans antialiased bg-background text-foreground">
-        <SessionProvider>
+    <ClerkProvider>
+      <html
+        lang="pt"
+        className={`${dmSans.variable} ${spaceGrotesk.variable}`}
+        suppressHydrationWarning
+      >
+        <body className="font-sans antialiased bg-background text-foreground">
           <ThemeProvider
             attribute="class"
             defaultTheme="dark"
@@ -58,9 +57,9 @@ export default function RootLayout({
           </ThemeProvider>
 
           <SpeedInsights />
-        </SessionProvider>
-        <Toaster />
-      </body>
-    </html>
+          <Toaster />
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { DashboardClient } from "./DashboardClient";
@@ -6,10 +6,8 @@ import { DashboardClient } from "./DashboardClient";
 export const metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
-
-  const userId = session.user.id;
+  const userId = await getAuthUserId();
+  if (!userId) redirect("/sign-in");
 
   const now = new Date();
   const since = new Date(now);

@@ -1,16 +1,15 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 // GET /api/customers
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getAuthUserId();
+  if (!userId)
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
 
   const customers = await prisma.customer.findMany({
-    where: { userId: session.user.id },
+    where: { userId: userId },
     include: { _count: { select: { sales: true } } },
     orderBy: { name: "asc" },
   });
@@ -20,10 +19,9 @@ export async function GET() {
 
 // POST /api/customers
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getAuthUserId();
+  if (!userId)
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
 
   try {
     const { name, email, phone, address, nif, notes } = await req.json();
@@ -37,7 +35,7 @@ export async function POST(req: Request) {
 
     const customer = await prisma.customer.create({
       data: {
-        userId: session.user.id,
+        userId: userId,
         name: name.trim(),
         email: email || null,
         phone: phone || null,

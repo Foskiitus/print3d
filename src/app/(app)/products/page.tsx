@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { ProductsClient } from "./ProductsClient";
@@ -8,10 +8,8 @@ export const metadata = {
 };
 
 export default async function ProductsPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
-
-  const userId = session.user.id;
+  const userId = await getAuthUserId();
+  if (!userId) redirect("/sign-in");
 
   const [products, categories] = await Promise.all([
     prisma.product.findMany({

@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
@@ -16,10 +16,8 @@ import { cn } from "@/lib/utils";
 export const metadata = { title: "Alertas" };
 
 export default async function AlertsPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
-
-  const userId = session.user.id;
+  const userId = await getAuthUserId();
+  if (!userId) redirect("/sign-in");
 
   const [products, filamentTypes, productionTotals, salesTotals] =
     await Promise.all([

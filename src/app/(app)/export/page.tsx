@@ -1,12 +1,12 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { ExportClient } from "./ExportClient";
 
 export const metadata = { title: "Exportação" };
 
 export default async function ExportPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  const userId = await getAuthUserId();
+  if (!userId) redirect("/sign-in");
 
   return (
     <div className="space-y-6">

@@ -1,13 +1,11 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId, getAuthUserIsAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 // GET — lista todos os presets (qualquer utilizador autenticado)
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
+  const userId = await getAuthUserId();
+  if (!userId) return NextResponse.json({ error: "..." }, { status: 401 });
 
   const presets = await prisma.filamentPreset.findMany({
     orderBy: [{ brand: "asc" }, { material: "asc" }, { colorName: "asc" }],
@@ -18,8 +16,8 @@ export async function GET() {
 
 // POST — criar preset (apenas admin)
 export async function POST(req: Request) {
-  const session = await auth();
-  if ((session?.user as any)?.role !== "admin") {
+  const isAdmin = await getAuthUserIsAdmin();
+  if (!isAdmin) {
     return NextResponse.json(
       { error: "Apenas admins podem criar presets" },
       { status: 403 },

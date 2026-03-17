@@ -1,36 +1,34 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 // GET /api/settings?key=electricityPrice
 export async function GET(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getAuthUserId();
+  if (!userId)
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
 
   const { searchParams } = new URL(req.url);
   const key = searchParams.get("key");
 
   if (key) {
     const setting = await prisma.settings.findUnique({
-      where: { userId_key: { userId: session.user.id, key } },
+      where: { userId_key: { userId: userId, key } },
     });
     return NextResponse.json({ key, value: setting?.value ?? null });
   }
 
   const settings = await prisma.settings.findMany({
-    where: { userId: session.user.id },
+    where: { userId: userId },
   });
   return NextResponse.json(settings);
 }
 
 // POST /api/settings  { key, value }
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getAuthUserId();
+  if (!userId)
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
 
   try {
     const { key, value } = await req.json();
@@ -40,9 +38,9 @@ export async function POST(req: Request) {
     }
 
     const setting = await prisma.settings.upsert({
-      where: { userId_key: { userId: session.user.id, key } },
+      where: { userId_key: { userId: userId, key } },
       update: { value: String(value) },
-      create: { userId: session.user.id, key, value: String(value) },
+      create: { userId: userId, key, value: String(value) },
     });
 
     return NextResponse.json(setting);

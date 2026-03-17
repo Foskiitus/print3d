@@ -1,14 +1,13 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { calculateFIFOCost } from "@/lib/fifo";
 
 // POST /api/products/estimate-cost
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getAuthUserId();
+  if (!userId)
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
 
   try {
     const {
@@ -20,7 +19,6 @@ export async function POST(req: Request) {
       productionTime, // minutos
     } = await req.json();
 
-    const userId = session.user.id;
     const units = Math.max(1, Number(unitsPerPrint) || 1);
 
     // 1. Custo FIFO filamentos

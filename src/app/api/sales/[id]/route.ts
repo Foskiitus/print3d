@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
@@ -7,16 +7,15 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getAuthUserId();
+  if (!userId)
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
 
   const { id } = await params;
 
   try {
     const existing = await prisma.sale.findUnique({ where: { id } });
-    if (!existing || existing.userId !== session.user.id) {
+    if (!existing || existing.userId !== userId) {
       return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     }
 
@@ -26,11 +25,11 @@ export async function PATCH(
     if (quantity && quantity !== existing.quantity) {
       const [productionTotal, salesTotal] = await Promise.all([
         prisma.productionLog.aggregate({
-          where: { userId: session.user.id, productId: existing.productId },
+          where: { userId: userId, productId: existing.productId },
           _sum: { quantity: true },
         }),
         prisma.sale.aggregate({
-          where: { userId: session.user.id, productId: existing.productId },
+          where: { userId: userId, productId: existing.productId },
           _sum: { quantity: true },
         }),
       ]);
@@ -89,17 +88,16 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getAuthUserId();
+  if (!userId)
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
 
   const { id } = await params;
 
   try {
     const existing = await prisma.sale.findUnique({ where: { id } });
 
-    if (!existing || existing.userId !== session.user.id) {
+    if (!existing || existing.userId !== userId) {
       return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     }
 

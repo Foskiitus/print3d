@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId, getAuthUserIsAdmin } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { SettingsClient } from "./SettingsClient";
@@ -9,11 +9,9 @@ export const metadata = {
 };
 
 export default async function SettingsPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
-
-  const userId = session.user.id;
-  const isAdmin = (session.user as any).role === "admin";
+  const userId = await getAuthUserId();
+  if (!userId) redirect("/sign-in");
+  const isAdmin = await getAuthUserIsAdmin();
 
   const [categories, extras, electricitySetting, uploadLimitSetting] =
     await Promise.all([

@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { ProductionClient } from "./ProductionClient";
@@ -6,10 +6,8 @@ import { ProductionClient } from "./ProductionClient";
 export const metadata = { title: "Produção" };
 
 export default async function ProductionPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
-
-  const userId = session.user.id;
+  const userId = await getAuthUserId();
+  if (!userId) redirect("/sign-in");
 
   const [logs, products, printers] = await Promise.all([
     prisma.productionLog.findMany({

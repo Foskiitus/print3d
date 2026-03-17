@@ -1,16 +1,13 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 const DEFAULT_SPOOL_THRESHOLD = 500; // gramas
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getAuthUserId();
+  if (!userId)
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
-
-  const userId = session.user.id;
 
   const [products, filamentTypes, productionTotals, salesTotals] =
     await Promise.all([

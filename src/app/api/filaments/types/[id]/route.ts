@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -6,8 +6,8 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-  if (!session?.user?.id)
+  const userId = await getAuthUserId();
+  if (!userId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
@@ -16,7 +16,7 @@ export async function PATCH(
 
   // Garante que o utilizador só edita os seus próprios materiais
   const existing = await prisma.filamentType.findFirst({
-    where: { id, userId: session.user.id },
+    where: { id, userId: userId },
   });
   if (!existing)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -33,11 +33,9 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-
-  if (!session?.user?.id) {
+  const userId = await getAuthUserId();
+  if (!userId)
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
 
   const { id } = await params; // ← tem de estar ANTES do try
 
@@ -50,7 +48,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     }
 
-    if (existing.userId !== session.user.id) {
+    if (existing.userId !== userId) {
       return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
     }
 

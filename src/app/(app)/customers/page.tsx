@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { CustomersClient } from "./CustomersClient";
@@ -6,10 +6,8 @@ import { CustomersClient } from "./CustomersClient";
 export const metadata = { title: "Clientes" };
 
 export default async function CustomersPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
-
-  const userId = session.user.id;
+  const userId = await getAuthUserId();
+  if (!userId) redirect("/sign-in");
 
   const customers = await prisma.customer.findMany({
     where: { userId },

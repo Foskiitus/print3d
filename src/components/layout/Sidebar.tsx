@@ -17,7 +17,7 @@ import {
   Boxes,
 } from "lucide-react";
 import { useSidebar } from "@/components/layout/SidebarContext";
-import { signOut, useSession } from "next-auth/react";
+import { useClerk, useUser } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 
 const navGroups = [
@@ -171,9 +171,10 @@ function NavLink({
 export function Sidebar() {
   const pathname = usePathname();
   const { open, setOpen } = useSidebar();
-  const { data: session } = useSession();
-  const role = (session?.user as any)?.role;
-  const isAdmin = role === "admin";
+  const { user } = useUser();
+  const { signOut } = useClerk();
+  const role = user?.publicMetadata?.role as string | undefined;
+  const isAdmin = role === "admin" || role === "superadmin";
   const close = () => setOpen(false);
 
   return (
@@ -260,13 +261,13 @@ export function Sidebar() {
 
         {/* User / logout */}
         <div className="px-4 py-4 border-t border-border space-y-3">
-          {session?.user && (
+          {user && (
             <div className="space-y-0.5">
               <p className="text-xs font-semibold text-foreground truncate">
-                {session.user.name}
+                {user.firstName} {user.lastName}
               </p>
               <p className="text-xs text-muted-foreground truncate">
-                {session.user.email}
+                {user.emailAddresses[0]?.emailAddress}
               </p>
               <span
                 className={cn(
@@ -281,7 +282,7 @@ export function Sidebar() {
             </div>
           )}
           <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={() => signOut({ redirectUrl: "/sign-in" })}
             className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
           >
             <LogOut size={13} />

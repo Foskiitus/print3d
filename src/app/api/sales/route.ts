@@ -1,15 +1,12 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 // GET /api/sales
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getAuthUserId();
+  if (!userId)
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
-
-  const userId = session.user.id;
 
   const [sales, products, productionCosts] = await Promise.all([
     prisma.sale.findMany({
@@ -52,10 +49,9 @@ export async function GET() {
 
 // POST /api/sales
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getAuthUserId();
+  if (!userId)
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
 
   try {
     const { productId, quantity, salePrice, customerId, notes } =
@@ -72,7 +68,7 @@ export async function POST(req: Request) {
     const product = await prisma.product.findUnique({
       where: { id: productId },
     });
-    if (!product || product.userId !== session.user.id) {
+    if (!product || product.userId !== userId) {
       return NextResponse.json(
         { error: "Produto não encontrado" },
         { status: 404 },
@@ -82,11 +78,11 @@ export async function POST(req: Request) {
     // Verificar stock disponível
     const [productionTotal, salesTotal] = await Promise.all([
       prisma.productionLog.aggregate({
-        where: { userId: session.user.id, productId },
+        where: { userId: userId, productId },
         _sum: { quantity: true },
       }),
       prisma.sale.aggregate({
-        where: { userId: session.user.id, productId },
+        where: { userId: userId, productId },
         _sum: { quantity: true },
       }),
     ]);
@@ -103,7 +99,7 @@ export async function POST(req: Request) {
 
     const sale = await prisma.sale.create({
       data: {
-        userId: session.user.id,
+        userId: userId,
         productId,
         quantity: Number(quantity),
         salePrice: Number(salePrice),

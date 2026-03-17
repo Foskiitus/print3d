@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { FilamentsClient } from "./FilamentsClient";
@@ -6,10 +6,8 @@ import { FilamentsClient } from "./FilamentsClient";
 export const metadata = { title: "Filamentos" };
 
 export default async function FilamentsPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
-
-  const userId = session.user.id;
+  const userId = await getAuthUserId();
+  if (!userId) redirect("/sign-in");
 
   const [types, spools] = await Promise.all([
     prisma.filamentType.findMany({

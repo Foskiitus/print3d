@@ -1,5 +1,4 @@
-import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { requirePageAuth, getAuthUserIsAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PrintersClient } from "./PrintersClient";
 
@@ -9,14 +8,12 @@ export const metadata = {
 };
 
 export default async function PrintersPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
-
-  const isAdmin = (session.user as any).role === "admin";
+  const userId = await requirePageAuth();
+  const isAdmin = await getAuthUserIsAdmin();
 
   const [printers, presets] = await Promise.all([
     prisma.printer.findMany({
-      where: { userId: session.user.id },
+      where: { userId },
       include: { preset: true },
       orderBy: { name: "asc" },
     }),

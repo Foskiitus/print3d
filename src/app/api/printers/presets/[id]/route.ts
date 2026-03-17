@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId, getAuthUserIsAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
@@ -7,12 +7,12 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getAuthUserId();
+  if (!userId)
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
 
-  if ((session.user as any).role !== "admin") {
+  const isAdmin = await getAuthUserIsAdmin();
+  if (!isAdmin) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 

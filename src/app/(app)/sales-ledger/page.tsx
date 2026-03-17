@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { SalesClient } from "./SalesClient";
@@ -6,10 +6,8 @@ import { SalesClient } from "./SalesClient";
 export const metadata = { title: "Vendas" };
 
 export default async function SalesLedgerPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
-
-  const userId = session.user.id;
+  const userId = await getAuthUserId();
+  if (!userId) redirect("/sign-in");
 
   const [sales, products, productionTotals, salesTotals, productionCosts] =
     await Promise.all([

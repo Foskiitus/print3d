@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { r2 } from "@/lib/r2";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -7,10 +7,9 @@ import { NextResponse } from "next/server";
 // GET /api/signed-url?key=<r2key>&bucket=<bucket>
 // Gera uma URL assinada fresca válida por 6 dias (abaixo do limite de 7 dias do R2)
 export async function GET(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getAuthUserId();
+  if (!userId)
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
 
   const { searchParams } = new URL(req.url);
   const key = searchParams.get("key");
@@ -21,7 +20,7 @@ export async function GET(req: Request) {
   }
 
   // Segurança: verificar que a key pertence ao utilizador autenticado
-  if (!key.startsWith(session.user.id + "/")) {
+  if (!key.startsWith(userId + "/")) {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
 

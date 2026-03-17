@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { r2 } from "@/lib/r2";
 import { prisma } from "@/lib/prisma";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
@@ -9,10 +9,9 @@ const DEFAULT_3MF_LIMIT_MB = 100;
 
 // POST /api/upload
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getAuthUserId();
+  if (!userId)
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
 
   try {
     const formData = await req.formData();
@@ -49,7 +48,7 @@ export async function POST(req: Request) {
       // Ler limite configurado pelo utilizador nas definições
       const limitSetting = await prisma.settings.findUnique({
         where: {
-          userId_key: { userId: session.user.id, key: "uploadLimitMb" },
+          userId_key: { userId: userId, key: "uploadLimitMb" },
         },
       });
       const limitMb = limitSetting
@@ -67,7 +66,7 @@ export async function POST(req: Request) {
     }
 
     const bucket = type === "3mf" ? "3mf" : "images";
-    const key = `${session.user.id}/${Date.now()}-${file.name}`;
+    const key = `${userId}/${Date.now()}-${file.name}`;
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);

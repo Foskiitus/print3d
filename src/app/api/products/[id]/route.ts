@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
@@ -7,10 +7,9 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getAuthUserId();
+  if (!userId)
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
 
   const { id } = await params;
 
@@ -31,7 +30,7 @@ export async function GET(
     },
   });
 
-  if (!product || product.userId !== session.user.id) {
+  if (!product || product.userId !== userId) {
     return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   }
 
@@ -43,16 +42,15 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getAuthUserId();
+  if (!userId)
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
 
   const { id } = await params;
 
   try {
     const existing = await prisma.product.findUnique({ where: { id } });
-    if (!existing || existing.userId !== session.user.id) {
+    if (!existing || existing.userId !== userId) {
       return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     }
 
@@ -136,10 +134,9 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getAuthUserId();
+  if (!userId)
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
 
   const { id } = await params;
 
@@ -151,7 +148,7 @@ export async function DELETE(
       },
     });
 
-    if (!existing || existing.userId !== session.user.id) {
+    if (!existing || existing.userId !== userId) {
       return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     }
 

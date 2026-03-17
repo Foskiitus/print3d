@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
@@ -10,11 +10,10 @@ export default async function CustomerDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  const userId = await getAuthUserId();
+  if (!userId) redirect("/sign-in");
 
   const { id } = await params;
-  const userId = session.user.id;
 
   const customer = await prisma.customer.findUnique({
     where: { id },

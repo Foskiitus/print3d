@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId, getAuthUserIsAdmin } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { UsersClient } from "./UsersClient";
@@ -6,8 +6,10 @@ import { UsersClient } from "./UsersClient";
 export const metadata = { title: "Utilizadores" };
 
 export default async function UsersPage() {
-  const session = await auth();
-  if ((session?.user as any)?.role !== "admin") redirect("/dashboard");
+  const userId = await getAuthUserId();
+  if (!userId) redirect("/sign-in");
+  const isAdmin = await getAuthUserIsAdmin();
+  if (!isAdmin) redirect("/dashboard");
 
   const rawUsers = await prisma.user.findMany({
     orderBy: { createdAt: "asc" },

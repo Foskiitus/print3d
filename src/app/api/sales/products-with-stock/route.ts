@@ -1,16 +1,13 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 // GET /api/sales/products-with-stock
 // Devolve produtos com stock calculado dinamicamente — usado pelo SalesClient após mutações
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getAuthUserId();
+  if (!userId)
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
-
-  const userId = session.user.id;
 
   const [products, productionTotals, salesTotals, productionCosts] =
     await Promise.all([

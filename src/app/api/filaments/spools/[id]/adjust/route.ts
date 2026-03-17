@@ -1,17 +1,15 @@
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 // POST /api/filaments/spools/[id]/adjust
 export async function POST(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-
-  if (!session?.user?.id) {
+  const userId = await getAuthUserId();
+  if (!userId)
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
 
   const { id } = await params;
 
@@ -21,7 +19,7 @@ export async function POST(
     if (amount === undefined || amount === null || isNaN(Number(amount))) {
       return NextResponse.json(
         { error: "Quantidade inválida" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -31,10 +29,13 @@ export async function POST(
     });
 
     if (!spool) {
-      return NextResponse.json({ error: "Bobine não encontrada" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Bobine não encontrada" },
+        { status: 404 },
+      );
     }
 
-    if (spool.userId !== session.user.id) {
+    if (spool.userId !== userId) {
       return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
     }
 
@@ -43,8 +44,10 @@ export async function POST(
 
     if (newRemaining < 0) {
       return NextResponse.json(
-        { error: `Ajuste inválido: o peso restante não pode ser negativo (atual: ${spool.remaining}g)` },
-        { status: 400 }
+        {
+          error: `Ajuste inválido: o peso restante não pode ser negativo (atual: ${spool.remaining}g)`,
+        },
+        { status: 400 },
       );
     }
 
@@ -52,7 +55,7 @@ export async function POST(
     const [adjustment, updatedSpool] = await prisma.$transaction([
       prisma.spoolAdjustment.create({
         data: {
-          userId: session.user.id,
+          userId: userId,
           spoolId: id,
           amount: adjustAmount,
           reason: reason || null,
@@ -70,7 +73,7 @@ export async function POST(
     console.error("[POST /api/filaments/spools/[id]/adjust]", error);
     return NextResponse.json(
       { error: "Erro ao registar ajuste", details: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -78,19 +81,17 @@ export async function POST(
 // GET /api/filaments/spools/[id]/adjust — histórico de ajustes
 export async function GET(
   _req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-
-  if (!session?.user?.id) {
+  const userId = await getAuthUserId();
+  if (!userId)
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
 
   const { id } = await params;
 
   const spool = await prisma.filamentSpool.findUnique({ where: { id } });
 
-  if (!spool || spool.userId !== session.user.id) {
+  if (!spool || spool.userId !== userId) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 
