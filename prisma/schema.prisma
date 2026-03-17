@@ -230,6 +230,24 @@ model PrinterPreset {
 }
 
 //////////////////////////////////////////////////////////
+// FILAMENT PRESETS (para guardar configurações de filamentos sem criar um filamento real)
+//////////////////////////////////////////////////////////
+
+model FilamentPreset {
+  id        String   @id @default(cuid())
+  brand     String
+  material  String
+  colorName String
+  colorHex  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([brand])
+  @@index([material])
+}
+
+
+//////////////////////////////////////////////////////////
 // PRODUCTION LOG
 //////////////////////////////////////////////////////////
 

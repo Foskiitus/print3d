@@ -10,7 +10,6 @@ import {
   History,
   ChevronDown,
   ChevronUp,
-  X,
   Pencil,
   Plus,
 } from "lucide-react";
@@ -30,6 +29,77 @@ function formatDate(date: string | Date) {
   });
 }
 
+// ─── Card de bobine individual ────────────────────────────────────────────────
+function SpoolCard({
+  spool,
+  onAdjusted,
+  onDelete,
+  onClick,
+}: {
+  spool: any;
+  onAdjusted: () => void;
+  onDelete: (e: React.MouseEvent, id: string) => void;
+  onClick: () => void;
+}) {
+  const hasAdjustments = spool._count?.adjustments > 0;
+  const hasConsumption = spool.remaining < spool.spoolWeight;
+  const canDelete = !hasAdjustments && !hasConsumption;
+  const pct = Math.min(100, (spool.remaining / spool.spoolWeight) * 100);
+  const isLow = pct < 20;
+
+  return (
+    <div
+      onClick={onClick}
+      className="bg-secondary border border-border rounded-lg p-2.5 cursor-pointer hover:border-primary/30 hover:bg-secondary/80 transition-colors group relative"
+    >
+      <div className="flex items-center justify-between gap-1 mb-2">
+        <span
+          className={cn(
+            "text-[10px] font-medium",
+            isLow ? "text-warning" : "text-muted-foreground",
+          )}
+        >
+          {spool.remaining}g / {spool.spoolWeight}g
+        </span>
+        <div
+          className="flex items-center gap-0.5"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <SpoolAdjustDialog spool={spool} onAdjusted={onAdjusted} />
+          {canDelete && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5 text-destructive/40 hover:text-destructive hover:bg-destructive/10"
+              onClick={(e) => onDelete(e, spool.id)}
+            >
+              <Trash2 size={10} />
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="w-full bg-muted/40 rounded-full h-1.5 overflow-hidden mb-1.5">
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{
+            width: `${pct}%`,
+            backgroundColor: isLow
+              ? "hsl(var(--warning))"
+              : spool.filamentType.colorHex,
+          }}
+        />
+      </div>
+
+      <div className="flex justify-between text-[10px] text-muted-foreground">
+        <span>{formatCurrency(spool.price)}</span>
+        <span>{formatDate(spool.purchaseDate)}</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── FilamentsClient ──────────────────────────────────────────────────────────
 export function FilamentsClient({
   initialTypes,
   initialSpools,
@@ -41,9 +111,20 @@ export function FilamentsClient({
   const [types, setTypes] = useState(initialTypes);
   const [spools, setSpools] = useState(initialSpools);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editingType, setEditingType] = useState<any | null>(null);
+
+  // Quais tipos estão expandidos (mostram bobines)
+  const [expandedTypes, setExpandedTypes] = useState<Set<string>>(new Set());
+
+  const toggleType = (typeId: string) => {
+    setExpandedTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(typeId)) next.delete(typeId);
+      else next.add(typeId);
+      return next;
+    });
+  };
 
   const refreshData = async () => {
     try {
@@ -73,7 +154,6 @@ export function FilamentsClient({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       toast({ title: "Material eliminado" });
-      if (selectedTypeId === id) setSelectedTypeId(null);
       refreshData();
     } catch (error: any) {
       toast({
@@ -104,22 +184,10 @@ export function FilamentsClient({
     }
   };
 
-  const handleTypeClick = (typeId: string) => {
-    setSelectedTypeId((prev) => (prev === typeId ? null : typeId));
-  };
-
-  // ─── Dados derivados ──────────────────────────────────────────────────────
-  const selectedType = types.find((t) => t.id === selectedTypeId);
-
-  // Agrupar tipos por marca
+  // ─── Hierarquia ───────────────────────────────────────────────────────────
   const brands = [...new Set(types.map((t) => t.brand))].sort();
-
-  // Bobines filtradas por tipo selecionado
-  const filteredSpools = selectedTypeId
-    ? spools.filter((s) => s.filamentTypeId === selectedTypeId)
-    : spools;
-  const activeSpools = filteredSpools.filter((s) => s.remaining > 0);
-  const emptySpools = filteredSpools
+  const allSpools = spools;
+  const emptySpools = allSpools
     .filter((s) => s.remaining <= 0)
     .sort(
       (a, b) =>
@@ -135,13 +203,16 @@ export function FilamentsClient({
         onUpdated={refreshData}
       />
 
-      {/* ── Catálogo de Materiais ── */}
+      {/* ── Catálogo ── */}
       <div className="space-y-5">
         <div className="flex justify-between items-center">
           <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
             Catálogo de Materiais
           </h2>
-          <NewFilamentTypeDialog onCreated={refreshData} />
+          <div className="flex items-center gap-2">
+            <AddSpoolDialog types={types} onAdded={refreshData} />
+            <NewFilamentTypeDialog onCreated={refreshData} />
+          </div>
         </div>
 
         {types.length === 0 ? (
@@ -151,237 +222,200 @@ export function FilamentsClient({
             </p>
           </div>
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-6">
             {brands.map((brand) => {
               const brandTypes = types.filter((t) => t.brand === brand);
-              return (
-                <div key={brand}>
-                  {/* ── Label da marca ── */}
-                  <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-2">
-                    {brand}
-                    <span className="text-[10px] font-normal text-muted-foreground">
-                      {brandTypes.length} material(ais)
-                    </span>
-                  </p>
+              const materials = [
+                ...new Set(brandTypes.map((t) => t.material)),
+              ].sort();
+              const brandActiveSpools = allSpools.filter(
+                (s) =>
+                  brandTypes.some((t) => t.id === s.filamentTypeId) &&
+                  s.remaining > 0,
+              ).length;
 
-                  {/* ── Cards compactos ── */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-                    {brandTypes.map((type) => {
-                      const isSelected = selectedTypeId === type.id;
-                      const activeCount = spools.filter(
-                        (s) => s.filamentTypeId === type.id && s.remaining > 0,
-                      ).length;
-                      const typeSpools = spools.filter(
-                        (s) => s.filamentTypeId === type.id,
+              return (
+                <div key={brand} className="space-y-3">
+                  {/* ── Marca ── */}
+                  <div className="flex items-center gap-3">
+                    <p className="text-sm font-bold text-foreground">{brand}</p>
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-[10px] text-muted-foreground">
+                      {brandActiveSpools} bobine(s) em stock
+                    </span>
+                  </div>
+
+                  {/* ── Materiais ── */}
+                  <div className="space-y-3 pl-2">
+                    {materials.map((material) => {
+                      const materialTypes = brandTypes.filter(
+                        (t) => t.material === material,
                       );
-                      const hasSpools = typeSpools.length > 0;
-                      const hasConsumption = typeSpools.some(
-                        (s) => s.remaining < s.spoolWeight,
-                      );
-                      const canDeleteType = !hasSpools && !hasConsumption;
-                      const totalRemaining = typeSpools
-                        .filter((s) => s.remaining > 0)
-                        .reduce((sum, s) => sum + s.remaining, 0);
-                      const isLow =
-                        type.alertThreshold != null &&
-                        totalRemaining <= type.alertThreshold;
 
                       return (
-                        <div
-                          key={type.id}
-                          onClick={() => handleTypeClick(type.id)}
-                          className={cn(
-                            "relative group cursor-pointer rounded-xl border px-3 py-2.5 transition-all",
-                            isSelected
-                              ? "border-primary bg-primary/5"
-                              : "border-border hover:border-primary/40 hover:bg-accent/40",
-                          )}
-                        >
-                          {/* Dot de cor + nome */}
-                          <div className="flex items-center gap-2 mb-1.5">
-                            <div
-                              className="w-3 h-3 rounded-full flex-shrink-0"
-                              style={{
-                                backgroundColor: type.colorHex,
-                                boxShadow: `0 0 6px ${type.colorHex}88`,
-                              }}
-                            />
-                            <span className="text-xs font-medium truncate text-foreground leading-none">
-                              {type.colorName}
-                            </span>
-                          </div>
-
-                          {/* Material */}
-                          <p className="text-[10px] text-muted-foreground truncate mb-1.5">
-                            {type.material}
+                        <div key={material}>
+                          {/* ── Label do material ── */}
+                          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 mb-2">
+                            {material}
                           </p>
 
-                          {/* Badges */}
-                          <div className="flex items-center gap-1 flex-wrap">
-                            <span
-                              className={cn(
-                                "text-[9px] font-medium px-1.5 py-0.5 rounded-full",
-                                isSelected
-                                  ? "bg-primary/15 text-primary"
-                                  : "bg-muted text-muted-foreground",
-                              )}
-                            >
-                              {activeCount} rolo(s)
-                            </span>
-                            {isLow && (
-                              <span className="text-[9px] text-warning">⚠</span>
-                            )}
-                          </div>
+                          {/* ── Cores ── */}
+                          <div className="space-y-2 pl-2">
+                            {materialTypes.map((type) => {
+                              const isExpanded = expandedTypes.has(type.id);
+                              const typeSpools = allSpools.filter(
+                                (s) => s.filamentTypeId === type.id,
+                              );
+                              const activeSpools = typeSpools.filter(
+                                (s) => s.remaining > 0,
+                              );
+                              const hasSpools = typeSpools.length > 0;
+                              const hasConsumption = typeSpools.some(
+                                (s) => s.remaining < s.spoolWeight,
+                              );
+                              const canDeleteType =
+                                !hasSpools && !hasConsumption;
+                              const totalRemaining = activeSpools.reduce(
+                                (sum, s) => sum + s.remaining,
+                                0,
+                              );
+                              const isLow =
+                                type.alertThreshold != null &&
+                                totalRemaining <= type.alertThreshold;
 
-                          {/* Ações no hover */}
-                          <div
-                            className="absolute top-1.5 right-1.5 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <button
-                              className="w-5 h-5 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                              onClick={(e) => handleEditType(e, type)}
-                            >
-                              <Pencil size={10} />
-                            </button>
-                            {canDeleteType && (
-                              <button
-                                className="w-5 h-5 rounded flex items-center justify-center text-destructive/40 hover:text-destructive hover:bg-destructive/10 transition-colors"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteType(type.id);
-                                }}
-                              >
-                                <Trash2 size={10} />
-                              </button>
-                            )}
+                              return (
+                                <div key={type.id}>
+                                  {/* ── Linha de cor ── */}
+                                  <div
+                                    onClick={() =>
+                                      activeSpools.length > 0 &&
+                                      toggleType(type.id)
+                                    }
+                                    className={cn(
+                                      "flex items-center gap-2.5 px-2.5 py-2 rounded-lg border transition-all group",
+                                      activeSpools.length > 0
+                                        ? "cursor-pointer"
+                                        : "cursor-default opacity-60",
+                                      isExpanded
+                                        ? "border-primary/40 bg-primary/5"
+                                        : "border-border hover:border-primary/30 hover:bg-accent/30",
+                                    )}
+                                  >
+                                    {/* Dot */}
+                                    <div
+                                      className="w-3 h-3 rounded-full flex-shrink-0"
+                                      style={{
+                                        backgroundColor: type.colorHex,
+                                        boxShadow: `0 0 5px ${type.colorHex}88`,
+                                      }}
+                                    />
+
+                                    {/* Nome da cor */}
+                                    <span className="text-xs font-medium text-foreground flex-1">
+                                      {type.colorName}
+                                    </span>
+
+                                    {/* Stock total */}
+                                    {totalRemaining > 0 && (
+                                      <span
+                                        className={cn(
+                                          "text-[10px] tabular-nums",
+                                          isLow
+                                            ? "text-warning font-semibold"
+                                            : "text-muted-foreground",
+                                        )}
+                                      >
+                                        {totalRemaining.toFixed(0)}g
+                                        {isLow && " ⚠"}
+                                      </span>
+                                    )}
+
+                                    {/* Badge nº bobines */}
+                                    <span
+                                      className={cn(
+                                        "text-[9px] font-medium px-1.5 py-0.5 rounded-full",
+                                        isExpanded
+                                          ? "bg-primary/15 text-primary"
+                                          : "bg-muted text-muted-foreground",
+                                      )}
+                                    >
+                                      {activeSpools.length} rolo(s)
+                                    </span>
+
+                                    {/* Chevron */}
+                                    {activeSpools.length > 0 && (
+                                      <span className="text-muted-foreground/50">
+                                        {isExpanded ? (
+                                          <ChevronUp size={12} />
+                                        ) : (
+                                          <ChevronDown size={12} />
+                                        )}
+                                      </span>
+                                    )}
+
+                                    {/* Ações hover */}
+                                    <div
+                                      className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <button
+                                        className="w-5 h-5 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                                        onClick={(e) => handleEditType(e, type)}
+                                      >
+                                        <Pencil size={10} />
+                                      </button>
+                                      {canDeleteType && (
+                                        <button
+                                          className="w-5 h-5 rounded flex items-center justify-center text-destructive/40 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteType(type.id);
+                                          }}
+                                        >
+                                          <Trash2 size={10} />
+                                        </button>
+                                      )}
+                                      <div onClick={(e) => e.stopPropagation()}>
+                                        <AddSpoolDialog
+                                          types={types}
+                                          onAdded={refreshData}
+                                          trigger={
+                                            <button className="w-5 h-5 rounded flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors">
+                                              <Plus size={10} />
+                                            </button>
+                                          }
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* ── Bobines expandidas ── */}
+                                  {isExpanded && activeSpools.length > 0 && (
+                                    <div className="mt-1.5 ml-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                                      {activeSpools.map((spool) => (
+                                        <SpoolCard
+                                          key={spool.id}
+                                          spool={spool}
+                                          onAdjusted={refreshData}
+                                          onDelete={handleDeleteSpool}
+                                          onClick={() =>
+                                            router.push(
+                                              `/filaments/spools/${spool.id}`,
+                                            )
+                                          }
+                                        />
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       );
                     })}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* ── Bobines em Stock ── */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-2">
-            <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-              Bobines em Stock
-            </h2>
-            <Badge variant="secondary" className="text-[10px]">
-              {activeSpools.length}
-            </Badge>
-            {selectedType && (
-              <button
-                onClick={() => setSelectedTypeId(null)}
-                className="flex items-center gap-1 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full hover:bg-primary/20 transition-colors"
-              >
-                <span>{selectedType.colorName}</span>
-                <X size={10} className="flex-shrink-0" />
-              </button>
-            )}
-          </div>
-          <AddSpoolDialog types={types} onAdded={refreshData} />
-        </div>
-
-        {activeSpools.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-6 border border-dashed rounded-lg">
-            {selectedTypeId
-              ? "Nenhuma bobine em stock para este material."
-              : "Nenhuma bobine em stock."}
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-            {activeSpools.map((spool) => {
-              const hasAdjustments = spool._count?.adjustments > 0;
-              const hasConsumption = spool.remaining < spool.spoolWeight;
-              const canDelete = !hasAdjustments && !hasConsumption;
-              const pct = Math.min(
-                100,
-                (spool.remaining / spool.spoolWeight) * 100,
-              );
-              const isLow = pct < 20;
-
-              return (
-                <Card
-                  key={spool.id}
-                  className="bg-secondary border border-border relative group cursor-pointer hover:border-primary/30 hover:bg-secondary/80 transition-colors"
-                  onClick={() => router.push(`/filaments/spools/${spool.id}`)}
-                >
-                  <CardContent className="p-3">
-                    <div className="flex items-center justify-between gap-2 mb-2.5">
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <div
-                          className="w-3 h-3 rounded-full flex-shrink-0"
-                          style={{
-                            backgroundColor: spool.filamentType.colorHex,
-                            boxShadow: `0 0 6px ${spool.filamentType.colorHex}`,
-                          }}
-                        />
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold truncate text-foreground leading-none">
-                            {spool.filamentType.brand}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground truncate">
-                            {spool.filamentType.colorName}
-                          </p>
-                        </div>
-                      </div>
-                      <div
-                        className="flex items-center gap-0.5 flex-shrink-0"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <SpoolAdjustDialog
-                          spool={spool}
-                          onAdjusted={refreshData}
-                        />
-                        {canDelete && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 text-destructive/40 hover:text-destructive hover:bg-destructive/10"
-                            onClick={(e) => handleDeleteSpool(e, spool.id)}
-                          >
-                            <Trash2 size={12} />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-[10px]">
-                        <span
-                          className={cn(
-                            "font-medium",
-                            isLow ? "text-warning" : "text-muted-foreground",
-                          )}
-                        >
-                          {spool.remaining}g / {spool.spoolWeight}g
-                        </span>
-                        <span className="text-muted-foreground">
-                          {formatCurrency(spool.price)}
-                        </span>
-                      </div>
-                      <div className="w-full bg-muted/40 rounded-full h-1.5 overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{
-                            width: `${pct}%`,
-                            backgroundColor: isLow
-                              ? "hsl(var(--warning))"
-                              : spool.filamentType.colorHex,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
               );
             })}
           </div>
@@ -402,14 +436,6 @@ export function FilamentsClient({
             <Badge variant="secondary" className="text-[10px]">
               {emptySpools.length}
             </Badge>
-            {selectedType && (
-              <Badge
-                variant="outline"
-                className="text-[10px] text-primary border-primary/30"
-              >
-                {selectedType.colorName}
-              </Badge>
-            )}
             <span className="ml-auto text-muted-foreground">
               {historyOpen ? (
                 <ChevronUp size={14} />
@@ -442,7 +468,8 @@ export function FilamentsClient({
                           />
                           <div className="min-w-0">
                             <p className="text-xs font-medium truncate text-muted-foreground">
-                              {spool.filamentType.brand}
+                              {spool.filamentType.brand}{" "}
+                              {spool.filamentType.material}
                             </p>
                             <p className="text-[10px] text-muted-foreground/70 truncate">
                               {spool.filamentType.colorName}

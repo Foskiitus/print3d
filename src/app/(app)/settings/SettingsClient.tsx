@@ -15,12 +15,15 @@ import {
   Lock,
   Sun,
   Moon,
+  Droplets,
+  Plus,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { NewCategoryDialog } from "@/components/forms/NewCategoryDialog";
 import { NewExtraDialog } from "@/components/forms/NewExtraDialog";
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
+import { ColorPicker } from "@/components/ui/colorPicker";
 
 export function SettingsClient({
   initialCategories,
@@ -47,6 +50,77 @@ export function SettingsClient({
   const [savingUploadLimit, setSavingUploadLimit] = useState(false);
 
   const { theme, setTheme } = useTheme();
+
+  // ── Presets de filamentos (admin) ──
+  const [filamentPresets, setFilamentPresets] = useState<any[]>([]);
+  const [newPreset, setNewPreset] = useState({
+    brand: "",
+    material: "",
+    colorName: "",
+    colorHex: "#3b82f6",
+  });
+  const [savingPreset, setSavingPreset] = useState(false);
+
+  const loadPresets = async () => {
+    const res = await fetch("/api/filaments/presets");
+    if (res.ok) setFilamentPresets(await res.json());
+  };
+
+  // Carregar presets automaticamente se admin
+  const [presetsInitialized, setPresetsInitialized] = useState(false);
+  if (isAdmin && !presetsInitialized) {
+    setPresetsInitialized(true);
+    loadPresets();
+  }
+
+  const handleAddPreset = async () => {
+    if (
+      !newPreset.brand.trim() ||
+      !newPreset.material.trim() ||
+      !newPreset.colorName.trim()
+    )
+      return;
+    setSavingPreset(true);
+    try {
+      const res = await fetch("/api/filaments/presets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newPreset),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast({ title: "Preset adicionado!" });
+      setNewPreset({
+        brand: "",
+        material: "",
+        colorName: "",
+        colorHex: "#3b82f6",
+      });
+      loadPresets();
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSavingPreset(false);
+    }
+  };
+
+  const handleDeletePreset = async (id: string) => {
+    if (!confirm("Eliminar este preset?")) return;
+    try {
+      const res = await fetch(`/api/filaments/presets/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error();
+      toast({ title: "Preset eliminado" });
+      loadPresets();
+    } catch {
+      toast({ title: "Erro ao eliminar", variant: "destructive" });
+    }
+  };
 
   const refreshCategories = async () => {
     const res = await fetch("/api/categories");
@@ -317,6 +391,196 @@ export function SettingsClient({
               </div>
             </CardContent>
           </Card>
+        </div>
+      )}
+
+      {/* ── Presets de Filamentos (admin) ── */}
+      {isAdmin && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Droplets size={14} className="text-muted-foreground" />
+            <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+              Presets de Filamentos
+            </h2>
+            <Badge variant="secondary" className="text-[10px]">
+              Admin
+            </Badge>
+            <Badge variant="outline" className="text-[10px]">
+              {filamentPresets.length}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground -mt-2">
+            Lista global de marcas, materiais e cores disponíveis como sugestões
+            ao registar filamentos.
+          </p>
+
+          {/* Formulário */}
+          <Card>
+            <CardContent className="p-5 space-y-3">
+              <p className="text-xs font-semibold text-foreground">
+                Adicionar preset
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Marca</label>
+                  <input
+                    className="flex h-8 w-full rounded-lg border border-border bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    placeholder="Ex: Bambu Lab"
+                    value={newPreset.brand}
+                    onChange={(e) =>
+                      setNewPreset((p) => ({ ...p, brand: e.target.value }))
+                    }
+                    list="preset-brands"
+                  />
+                  <datalist id="preset-brands">
+                    {[...new Set(filamentPresets.map((p) => p.brand))].map(
+                      (b) => (
+                        <option key={b as string} value={b as string} />
+                      ),
+                    )}
+                  </datalist>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">
+                    Material
+                  </label>
+                  <input
+                    className="flex h-8 w-full rounded-lg border border-border bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    placeholder="Ex: PLA Basic"
+                    value={newPreset.material}
+                    onChange={(e) =>
+                      setNewPreset((p) => ({ ...p, material: e.target.value }))
+                    }
+                    list="preset-materials"
+                  />
+                  <datalist id="preset-materials">
+                    {[...new Set(filamentPresets.map((p) => p.material))].map(
+                      (m) => (
+                        <option key={m as string} value={m as string} />
+                      ),
+                    )}
+                  </datalist>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">
+                    Nome da cor
+                  </label>
+                  <input
+                    className="flex h-8 w-full rounded-lg border border-border bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    placeholder="Ex: Preto"
+                    value={newPreset.colorName}
+                    onChange={(e) =>
+                      setNewPreset((p) => ({ ...p, colorName: e.target.value }))
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">
+                    Cor visual
+                  </label>
+                  <div className="flex gap-2">
+                    <ColorPicker
+                      value={newPreset.colorHex}
+                      onChange={(color) =>
+                        setNewPreset((p) => ({ ...p, colorHex: color }))
+                      }
+                    />
+                    <div
+                      className="flex-1 rounded-lg border flex items-center justify-center text-[10px] font-mono uppercase"
+                      style={{
+                        backgroundColor: newPreset.colorHex,
+                        boxShadow: `0 0 8px ${newPreset.colorHex}`,
+                        color: "#fff",
+                        textShadow: "0 0 2px #000",
+                      }}
+                    >
+                      {newPreset.colorHex}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={handleAddPreset}
+                disabled={
+                  savingPreset ||
+                  !newPreset.brand.trim() ||
+                  !newPreset.material.trim() ||
+                  !newPreset.colorName.trim()
+                }
+              >
+                <Plus size={13} className="mr-1.5" />
+                {savingPreset ? "A adicionar..." : "Adicionar Preset"}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Lista */}
+          {filamentPresets.length === 0 ? (
+            <div className="border border-dashed rounded-lg py-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                Nenhum preset criado ainda.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {[...new Set(filamentPresets.map((p) => p.brand))]
+                .sort()
+                .map((brand) => {
+                  const brandPresets = filamentPresets.filter(
+                    (p) => p.brand === brand,
+                  );
+                  const materials = [
+                    ...new Set(brandPresets.map((p) => p.material)),
+                  ].sort();
+                  return (
+                    <div key={brand as string}>
+                      <p className="text-xs font-bold text-foreground mb-1">
+                        {brand as string}
+                      </p>
+                      <div className="space-y-1 pl-2">
+                        {materials.map((material) => (
+                          <div key={material as string}>
+                            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 mb-1">
+                              {material as string}
+                            </p>
+                            <div className="flex flex-wrap gap-1.5 pl-2">
+                              {brandPresets
+                                .filter((p) => p.material === material)
+                                .map((preset) => (
+                                  <div
+                                    key={preset.id}
+                                    className="group/preset flex items-center gap-1.5 px-2 py-1 rounded-md border border-border bg-card hover:border-primary/30 transition-colors"
+                                  >
+                                    <div
+                                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                                      style={{
+                                        backgroundColor: preset.colorHex,
+                                        boxShadow: `0 0 4px ${preset.colorHex}88`,
+                                      }}
+                                    />
+                                    <span className="text-xs text-foreground">
+                                      {preset.colorName}
+                                    </span>
+                                    <button
+                                      onClick={() =>
+                                        handleDeletePreset(preset.id)
+                                      }
+                                      className="ml-1 opacity-0 group-hover/preset:opacity-100 text-destructive/40 hover:text-destructive transition-all"
+                                    >
+                                      <Trash2 size={10} />
+                                    </button>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
         </div>
       )}
 
