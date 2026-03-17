@@ -12,6 +12,7 @@ import {
   ChevronUp,
   X,
   Pencil,
+  Plus,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { NewFilamentTypeDialog } from "@/components/forms/NewFilamentTypeDialog";
@@ -105,10 +106,15 @@ export function FilamentsClient({
 
   const handleTypeClick = (typeId: string) => {
     setSelectedTypeId((prev) => (prev === typeId ? null : typeId));
-    setHistoryOpen(true);
   };
 
+  // ─── Dados derivados ──────────────────────────────────────────────────────
   const selectedType = types.find((t) => t.id === selectedTypeId);
+
+  // Agrupar tipos por marca
+  const brands = [...new Set(types.map((t) => t.brand))].sort();
+
+  // Bobines filtradas por tipo selecionado
   const filteredSpools = selectedTypeId
     ? spools.filter((s) => s.filamentTypeId === selectedTypeId)
     : spools;
@@ -129,161 +135,169 @@ export function FilamentsClient({
         onUpdated={refreshData}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* ── Catálogo de materiais ── */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-              Catálogo de Materiais
-            </h2>
-            <NewFilamentTypeDialog onCreated={refreshData} />
+      {/* ── Catálogo de Materiais ── */}
+      <div className="space-y-5">
+        <div className="flex justify-between items-center">
+          <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+            Catálogo de Materiais
+          </h2>
+          <NewFilamentTypeDialog onCreated={refreshData} />
+        </div>
+
+        {types.length === 0 ? (
+          <div className="border border-dashed rounded-lg py-12 text-center">
+            <p className="text-sm text-muted-foreground">
+              Nenhum material criado ainda.
+            </p>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {types.map((type) => {
-              const isSelected = selectedTypeId === type.id;
-              const activeCount = spools.filter(
-                (s) => s.filamentTypeId === type.id && s.remaining > 0,
-              ).length;
-
-              const typeSpools = spools.filter(
-                (s) => s.filamentTypeId === type.id,
-              );
-              const hasSpools = typeSpools.length > 0;
-              const hasConsumption = typeSpools.some(
-                (s) => s.remaining < s.spoolWeight,
-              );
-              const canDeleteType = !hasSpools && !hasConsumption;
-              const totalRemaining = spools
-                .filter((s) => s.filamentTypeId === type.id && s.remaining > 0)
-                .reduce((sum, s) => sum + s.remaining, 0);
-              const isLow =
-                type.alertThreshold != null &&
-                totalRemaining <= type.alertThreshold;
-
+        ) : (
+          <div className="space-y-5">
+            {brands.map((brand) => {
+              const brandTypes = types.filter((t) => t.brand === brand);
               return (
-                <Card
-                  key={type.id}
-                  className={cn(
-                    "transition-all relative group overflow-hidden cursor-pointer",
-                    isSelected
-                      ? "border-primary bg-primary/5"
-                      : "hover:border-primary/50",
-                  )}
-                  onClick={() => handleTypeClick(type.id)}
-                >
-                  <CardContent className="pt-6">
-                    <div className="flex justify-between items-start gap-2">
-                      <div className="flex items-start gap-3 min-w-0 flex-1">
+                <div key={brand}>
+                  {/* ── Label da marca ── */}
+                  <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-2">
+                    {brand}
+                    <span className="text-[10px] font-normal text-muted-foreground">
+                      {brandTypes.length} material(ais)
+                    </span>
+                  </p>
+
+                  {/* ── Cards compactos ── */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+                    {brandTypes.map((type) => {
+                      const isSelected = selectedTypeId === type.id;
+                      const activeCount = spools.filter(
+                        (s) => s.filamentTypeId === type.id && s.remaining > 0,
+                      ).length;
+                      const typeSpools = spools.filter(
+                        (s) => s.filamentTypeId === type.id,
+                      );
+                      const hasSpools = typeSpools.length > 0;
+                      const hasConsumption = typeSpools.some(
+                        (s) => s.remaining < s.spoolWeight,
+                      );
+                      const canDeleteType = !hasSpools && !hasConsumption;
+                      const totalRemaining = typeSpools
+                        .filter((s) => s.remaining > 0)
+                        .reduce((sum, s) => sum + s.remaining, 0);
+                      const isLow =
+                        type.alertThreshold != null &&
+                        totalRemaining <= type.alertThreshold;
+
+                      return (
                         <div
-                          className="w-5 h-5 rounded-full border border-white/20 flex-shrink-0 mt-0.5"
-                          style={{
-                            backgroundColor: type.colorHex,
-                            filter: `drop-shadow(0 0 8px ${type.colorHex})`,
-                          }}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="font-bold text-sm leading-none mb-1 truncate">
-                            {type.brand}
+                          key={type.id}
+                          onClick={() => handleTypeClick(type.id)}
+                          className={cn(
+                            "relative group cursor-pointer rounded-xl border px-3 py-2.5 transition-all",
+                            isSelected
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:border-primary/40 hover:bg-accent/40",
+                          )}
+                        >
+                          {/* Dot de cor + nome */}
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <div
+                              className="w-3 h-3 rounded-full flex-shrink-0"
+                              style={{
+                                backgroundColor: type.colorHex,
+                                boxShadow: `0 0 6px ${type.colorHex}88`,
+                              }}
+                            />
+                            <span className="text-xs font-medium truncate text-foreground leading-none">
+                              {type.colorName}
+                            </span>
+                          </div>
+
+                          {/* Material */}
+                          <p className="text-[10px] text-muted-foreground truncate mb-1.5">
+                            {type.material}
                           </p>
-                          <p className="text-[10px] text-muted-foreground truncate">
-                            {type.material} • {type.colorName}
-                          </p>
-                          <div className="flex items-center gap-2 mt-2 flex-wrap">
-                            <Badge
-                              variant={isSelected ? "default" : "secondary"}
-                              className="text-[10px]"
+
+                          {/* Badges */}
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <span
+                              className={cn(
+                                "text-[9px] font-medium px-1.5 py-0.5 rounded-full",
+                                isSelected
+                                  ? "bg-primary/15 text-primary"
+                                  : "bg-muted text-muted-foreground",
+                              )}
                             >
                               {activeCount} rolo(s)
-                            </Badge>
-                            {totalRemaining > 0 && (
-                              <span className="text-[10px] text-muted-foreground">
-                                {totalRemaining.toFixed(0)}g
-                                {isLow && (
-                                  <span className="text-warning ml-1">
-                                    ⚠ stock baixo
-                                  </span>
-                                )}
-                              </span>
+                            </span>
+                            {isLow && (
+                              <span className="text-[9px] text-warning">⚠</span>
+                            )}
+                          </div>
+
+                          {/* Ações no hover */}
+                          <div
+                            className="absolute top-1.5 right-1.5 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              className="w-5 h-5 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                              onClick={(e) => handleEditType(e, type)}
+                            >
+                              <Pencil size={10} />
+                            </button>
+                            {canDeleteType && (
+                              <button
+                                className="w-5 h-5 rounded flex items-center justify-center text-destructive/40 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteType(type.id);
+                                }}
+                              >
+                                <Trash2 size={10} />
+                              </button>
                             )}
                           </div>
                         </div>
-                      </div>
-
-                      {/* Ações — visíveis no hover */}
-                      <div
-                        className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                          onClick={(e) => handleEditType(e, type)}
-                        >
-                          <Pencil size={13} />
-                        </Button>
-                        {canDeleteType && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive/40 hover:text-destructive hover:bg-destructive/10"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteType(type.id);
-                            }}
-                          >
-                            <Trash2 size={13} />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                      );
+                    })}
+                  </div>
+                </div>
               );
             })}
+          </div>
+        )}
+      </div>
 
-            {types.length === 0 && (
-              <div className="md:col-span-2 border border-dashed rounded-lg py-12 text-center">
-                <p className="text-sm text-muted-foreground">
-                  Nenhum material criado ainda.
-                </p>
-              </div>
+      {/* ── Bobines em Stock ── */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+              Bobines em Stock
+            </h2>
+            <Badge variant="secondary" className="text-[10px]">
+              {activeSpools.length}
+            </Badge>
+            {selectedType && (
+              <button
+                onClick={() => setSelectedTypeId(null)}
+                className="flex items-center gap-1 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full hover:bg-primary/20 transition-colors"
+              >
+                <span>{selectedType.colorName}</span>
+                <X size={10} className="flex-shrink-0" />
+              </button>
             )}
           </div>
+          <AddSpoolDialog types={types} onAdded={refreshData} />
         </div>
 
-        {/* ── Bobines em stock ── */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2">
-              <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                Bobines em Stock
-              </h2>
-              {selectedType && (
-                <button
-                  onClick={() => setSelectedTypeId(null)}
-                  className="flex items-center gap-1 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full hover:bg-primary/20 transition-colors"
-                >
-                  <span>{selectedType.colorName}</span>
-                  <X size={10} className="flex-shrink-0" />
-                </button>
-              )}
-            </div>
-            <div className="flex-shrink-0">
-              <AddSpoolDialog types={types} onAdded={refreshData} />
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            {activeSpools.length === 0 && (
-              <p className="text-xs text-muted-foreground text-center py-6">
-                {selectedTypeId
-                  ? "Nenhuma bobine em stock para este material."
-                  : "Nenhuma bobine em stock."}
-              </p>
-            )}
-
+        {activeSpools.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-6 border border-dashed rounded-lg">
+            {selectedTypeId
+              ? "Nenhuma bobine em stock para este material."
+              : "Nenhuma bobine em stock."}
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
             {activeSpools.map((spool) => {
               const hasAdjustments = spool._count?.adjustments > 0;
               const hasConsumption = spool.remaining < spool.spoolWeight;
@@ -300,28 +314,27 @@ export function FilamentsClient({
                   className="bg-secondary border border-border relative group cursor-pointer hover:border-primary/30 hover:bg-secondary/80 transition-colors"
                   onClick={() => router.push(`/filaments/spools/${spool.id}`)}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between gap-2 mb-3">
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between gap-2 mb-2.5">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
                         <div
                           className="w-3 h-3 rounded-full flex-shrink-0"
                           style={{
                             backgroundColor: spool.filamentType.colorHex,
-                            boxShadow: `0 0 8px ${spool.filamentType.colorHex}`,
+                            boxShadow: `0 0 6px ${spool.filamentType.colorHex}`,
                           }}
                         />
-                        <div className="flex flex-col min-w-0">
-                          <span className="text-xs font-bold truncate">
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold truncate text-foreground leading-none">
                             {spool.filamentType.brand}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground truncate">
+                          </p>
+                          <p className="text-[10px] text-muted-foreground truncate">
                             {spool.filamentType.colorName}
-                          </span>
+                          </p>
                         </div>
                       </div>
-
                       <div
-                        className="flex items-center gap-1 flex-shrink-0"
+                        className="flex items-center gap-0.5 flex-shrink-0"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <SpoolAdjustDialog
@@ -332,16 +345,16 @@ export function FilamentsClient({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 text-destructive/50 hover:text-destructive hover:bg-destructive/10"
+                            className="h-6 w-6 text-destructive/40 hover:text-destructive hover:bg-destructive/10"
                             onClick={(e) => handleDeleteSpool(e, spool.id)}
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={12} />
                           </Button>
                         )}
                       </div>
                     </div>
 
-                    <div className="space-y-1.5">
+                    <div className="space-y-1">
                       <div className="flex justify-between text-[10px]">
                         <span
                           className={cn(
@@ -351,7 +364,7 @@ export function FilamentsClient({
                         >
                           {spool.remaining}g / {spool.spoolWeight}g
                         </span>
-                        <span className="text-muted-foreground font-medium">
+                        <span className="text-muted-foreground">
                           {formatCurrency(spool.price)}
                         </span>
                       </div>
@@ -372,7 +385,7 @@ export function FilamentsClient({
               );
             })}
           </div>
-        </div>
+        )}
       </div>
 
       {/* ── Histórico de bobines vazias ── */}
@@ -407,7 +420,7 @@ export function FilamentsClient({
           </button>
 
           {historyOpen && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
               {emptySpools.map((spool) => {
                 const hasAdjustments = spool._count?.adjustments > 0;
                 const hasConsumption = spool.remaining < spool.spoolWeight;
@@ -427,13 +440,13 @@ export function FilamentsClient({
                               backgroundColor: spool.filamentType.colorHex,
                             }}
                           />
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-xs font-medium truncate text-muted-foreground">
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium truncate text-muted-foreground">
                               {spool.filamentType.brand}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground/70 truncate">
+                            </p>
+                            <p className="text-[10px] text-muted-foreground/70 truncate">
                               {spool.filamentType.colorName}
-                            </span>
+                            </p>
                           </div>
                         </div>
                         <div
@@ -452,7 +465,6 @@ export function FilamentsClient({
                           )}
                         </div>
                       </div>
-
                       <div className="flex justify-between text-[10px] text-muted-foreground">
                         <span>
                           {spool.spoolWeight}g · {formatCurrency(spool.price)}
