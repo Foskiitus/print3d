@@ -12,17 +12,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
 import { Plus, Trash2, Upload, X, FileBox } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { AddSpoolDialog } from "@/components/forms/AddSpoolDialog";
+import { SearchableSelect } from "@/components/ui/searchableSelect";
 import { useUploadLimit } from "@/hooks/useUploadLimit";
 
 export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
@@ -344,39 +338,29 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Categoria</Label>
-                <Select
+                <SearchableSelect
+                  options={categories.map((c) => ({
+                    value: c.id,
+                    label: c.name,
+                  }))}
                   value={form.categoryId}
                   onValueChange={(v) => setForm({ ...form, categoryId: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecionar..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Selecionar..."
+                  searchPlaceholder="Pesquisar categoria..."
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>Impressora</Label>
-                <Select
+                <SearchableSelect
+                  options={printers.map((p) => ({
+                    value: p.id,
+                    label: p.name,
+                  }))}
                   value={form.printerId}
                   onValueChange={(v) => setForm({ ...form, printerId: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecionar..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {printers.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Selecionar..."
+                  searchPlaceholder="Pesquisar impressora..."
+                />
               </div>
             </div>
 
@@ -442,45 +426,42 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
 
             {filamentUsages.map((f, i) => (
               <div key={i} className="flex items-center gap-2">
-                <div className="flex-1">
-                  <Select
+                <div className="flex-1 space-y-1">
+                  <SearchableSelect
+                    options={filamentTypes.map((ft) => ({
+                      value: ft.id,
+                      label: `${ft.brand} ${ft.material} — ${ft.colorName}`,
+                      render: (
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: ft.colorHex }}
+                          />
+                          {ft.brand} {ft.material} — {ft.colorName}
+                        </div>
+                      ),
+                    }))}
                     value={f.filamentTypeId}
                     onValueChange={(v) =>
                       updateFilament(i, "filamentTypeId", v)
                     }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Tipo de filamento..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filamentTypes.map((ft) => (
-                        <SelectItem key={ft.id} value={ft.id}>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: ft.colorHex }}
-                            />
-                            {ft.brand} {ft.material} — {ft.colorName}
-                          </div>
-                        </SelectItem>
-                      ))}
-                      <div className="px-2 py-1.5 border-t border-border mt-1">
-                        <AddSpoolDialog
-                          types={filamentTypes}
-                          onAdded={refreshFilamentTypes}
-                          onOpenChange={setIsChildDialogOpen}
-                          trigger={
-                            <button
-                              type="button"
-                              className="flex items-center gap-2 w-full text-xs text-primary hover:text-primary/80 transition-colors py-1"
-                            >
-                              <Plus size={12} /> Registar nova bobine
-                            </button>
-                          }
-                        />
-                      </div>
-                    </SelectContent>
-                  </Select>
+                    placeholder="Tipo de filamento..."
+                    searchPlaceholder="Pesquisar filamento..."
+                    emptyText="Nenhum filamento encontrado."
+                  />
+                  <AddSpoolDialog
+                    types={filamentTypes}
+                    onAdded={refreshFilamentTypes}
+                    onOpenChange={setIsChildDialogOpen}
+                    trigger={
+                      <button
+                        type="button"
+                        className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors py-0.5"
+                      >
+                        <Plus size={11} /> Registar nova bobine
+                      </button>
+                    }
+                  />
                 </div>
                 <div className="w-28">
                   <Input
@@ -533,22 +514,16 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
             {extraUsages.map((e, i) => (
               <div key={i} className="flex items-center gap-2">
                 <div className="flex-1">
-                  <Select
+                  <SearchableSelect
+                    options={extras.map((ex) => ({
+                      value: ex.id,
+                      label: `${ex.name} — ${formatCurrency(ex.price)}/${ex.unit || "un"}`,
+                    }))}
                     value={e.extraId}
                     onValueChange={(v) => updateExtra(i, "extraId", v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Extra..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {extras.map((ex) => (
-                        <SelectItem key={ex.id} value={ex.id}>
-                          {ex.name} — {formatCurrency(ex.price)}/
-                          {ex.unit || "un"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="Extra..."
+                    searchPlaceholder="Pesquisar extra..."
+                  />
                 </div>
                 <div className="w-28">
                   <Input

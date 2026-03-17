@@ -292,7 +292,7 @@ export function FilamentsClient({
                                       toggleType(type.id)
                                     }
                                     className={cn(
-                                      "flex items-center gap-2.5 px-2.5 py-2 rounded-lg border transition-all group",
+                                      "flex items-center gap-2.5 px-2.5 py-2 rounded-lg border transition-all",
                                       activeSpools.length > 0
                                         ? "cursor-pointer"
                                         : "cursor-default opacity-60",
@@ -355,7 +355,7 @@ export function FilamentsClient({
 
                                     {/* Ações hover */}
                                     <div
-                                      className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      className="flex items-center gap-0.5"
                                       onClick={(e) => e.stopPropagation()}
                                     >
                                       <button

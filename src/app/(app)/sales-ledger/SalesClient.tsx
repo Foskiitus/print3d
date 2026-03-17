@@ -5,6 +5,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { NewSaleDialog } from "@/components/forms/NewSaleDialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { SearchableSelect } from "@/components/ui/searchableSelect";
 import { formatCurrency } from "@/lib/utils";
 import {
   ArrowUpDown,
@@ -57,9 +65,11 @@ export function SalesClient({
   const [editForm, setEditForm] = useState({
     customerId: "",
     quantity: "",
+    salePrice: "",
     notes: "",
   });
   const [saving, setSaving] = useState(false);
+  const [mobileEditSale, setMobileEditSale] = useState<any | null>(null);
 
   const refresh = useCallback(() => {
     Promise.all([
@@ -83,13 +93,14 @@ export function SalesClient({
     setEditForm({
       customerId: sale.customerId ?? "none",
       quantity: String(sale.quantity),
+      salePrice: String(sale.salePrice),
       notes: sale.notes ?? "",
     });
   };
 
   const cancelEdit = () => {
     setEditingId(null);
-    setEditForm({ customerId: "", quantity: "", notes: "" });
+    setEditForm({ customerId: "", quantity: "", salePrice: "", notes: "" });
   };
 
   const handleSave = async (sale: any) => {
@@ -102,6 +113,7 @@ export function SalesClient({
           customerId:
             editForm.customerId === "none" ? null : editForm.customerId || null,
           quantity: Number(editForm.quantity),
+          salePrice: Number(editForm.salePrice),
           notes: editForm.notes.trim() || null,
         }),
       });
@@ -195,9 +207,9 @@ export function SalesClient({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-hidden">
       {/* ── Resumo ── */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           {
             label: "Transações",
@@ -258,8 +270,230 @@ export function SalesClient({
         <NewSaleDialog products={productsList} onCreated={refresh} />
       </div>
 
-      {/* ── Tabela ── */}
-      <Card className="overflow-hidden">
+      {/* ── Cards mobile ── */}
+      <div className="md:hidden space-y-2">
+        {filtered.length === 0 ? (
+          <div className="border border-dashed rounded-lg py-12 text-center">
+            <p className="text-sm text-muted-foreground">
+              {search
+                ? "Nenhuma venda encontrada."
+                : "Nenhuma venda registada ainda."}
+            </p>
+          </div>
+        ) : (
+          filtered.map((sale) => {
+            const total = sale.salePrice * sale.quantity;
+            const costPerUnit = sale.costPerUnit ?? 0;
+            const profit = (sale.salePrice - costPerUnit) * sale.quantity;
+            const hasRealCost = sale.costPerUnit != null;
+
+            return (
+              <Card key={sale.id}>
+                <CardContent className="p-4">
+                  {/* Linha 1: produto + ações */}
+                  <div className="flex items-start gap-2 mb-2 w-full">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-sm text-foreground truncate">
+                        {sale.product.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                        {formatDate(sale.date)}
+                        {(sale.customer?.name ?? sale.customerName) && (
+                          <> · {sale.customer?.name ?? sale.customerName}</>
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0 ml-auto">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground/40 hover:text-muted-foreground"
+                        onClick={() => {
+                          setMobileEditSale(sale);
+                          setEditForm({
+                            customerId: sale.customerId ?? "none",
+                            quantity: String(sale.quantity),
+                            salePrice: String(sale.salePrice),
+                            notes: sale.notes ?? "",
+                          });
+                        }}
+                      >
+                        <Pencil size={13} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive/40 hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDelete(sale.id)}
+                      >
+                        <Trash2 size={13} />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Linha 2: quantidade + total */}
+                  <div className="flex items-end justify-between gap-2 w-full">
+                    <div className="min-w-0 space-y-0.5">
+                      <p className="text-xs text-muted-foreground">
+                        {sale.quantity} × {formatCurrency(sale.salePrice)}
+                      </p>
+                      {sale.notes && (
+                        <p className="text-[10px] text-muted-foreground italic truncate max-w-[160px]">
+                          {sale.notes}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="font-bold tabular-nums">
+                        {formatCurrency(total)}
+                      </p>
+                      {hasRealCost && (
+                        <p
+                          className={cn(
+                            "text-xs tabular-nums font-medium",
+                            profit >= 0 ? "text-success" : "text-destructive",
+                          )}
+                        >
+                          {profit >= 0 ? "+" : ""}
+                          {formatCurrency(profit)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
+        {/* Dialog de edição mobile */}
+        <Dialog
+          open={!!mobileEditSale}
+          onOpenChange={(v) => {
+            if (!v) setMobileEditSale(null);
+          }}
+        >
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Editar Venda</DialogTitle>
+            </DialogHeader>
+            {mobileEditSale && (
+              <div className="space-y-4 mt-2">
+                <div className="px-3 py-2 rounded-lg bg-muted/30 text-sm space-y-0.5">
+                  <p className="font-medium text-foreground">
+                    {mobileEditSale.product.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDate(mobileEditSale.date)}
+                  </p>
+                  {(() => {
+                    const p = productsList.find(
+                      (p) => p.id === mobileEditSale.productId,
+                    );
+                    const stock = (p?.stock ?? 0) + mobileEditSale.quantity;
+                    return (
+                      <p
+                        className={cn(
+                          "text-xs font-medium",
+                          stock <= 0
+                            ? "text-destructive"
+                            : stock <= 3
+                              ? "text-warning"
+                              : "text-muted-foreground",
+                        )}
+                      >
+                        Stock disponível: {stock} un.
+                      </p>
+                    );
+                  })()}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>Quantidade</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={editForm.quantity}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, quantity: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Preço/un (€)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={editForm.salePrice}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, salePrice: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>
+                    Cliente{" "}
+                    <span className="text-muted-foreground font-normal">
+                      (opcional)
+                    </span>
+                  </Label>
+                  <SearchableSelect
+                    options={[
+                      { value: "none", label: "— Sem cliente —" },
+                      ...customers.map((c) => ({ value: c.id, label: c.name })),
+                    ]}
+                    value={editForm.customerId || "none"}
+                    onValueChange={(v) =>
+                      setEditForm({ ...editForm, customerId: v })
+                    }
+                    placeholder="Selecionar cliente..."
+                    searchPlaceholder="Pesquisar cliente..."
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>
+                    Notas{" "}
+                    <span className="text-muted-foreground font-normal">
+                      (opcional)
+                    </span>
+                  </Label>
+                  <Input
+                    value={editForm.notes}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, notes: e.target.value })
+                    }
+                    placeholder="Observações..."
+                  />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setMobileEditSale(null)}
+                    disabled={saving}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    onClick={async () => {
+                      await handleSave(mobileEditSale);
+                      setMobileEditSale(null);
+                    }}
+                    disabled={saving}
+                  >
+                    {saving ? "A guardar..." : "Guardar"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* ── Tabela (desktop) ── */}
+      <Card className="overflow-hidden hidden md:block">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -306,9 +540,12 @@ export function SalesClient({
                   const qty = isEditing
                     ? Number(editForm.quantity) || sale.quantity
                     : sale.quantity;
-                  const total = sale.salePrice * qty;
+                  const price = isEditing
+                    ? Number(editForm.salePrice) || sale.salePrice
+                    : sale.salePrice;
+                  const total = price * qty;
                   const costPerUnit = sale.costPerUnit ?? 0;
-                  const profit = (sale.salePrice - costPerUnit) * qty;
+                  const profit = (price - costPerUnit) * qty;
                   const hasRealCost = sale.costPerUnit != null;
 
                   return (
@@ -379,7 +616,23 @@ export function SalesClient({
                       </td>
 
                       <td className="px-4 py-3 text-right tabular-nums">
-                        {formatCurrency(sale.salePrice)}
+                        {isEditing ? (
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={editForm.salePrice}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                salePrice: e.target.value,
+                              })
+                            }
+                            className="h-7 text-xs w-20 text-right ml-auto"
+                          />
+                        ) : (
+                          formatCurrency(sale.salePrice)
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right font-medium tabular-nums">
                         {formatCurrency(total)}

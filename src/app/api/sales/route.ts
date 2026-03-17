@@ -42,6 +42,9 @@ export async function GET() {
         createdAt: s.product.createdAt.toISOString(),
         updatedAt: s.product.updatedAt.toISOString(),
       },
+      customer: s.customer
+        ? { id: s.customer.id, name: s.customer.name, email: s.customer.email }
+        : null,
       costPerUnit: costMap[s.productId] ?? null,
     })),
   );

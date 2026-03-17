@@ -12,13 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchableSelect";
 import { toast } from "@/components/ui/toaster";
 import { refreshAlerts } from "@/lib/refreshAlerts";
 import { Factory, Loader2 } from "lucide-react";
@@ -132,23 +126,19 @@ export function AddProductionDialog({
           {/* Produto */}
           <div className="space-y-1.5">
             <Label>Produto</Label>
-            <Select value={productId} onValueChange={handleProductChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecionar produto..." />
-              </SelectTrigger>
-              <SelectContent>
-                {products.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
-                    {p.unitsPerPrint > 1 && (
-                      <span className="text-muted-foreground ml-1">
-                        (×{p.unitsPerPrint}/impressão)
-                      </span>
-                    )}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              options={products.map((p) => ({
+                value: p.id,
+                label:
+                  p.unitsPerPrint > 1
+                    ? `${p.name} (×${p.unitsPerPrint}/impressão)`
+                    : p.name,
+              }))}
+              value={productId}
+              onValueChange={handleProductChange}
+              placeholder="Selecionar produto..."
+              searchPlaceholder="Pesquisar produto..."
+            />
           </div>
 
           {/* Impressora */}
@@ -165,24 +155,14 @@ export function AddProductionDialog({
                 </span>
               </div>
             ) : (
-              <Select value={printerId} onValueChange={setPrinterId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecionar impressora..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {printers.length === 0 ? (
-                    <SelectItem value="none" disabled>
-                      Nenhuma impressora registada
-                    </SelectItem>
-                  ) : (
-                    printers.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={printers.map((p) => ({ value: p.id, label: p.name }))}
+                value={printerId}
+                onValueChange={setPrinterId}
+                placeholder="Selecionar impressora..."
+                searchPlaceholder="Pesquisar impressora..."
+                emptyText="Nenhuma impressora registada."
+              />
             )}
           </div>
 

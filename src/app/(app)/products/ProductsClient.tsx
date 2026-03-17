@@ -148,7 +148,7 @@ export function ProductsClient({
                 {group.products.map((product) => (
                   <Card
                     key={product.id}
-                    className="group cursor-pointer hover:border-primary/50 transition-colors overflow-hidden"
+                    className="cursor-pointer hover:border-primary/50 transition-colors overflow-hidden"
                     onClick={() => router.push(`/products/${product.id}`)}
                   >
                     {product.imageUrl ? (
@@ -184,7 +184,7 @@ export function ProductsClient({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 text-destructive/40 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="h-7 w-7 text-destructive/40 hover:text-destructive"
                             onClick={(e) => handleDelete(e, product.id)}
                           >
                             <Trash2 size={13} />

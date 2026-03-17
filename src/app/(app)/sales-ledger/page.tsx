@@ -15,7 +15,7 @@ export default async function SalesLedgerPage() {
     await Promise.all([
       prisma.sale.findMany({
         where: { userId },
-        include: { product: true },
+        include: { product: true, customer: true },
         orderBy: { date: "desc" },
       }),
       prisma.product.findMany({
@@ -82,6 +82,13 @@ export default async function SalesLedgerPage() {
             createdAt: s.product.createdAt.toISOString(),
             updatedAt: s.product.updatedAt.toISOString(),
           },
+          customer: s.customer
+            ? {
+                id: s.customer.id,
+                name: s.customer.name,
+                email: s.customer.email,
+              }
+            : null,
           costPerUnit: costMap[s.productId] ?? null,
         }))}
         products={productsWithStock as any}

@@ -11,13 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchableSelect";
 import { toast } from "@/components/ui/toaster";
 import { CalendarIcon, Plus } from "lucide-react";
 import { refreshAlerts } from "@/lib/refreshAlerts";
@@ -30,19 +24,6 @@ import {
 } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-
-// ─── Dot de cor reutilizável ──────────────────────────────────────────────────
-function ColorDot({ hex }: { hex: string }) {
-  return (
-    <div
-      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-      style={{
-        backgroundColor: hex,
-        boxShadow: `0 0 5px ${hex}99`,
-      }}
-    />
-  );
-}
 
 export function AddSpoolDialog({
   types,
@@ -72,9 +53,6 @@ export function AddSpoolDialog({
     setOpen(v);
     onOpenChangeProp?.(v);
   };
-
-  // Tipo selecionado atualmente (para o trigger)
-  const selectedType = types.find((t) => t.id === form.filamentTypeId);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -141,6 +119,26 @@ export function AddSpoolDialog({
     }
   }
 
+  // Opções para o SearchableSelect com dot de cor
+  const typeOptions = types.map((t) => ({
+    value: t.id,
+    label: `${t.brand} ${t.material} (${t.colorName})`,
+    render: (
+      <div className="flex items-center gap-2.5">
+        <div
+          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+          style={{
+            backgroundColor: t.colorHex,
+            boxShadow: `0 0 5px ${t.colorHex}99`,
+          }}
+        />
+        <span>
+          {t.brand} {t.material} — {t.colorName}
+        </span>
+      </div>
+    ),
+  }));
+
   return (
     <div onClick={(e) => e.stopPropagation()}>
       <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -157,41 +155,17 @@ export function AddSpoolDialog({
             <DialogTitle>Registar Nova Bobine</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+            {/* Tipo de material — com pesquisa */}
             <div className="space-y-1.5">
               <Label>Tipo de Material</Label>
-              <Select
+              <SearchableSelect
+                options={typeOptions}
                 value={form.filamentTypeId}
                 onValueChange={(v) => setForm({ ...form, filamentTypeId: v })}
-              >
-                {/* ── Trigger: mostra dot + label quando selecionado ── */}
-                <SelectTrigger>
-                  {selectedType ? (
-                    <div className="flex items-center gap-2 overflow-hidden">
-                      <ColorDot hex={selectedType.colorHex} />
-                      <span className="truncate text-sm">
-                        {selectedType.brand} {selectedType.material} (
-                        {selectedType.colorName})
-                      </span>
-                    </div>
-                  ) : (
-                    <SelectValue placeholder="Selecione o material..." />
-                  )}
-                </SelectTrigger>
-
-                {/* ── Dropdown: cada item com dot de cor ── */}
-                <SelectContent>
-                  {types.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      <div className="flex items-center gap-2.5">
-                        <ColorDot hex={t.colorHex} />
-                        <span>
-                          {t.brand} {t.material} ({t.colorName})
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Selecione o material..."
+                searchPlaceholder="Pesquisar marca, material ou cor..."
+                emptyText="Nenhum material encontrado."
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

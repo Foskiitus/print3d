@@ -12,13 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchableSelect";
 import { toast } from "@/components/ui/toaster";
 import { refreshAlerts } from "@/lib/refreshAlerts";
 import { ShoppingCart, UserPlus } from "lucide-react";
@@ -150,29 +144,30 @@ export function NewSaleDialog({
           {/* Produto */}
           <div className="space-y-1.5">
             <Label>Produto</Label>
-            <Select value={productId} onValueChange={handleProductChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecionar produto..." />
-              </SelectTrigger>
-              <SelectContent>
-                {products.map((p) => (
-                  <SelectItem key={p.id} value={p.id} disabled={p.stock <= 0}>
-                    <div className="flex items-center justify-between w-full gap-3">
-                      <span>{p.name}</span>
-                      {/* ✅ stockColor usa text-warning em vez de text-yellow-500 */}
-                      <span
-                        className={cn(
-                          "text-xs font-medium",
-                          stockColor(p.stock),
-                        )}
-                      >
-                        ({p.stock} un.)
-                      </span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              options={products.map((p) => ({
+                value: p.id,
+                label: `${p.name} (${p.stock} un.)`,
+                render: (
+                  <div className="flex items-center justify-between w-full gap-3">
+                    <span>{p.name}</span>
+                    <span
+                      className={cn(
+                        "text-xs font-medium tabular-nums",
+                        stockColor(p.stock),
+                      )}
+                    >
+                      {p.stock} un.
+                    </span>
+                  </div>
+                ),
+                disabled: p.stock <= 0,
+              }))}
+              value={productId}
+              onValueChange={handleProductChange}
+              placeholder="Selecionar produto..."
+              searchPlaceholder="Pesquisar produto..."
+            />
             {selectedProduct && (
               <p className={cn("text-[10px]", stockColor(availableStock))}>
                 {availableStock <= 0
@@ -250,41 +245,35 @@ export function NewSaleDialog({
                 (opcional)
               </span>
             </Label>
-            <Select value={customerId} onValueChange={setCustomerId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecionar cliente..." />
-              </SelectTrigger>
-              <SelectContent>
-                {customers.length === 0 ? (
-                  <div className="px-3 py-2 text-xs text-muted-foreground">
-                    Nenhum cliente registado
+            <SearchableSelect
+              options={customers.map((c) => ({
+                value: c.id,
+                label: c.email ? `${c.name} (${c.email})` : c.name,
+                render: (
+                  <div className="flex flex-col">
+                    <span>{c.name}</span>
+                    {c.email && (
+                      <span className="text-[10px] text-muted-foreground">
+                        {c.email}
+                      </span>
+                    )}
                   </div>
-                ) : (
-                  customers.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      <div className="flex flex-col">
-                        <span>{c.name}</span>
-                        {c.email && (
-                          <span className="text-[10px] text-muted-foreground">
-                            {c.email}
-                          </span>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))
-                )}
-                <div className="px-2 py-1.5 border-t border-border mt-1">
-                  <a
-                    href="/customers"
-                    target="_blank"
-                    className="flex items-center gap-2 text-xs text-primary hover:text-primary/80 transition-colors py-1"
-                  >
-                    <UserPlus size={12} />
-                    Gerir clientes
-                  </a>
-                </div>
-              </SelectContent>
-            </Select>
+                ),
+              }))}
+              value={customerId}
+              onValueChange={setCustomerId}
+              placeholder="Selecionar cliente..."
+              searchPlaceholder="Pesquisar nome ou email..."
+              emptyText="Nenhum cliente registado."
+            />
+            <a
+              href="/customers"
+              target="_blank"
+              className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors w-fit"
+            >
+              <UserPlus size={11} />
+              Gerir clientes
+            </a>
           </div>
 
           {/* Notas */}

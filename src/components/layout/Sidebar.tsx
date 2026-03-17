@@ -7,8 +7,6 @@ import {
   Package,
   ShoppingCart,
   Factory,
-  Menu,
-  X,
   LogOut,
   Users,
   Droplets,
@@ -18,7 +16,7 @@ import {
   AlertTriangle,
   Boxes,
 } from "lucide-react";
-import { useState } from "react";
+import { useSidebar } from "@/components/layout/SidebarContext";
 import { signOut, useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 
@@ -172,7 +170,7 @@ function NavLink({
 
 export function Sidebar() {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
+  const { open, setOpen } = useSidebar();
   const { data: session } = useSession();
   const role = (session?.user as any)?.role;
   const isAdmin = role === "admin";
@@ -180,14 +178,6 @@ export function Sidebar() {
 
   return (
     <>
-      <button
-        className="fixed top-4 left-4 z-50 md:hidden p-2 rounded-lg bg-card border border-border hover:bg-accent transition-colors"
-        onClick={() => setOpen(!open)}
-        aria-label="Toggle menu"
-      >
-        {open ? <X size={18} /> : <Menu size={18} />}
-      </button>
-
       {open && (
         <div
           className="fixed inset-0 z-40 bg-black/60 md:hidden"

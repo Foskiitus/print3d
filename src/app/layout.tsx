@@ -8,6 +8,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { DM_Sans, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
+import { SidebarProvider } from "@/components/layout/SidebarContext";
 
 // ─── Fonts ───────────────────────────────────────────────────────────────────
 const dmSans = DM_Sans({
@@ -53,7 +54,7 @@ export default function RootLayout({
             enableSystem={false}
             storageKey="spooliq-theme"
           >
-            {children}
+            <SidebarProvider>{children}</SidebarProvider>
           </ThemeProvider>
 
           <SpeedInsights />
