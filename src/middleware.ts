@@ -16,20 +16,23 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Verificar o JWT diretamente — sem Prisma, compatível com Edge Runtime
+  // Em produção (HTTPS) o NextAuth v5 usa __Secure- como prefixo
+  // Em desenvolvimento (HTTP) usa o nome sem prefixo
+  const isSecure = req.nextUrl.protocol === "https:";
+  const cookieName = isSecure
+    ? "__Secure-authjs.session-token"
+    : "authjs.session-token";
+
   const token = await getToken({
     req,
     secret: process.env.AUTH_SECRET,
-    // NextAuth v5 usa este nome de cookie por defeito
-    cookieName: "authjs.session-token",
+    cookieName,
   });
 
-  console.log("[middleware] pathname:", pathname, "| token:", !!token);
-
   if (!token) {
-    // Sessão inválida — apagar todos os cookies de auth e redirecionar
     const response = NextResponse.redirect(new URL("/login", req.url));
 
+    // Apagar todos os cookies de auth independentemente do nome
     req.cookies.getAll().forEach((cookie) => {
       if (
         cookie.name.startsWith("authjs.") ||
