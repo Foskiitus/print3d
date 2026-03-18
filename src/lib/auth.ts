@@ -89,6 +89,25 @@ export async function requireApiAdmin(): Promise<ApiAuthResult> {
 export async function requirePageAuth(): Promise<string> {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
+
+  // Garantir que o utilizador existe na BD
+  const existing = await prisma.user.findUnique({ where: { id: userId } });
+  if (!existing) {
+    const clerkUser = await currentUser();
+    if (clerkUser) {
+      await prisma.user.create({
+        data: {
+          id: userId,
+          email: clerkUser.emailAddresses[0]?.emailAddress ?? "",
+          name:
+            `${clerkUser.firstName ?? ""} ${clerkUser.lastName ?? ""}`.trim() ||
+            null,
+          role: "user",
+        },
+      });
+    }
+  }
+
   return userId;
 }
 
@@ -101,10 +120,28 @@ export async function requirePageAdmin(): Promise<string> {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
-  const user = await prisma.user.findUnique({
+  let user = await prisma.user.findUnique({
     where: { id: userId },
     select: { role: true },
   });
+
+  // Criar utilizador se não existir
+  if (!user) {
+    const clerkUser = await currentUser();
+    if (clerkUser) {
+      user = await prisma.user.create({
+        data: {
+          id: userId,
+          email: clerkUser.emailAddresses[0]?.emailAddress ?? "",
+          name:
+            `${clerkUser.firstName ?? ""} ${clerkUser.lastName ?? ""}`.trim() ||
+            null,
+          role: "user",
+        },
+        select: { role: true },
+      });
+    }
+  }
 
   if (user?.role !== "admin" && user?.role !== "superadmin") {
     redirect("/dashboard");
