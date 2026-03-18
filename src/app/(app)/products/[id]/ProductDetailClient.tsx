@@ -39,6 +39,32 @@ import { toast } from "@/components/ui/toaster";
 import { useSignedUrl } from "@/hooks/useSignedUrl";
 import { useUploadLimit } from "@/hooks/useUploadLimit";
 
+async function executeDirectUpload(file: File, bucket: "images" | "models") {
+  const signRes = await fetch("/api/upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      fileName: file.name,
+      contentType: file.type,
+      bucket: bucket,
+    }),
+  });
+
+  if (!signRes.ok) throw new Error("Falha ao gerar link de upload");
+
+  const { url, key } = await signRes.json();
+
+  const uploadRes = await fetch(url, {
+    method: "PUT",
+    body: file,
+    headers: { "Content-Type": file.type },
+  });
+
+  if (!uploadRes.ok) throw new Error("Falha no upload para o storage");
+
+  return key;
+}
+
 function formatDate(date: string | Date) {
   return new Date(date).toLocaleDateString("pt-PT", {
     day: "2-digit",
@@ -255,29 +281,25 @@ export function ProductDetailClient({
     setSaving(true);
     try {
       let imageUrl = form.imageUrl;
+
+      // 1. Upload Direto da Imagem
       if (form.imageFile) {
-        const fd = new FormData();
-        fd.append("file", form.imageFile);
-        fd.append("type", "image");
-        const r = await fetch("/api/upload", { method: "POST", body: fd });
-        const d = await r.json();
-        if (!r.ok) throw new Error(d.error);
-        imageUrl = d.url;
+        imageUrl = await executeDirectUpload(form.imageFile, "images");
       }
 
       let fileUrl = form.fileUrl;
+
+      // 2. Upload Direto do Ficheiro 3MF/STL
       if (form.threemfFile) {
         setForm((f: any) => ({ ...f, threemfUploading: true }));
-        const fd = new FormData();
-        fd.append("file", form.threemfFile);
-        fd.append("type", "3mf");
-        const r = await fetch("/api/upload", { method: "POST", body: fd });
-        const d = await r.json();
-        setForm((f: any) => ({ ...f, threemfUploading: false }));
-        if (!r.ok) throw new Error(d.error);
-        fileUrl = d.url;
+        try {
+          fileUrl = await executeDirectUpload(form.threemfFile, "models");
+        } finally {
+          setForm((f: any) => ({ ...f, threemfUploading: false }));
+        }
       }
 
+      // 3. Gravar na Base de Dados
       const res = await fetch(`/api/products/${product.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
