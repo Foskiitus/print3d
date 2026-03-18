@@ -99,7 +99,11 @@ export function ProductDetailClient({
   const [editKey, setEditKey] = useState(0); // ✅ forçar recálculo ao entrar em edição
 
   // ✅ URL assinado para imagem privada
-  const { signedUrl: signedImageUrl } = useSignedUrl(product.imageUrl);
+  const { signedUrl: signedImageUrl } = useSignedUrl(
+    product.imageUrl,
+    "images",
+  );
+  const { signedUrl: modelUrl } = useSignedUrl(product.fileUrl, "models");
   const { limitMb, limitBytes } = useUploadLimit();
 
   useEffect(() => {
@@ -384,17 +388,23 @@ export function ProductDetailClient({
                 <Package size={48} className="text-muted-foreground/30" />
               </div>
             )}
-
             {product.fileUrl && (
-              <a
-                href={product.fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 w-full justify-center border border-dashed rounded-lg p-3 text-xs text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors"
+              <Button
+                variant="secondary"
+                className="gap-2"
+                asChild
+                disabled={!modelUrl}
               >
-                <Download size={13} />
-                Descarregar ficheiro de impressão
-              </a>
+                <a
+                  href={modelUrl || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                >
+                  <Download size={16} />
+                  Descarregar Modelo
+                </a>
+              </Button>
             )}
 
             <Card>

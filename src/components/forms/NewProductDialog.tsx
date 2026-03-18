@@ -109,8 +109,8 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
       // 3. Enviar os dados finais para a sua API de criação
       const productData = {
         ...formData,
-        image: imageKey, // Guardamos apenas a key do R2
-        modelFile: modelKey,
+        imageUrl: imageKey !== "" ? imageKey : null,
+        fileUrl: modelKey !== "" ? modelKey : null,
       };
 
       const res = await fetch("/api/products", {

@@ -49,11 +49,9 @@ export async function PATCH(
   const { id } = await params;
 
   try {
-    const existing = await prisma.product.findUnique({ where: { id } });
-    if (!existing || existing.userId !== userId) {
-      return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-    }
+    const body = await req.json();
 
+    // 1. Garante que extrais o imageUrl e o fileUrl do body
     const {
       name,
       description,
@@ -61,65 +59,59 @@ export async function PATCH(
       printerId,
       productionTime,
       margin,
-      imageKey,
-      fileKey,
-      filamentUsages,
-      extraUsages,
       unitsPerPrint,
       alertThreshold,
-    } = await req.json();
+      imageUrl, // <-- ADICIONADO
+      fileUrl, // <-- ADICIONADO
+      filamentUsages,
+      extraUsages,
+    } = body;
 
-    const product = await prisma.$transaction(async (tx) => {
-      await tx.productFilamentUsage.deleteMany({ where: { productId: id } });
-      await tx.productExtra.deleteMany({ where: { productId: id } });
-
-      return tx.product.update({
-        where: { id },
-        data: {
-          name: name.trim(),
-          description: description || null,
-          categoryId: categoryId || null,
-          printerId: printerId || null,
-          margin: margin ?? existing.margin,
-          unitsPerPrint: unitsPerPrint ?? existing.unitsPerPrint,
-          alertThreshold:
-            alertThreshold !== undefined
-              ? alertThreshold != null
-                ? Number(alertThreshold)
-                : null
-              : existing.alertThreshold,
-          imageKey: imageKey ?? null,
-          fileKey: fileKey ?? null,
-          filamentUsage: {
-            create: filamentUsages.map((f: any) => ({
-              filamentTypeId: f.filamentTypeId,
-              weight: f.weight,
-            })),
-          },
-          extras: {
-            create: (extraUsages || []).map((e: any) => ({
-              extraId: e.extraId,
-              quantity: e.quantity,
-            })),
-          },
-        },
-        include: {
-          category: true,
-          printer: true,
-          filamentUsage: { include: { filamentType: true } },
-          extras: { include: { extra: true } },
-          printProfiles: true,
-          productionLogs: {
-            include: { printer: true },
-            orderBy: { date: "desc" },
-            take: 10,
-          },
-          _count: { select: { productionLogs: true, sales: true } },
-        },
-      });
+    // Verificar se o produto existe e pertence ao utilizador
+    const existingProduct = await prisma.product.findUnique({
+      where: { id },
     });
 
-    return NextResponse.json(product);
+    if (!existingProduct || existingProduct.userId !== userId) {
+      return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+    }
+
+    // 2. Garante que os campos são guardados na base de dados
+    const updatedProduct = await prisma.product.update({
+      where: { id },
+      data: {
+        name,
+        description,
+        categoryId,
+        printerId,
+        productionTime,
+        margin,
+        unitsPerPrint,
+        alertThreshold,
+        imageUrl, // <-- ADICIONADO AQUI
+        fileUrl, // <-- ADICIONADO AQUI
+
+        // (A tua lógica existente para atualizar os relacionamentos de filamentos e extras)
+        filamentUsage: {
+          deleteMany: {},
+          create:
+            filamentUsages?.map((f: any) => ({
+              filamentTypeId: f.filamentTypeId,
+              weight: f.weight,
+            })) || [],
+        },
+        extras: {
+          deleteMany: {},
+          create:
+            extraUsages?.map((e: any) => ({
+              extraId: e.extraId,
+              quantity: e.quantity,
+            })) || [],
+        },
+      },
+    });
+
+    return NextResponse.json(updatedProduct);
   } catch (error: any) {
     console.error("[PATCH /api/products/[id]]", error);
     return NextResponse.json(
