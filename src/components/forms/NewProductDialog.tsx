@@ -52,20 +52,110 @@ async function executeDirectUpload(file: File, bucket: "images" | "models") {
 export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false);
   const { limitMb, limitBytes } = useUploadLimit();
-
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [costData, setCostData] = useState<any>(null);
+  const [isChildDialogOpen, setIsChildDialogOpen] = useState(false);
 
-  // Estados para os ficheiros
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [threemfFile, setThreemfFile] = useState<File | null>(null);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [filamentTypes, setFilamentTypes] = useState<any[]>([]);
+  const [extras, setExtras] = useState<any[]>([]);
+  const [printers, setPrinters] = useState<any[]>([]);
 
-  // Exemplo de estado para os dados do formulário
-  const [formData, setFormData] = useState({
+  const refreshFilamentTypes = async () => {
+    const res = await fetch("/api/filaments/types");
+    if (res.ok) setFilamentTypes(await res.json());
+  };
+
+  const [form, setForm] = useState({
     name: "",
     description: "",
-    price: "",
+    categoryId: "",
+    printerId: "",
+    productionHours: "",
+    productionMinutes: "",
+    margin: "30",
+    unitsPerPrint: "1",
+    alertThreshold: "",
   });
+
+  const [filamentUsages, setFilamentUsages] = useState<
+    { filamentTypeId: string; weight: string }[]
+  >([{ filamentTypeId: "", weight: "" }]);
+
+  const [extraUsages, setExtraUsages] = useState<
+    { extraId: string; quantity: string }[]
+  >([]);
+
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [threemfFile, setThreemfFile] = useState<File | null>(null);
+  const [threemfUploading, setThreemfUploading] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    Promise.all([
+      fetch("/api/categories").then((r) => r.json()),
+      fetch("/api/filaments/types").then((r) => r.json()),
+      fetch("/api/extras").then((r) => r.json()),
+      fetch("/api/printers").then((r) => r.json()),
+    ]).then(([cats, fils, exts, prints]) => {
+      setCategories(cats);
+      setFilamentTypes(fils);
+      setExtras(exts);
+      setPrinters(prints);
+    });
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const validFilaments = filamentUsages.filter(
+      (f) => f.filamentTypeId && f.weight && Number(f.weight) > 0,
+    );
+    if (validFilaments.length === 0) {
+      setCostData(null);
+      return;
+    }
+    fetch("/api/products/estimate-cost", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        filamentUsages: validFilaments.map((f) => ({
+          filamentTypeId: f.filamentTypeId,
+          weight: Number(f.weight),
+        })),
+        extraUsages: extraUsages
+          .filter((e) => e.extraId && e.quantity)
+          .map((e) => ({ extraId: e.extraId, quantity: Number(e.quantity) })),
+        margin: Number(form.margin) / 100,
+        unitsPerPrint: Number(form.unitsPerPrint) || 1,
+        printerId: form.printerId || null,
+        productionTime: (() => {
+          const h = parseInt(form.productionHours || "0", 10) || 0;
+          const m = parseInt(form.productionMinutes || "0", 10) || 0;
+          const total = h * 60 + m;
+          return total > 0 ? total : null;
+        })(),
+      }),
+    })
+      .then((r) => r.json())
+      .then(setCostData)
+      .catch(() => setCostData(null));
+  }, [
+    filamentUsages,
+    extraUsages,
+    form.margin,
+    form.printerId,
+    form.productionHours,
+    form.productionMinutes,
+    open,
+  ]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setImageFile(e.target.files[0]);
+    }
+  };
 
   const handleThreemfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -82,16 +172,79 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setImageFile(e.target.files[0]);
-    }
+  const addFilament = () =>
+    setFilamentUsages([...filamentUsages, { filamentTypeId: "", weight: "" }]);
+
+  const removeFilament = (i: number) =>
+    setFilamentUsages(filamentUsages.filter((_, idx) => idx !== i));
+
+  const updateFilament = (i: number, field: string, value: string) =>
+    setFilamentUsages(
+      filamentUsages.map((f, idx) =>
+        idx === i ? { ...f, [field]: value } : f,
+      ),
+    );
+
+  const addExtra = () =>
+    setExtraUsages([...extraUsages, { extraId: "", quantity: "1" }]);
+
+  const removeExtra = (i: number) =>
+    setExtraUsages(extraUsages.filter((_, idx) => idx !== i));
+
+  const updateExtra = (i: number, field: string, value: string) =>
+    setExtraUsages(
+      extraUsages.map((e, idx) => (idx === i ? { ...e, [field]: value } : e)),
+    );
+
+  const resetForm = () => {
+    setForm({
+      name: "",
+      description: "",
+      categoryId: "",
+      printerId: "",
+      productionHours: "",
+      productionMinutes: "",
+      margin: "30",
+      unitsPerPrint: "1",
+      alertThreshold: "",
+    });
+    setFilamentUsages([{ filamentTypeId: "", weight: "" }]);
+    setExtraUsages([]);
+    setImageFile(null);
+    setImagePreview(null);
+    setThreemfFile(null);
+    setCostData(null);
+    setErrors({});
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
 
+    // Validação
+    const newErrors: Record<string, string> = {};
+    if (!form.name.trim()) newErrors.name = "O nome é obrigatório.";
+    if (!form.categoryId) newErrors.categoryId = "Seleciona uma categoria.";
+    if (!form.printerId) newErrors.printerId = "Seleciona uma impressora.";
+    const totalMinutes =
+      (parseInt(form.productionHours || "0") || 0) * 60 +
+      (parseInt(form.productionMinutes || "0") || 0);
+    if (totalMinutes <= 0)
+      newErrors.productionTime = "Define o tempo de impressão.";
+
+    const validFilaments = filamentUsages.filter(
+      (f) => f.filamentTypeId && f.weight && Number(f.weight) > 0,
+    );
+    if (validFilaments.length === 0)
+      newErrors.filaments =
+        "Adiciona pelo menos um filamento com peso definido.";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    setErrors({});
+
+    setLoading(true);
     try {
       let imageKey = "";
       let modelKey = "";
@@ -103,148 +256,582 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
 
       // 2. Upload direto do ficheiro .3mf / .stl
       if (threemfFile) {
-        modelKey = await executeDirectUpload(threemfFile, "models");
+        setThreemfUploading(true); // Ativa o texto de loading específico
+        try {
+          modelKey = await executeDirectUpload(threemfFile, "models");
+        } finally {
+          setThreemfUploading(false); // Desativa mal o upload termine
+        }
       }
 
-      // 3. Enviar os dados finais para a sua API de criação
-      const productData = {
-        ...formData,
-        imageUrl: imageKey !== "" ? imageKey : null,
-        fileUrl: modelKey !== "" ? modelKey : null,
-      };
-
+      // 3. Enviar os dados finais para a API
       const res = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(productData),
+        body: JSON.stringify({
+          name: form.name.trim(),
+          description: form.description.trim() || null,
+          categoryId: form.categoryId || null,
+          printerId: form.printerId || null,
+          productionTime: (() => {
+            const h = parseInt(form.productionHours || "0", 10) || 0;
+            const m = parseInt(form.productionMinutes || "0", 10) || 0;
+            const total = h * 60 + m;
+            return total > 0 ? total : null;
+          })(),
+          margin: Number(form.margin) / 100,
+          unitsPerPrint: Number(form.unitsPerPrint) || 1,
+          alertThreshold: form.alertThreshold
+            ? Number(form.alertThreshold)
+            : null,
+
+          // CORREÇÃO AQUI: A API espera 'imageUrl' e 'fileUrl'
+          imageUrl: imageKey !== "" ? imageKey : null,
+          fileUrl: modelKey !== "" ? modelKey : null,
+
+          filamentUsages: validFilaments.map((f) => ({
+            filamentTypeId: f.filamentTypeId,
+            weight: Number(f.weight),
+          })),
+          extraUsages: extraUsages
+            .filter((e) => e.extraId && e.quantity)
+            .map((e) => ({ extraId: e.extraId, quantity: Number(e.quantity) })),
+        }),
       });
 
-      if (!res.ok)
-        throw new Error("Erro ao guardar o produto na base de dados");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
 
-      toast({ title: "Produto criado com sucesso!" });
+      toast({ title: "Produto criado!" });
+      resetForm();
       setOpen(false);
       onCreated();
-
-      // Limpar formulário
-      setFormData({ name: "", description: "", price: "" });
-      setImageFile(null);
-      setThreemfFile(null);
     } catch (error: any) {
       console.error(error);
       toast({
         title: "Erro",
-        description: error.message || "Ocorreu um erro ao criar o produto.",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
       setLoading(false);
+      setThreemfUploading(false);
     }
-  };
+  }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v && isChildDialogOpen) return;
+        setOpen(v);
+        if (!v) resetForm();
+      }}
+    >
       <DialogTrigger asChild>
-        <Button className="gap-2">
-          <Plus size={16} />
+        <Button size="sm">
+          <Plus size={14} className="mr-1.5" />
           Novo Produto
         </Button>
       </DialogTrigger>
-
-      {/* A classe max-h-[90vh] overflow-y-auto pb-[30vh] garante que o modal 
-        tem scroll interno e espaço de sobra no fundo para quando o teclado 
-        mobile abrir e empurrar o conteúdo.
-      */}
-      <DialogContent className="max-w-[600px] max-h-[90vh] overflow-y-auto pb-[30vh]">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Adicionar Novo Produto</DialogTitle>
+          <DialogTitle>Criar Produto</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-          {/* --- DADOS BÁSICOS --- */}
+        <form onSubmit={handleSubmit} className="space-y-6 mt-2">
+          {/* Informação básica */}
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Nome do Produto</Label>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+              Informação básica
+            </p>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="name">Nome do produto</Label>
               <Input
-                required
-                value={formData.name}
+                id="name"
+                placeholder="ex: Porta-chaves Coração"
+                value={form.name}
+                onChange={(e) => {
+                  setForm({ ...form, name: e.target.value });
+                  setErrors((er) => ({ ...er, name: "" }));
+                }}
+                className={errors.name ? "border-destructive" : ""}
+              />
+              {errors.name && (
+                <p className="text-xs text-destructive">{errors.name}</p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="description">
+                Descrição{" "}
+                <span className="text-muted-foreground font-normal">
+                  (opcional)
+                </span>
+              </Label>
+              <Textarea
+                id="description"
+                placeholder="Descrição do produto..."
+                value={form.description}
                 onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
+                  setForm({ ...form, description: e.target.value })
                 }
-                placeholder="Ex: Suporte para Auscultadores"
+                rows={2}
               />
             </div>
-          </div>
 
-          {/* --- UPLOAD DE IMAGEM --- */}
-          <div className="space-y-2">
-            <Label>Imagem de Destaque</Label>
-            <div className="flex items-center gap-4">
-              {imageFile ? (
-                <div className="flex items-center gap-2 text-sm text-primary">
-                  <span>{imageFile.name}</span>
-                  <button type="button" onClick={() => setImageFile(null)}>
-                    <X size={14} className="text-destructive" />
-                  </button>
-                </div>
-              ) : (
-                <label className="flex items-center gap-2 cursor-pointer border rounded-md px-4 py-2 text-sm hover:bg-muted/50 transition-colors">
-                  <Upload size={16} />
-                  Escolher Imagem
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleImageChange}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Categoria</Label>
+                <SearchableSelect
+                  options={categories.map((c) => ({
+                    value: c.id,
+                    label: c.name,
+                  }))}
+                  value={form.categoryId}
+                  onValueChange={(v) => {
+                    setForm({ ...form, categoryId: v });
+                    setErrors((er) => ({ ...er, categoryId: "" }));
+                  }}
+                  placeholder="Selecionar..."
+                  searchPlaceholder="Pesquisar categoria..."
+                  className={errors.categoryId ? "border-destructive" : ""}
+                />
+                {errors.categoryId && (
+                  <p className="text-xs text-destructive">
+                    {errors.categoryId}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label>Impressora</Label>
+                <SearchableSelect
+                  options={printers.map((p) => ({
+                    value: p.id,
+                    label: p.name,
+                  }))}
+                  value={form.printerId}
+                  onValueChange={(v) => {
+                    setForm({ ...form, printerId: v });
+                    setErrors((er) => ({ ...er, printerId: "" }));
+                  }}
+                  placeholder="Selecionar..."
+                  searchPlaceholder="Pesquisar impressora..."
+                  className={errors.printerId ? "border-destructive" : ""}
+                />
+                {errors.printerId && (
+                  <p className="text-xs text-destructive">{errors.printerId}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Tempo de impressão</Label>
+              <div
+                className={`flex items-center gap-2 ${errors.productionTime ? "ring-1 ring-destructive rounded-lg" : ""}`}
+              >
+                <div className="relative flex-1">
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={form.productionHours}
+                    onChange={(e) => {
+                      setForm({ ...form, productionHours: e.target.value });
+                      setErrors((er) => ({ ...er, productionTime: "" }));
+                    }}
                   />
-                </label>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                    h
+                  </span>
+                </div>
+                <div className="relative flex-1">
+                  <Input
+                    type="number"
+                    min="0"
+                    max="59"
+                    placeholder="0"
+                    value={form.productionMinutes}
+                    onChange={(e) => {
+                      setForm({ ...form, productionMinutes: e.target.value });
+                      setErrors((er) => ({ ...er, productionTime: "" }));
+                    }}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                    min
+                  </span>
+                </div>
+              </div>
+              {(form.productionHours || form.productionMinutes) && (
+                <p className="text-[10px] text-muted-foreground">
+                  Total:{" "}
+                  {Number(form.productionHours || 0) * 60 +
+                    Number(form.productionMinutes || 0)}{" "}
+                  minutos
+                </p>
               )}
             </div>
           </div>
 
-          {/* --- UPLOAD DO MODELO (3MF/STL) --- */}
-          <div className="space-y-2">
-            <Label>Ficheiro do Modelo (Opcional)</Label>
-            <div className="p-4 border rounded-lg bg-muted/10">
-              {threemfFile ? (
-                <div className="flex items-center justify-between bg-background p-3 rounded-md border">
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">
-                      {threemfFile.name}
-                    </span>
-                    <p className="text-xs text-muted-foreground">
-                      {(threemfFile.size / (1024 * 1024)).toFixed(2)} MB
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setThreemfFile(null)}
-                    className="text-muted-foreground hover:text-destructive transition-colors"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ) : (
-                <label className="flex items-center gap-2 w-fit cursor-pointer border border-dashed rounded-lg px-4 py-2 text-xs text-muted-foreground hover:border-primary/40 transition-colors">
-                  <FileBox size={14} />
-                  Escolher .3mf ou .stl
-                  <input
-                    type="file"
-                    accept=".3mf,.stl"
-                    className="hidden"
-                    onChange={handleThreemfChange}
+          {/* Filamentos */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                  Filamentos usados
+                </p>
+                {errors.filaments && (
+                  <p className="text-xs text-destructive mt-0.5">
+                    {errors.filaments}
+                  </p>
+                )}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addFilament}
+              >
+                <Plus size={12} className="mr-1" /> Adicionar
+              </Button>
+            </div>
+
+            {filamentUsages.map((f, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <div className="flex-1 space-y-1">
+                  <SearchableSelect
+                    options={filamentTypes.map((ft) => ({
+                      value: ft.id,
+                      label: `${ft.brand} ${ft.material} — ${ft.colorName}`,
+                      render: (
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: ft.colorHex }}
+                          />
+                          {ft.brand} {ft.material} — {ft.colorName}
+                        </div>
+                      ),
+                    }))}
+                    value={f.filamentTypeId}
+                    onValueChange={(v) =>
+                      updateFilament(i, "filamentTypeId", v)
+                    }
+                    placeholder="Tipo de filamento..."
+                    searchPlaceholder="Pesquisar filamento..."
+                    emptyText="Nenhum filamento encontrado."
                   />
-                </label>
-              )}
-              <p className="text-[10px] text-muted-foreground mt-2">
-                Limite máximo: {limitMb} MB · Formatos aceites: .3mf, .stl
+                  <AddSpoolDialog
+                    types={filamentTypes}
+                    onAdded={refreshFilamentTypes}
+                    onOpenChange={setIsChildDialogOpen}
+                    trigger={
+                      <button
+                        type="button"
+                        className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors py-0.5"
+                      >
+                        <Plus size={11} /> Registar nova bobine
+                      </button>
+                    }
+                  />
+                </div>
+                <div className="w-28">
+                  <Input
+                    type="number"
+                    step="0.1"
+                    placeholder="gramas"
+                    value={f.weight}
+                    onChange={(e) =>
+                      updateFilament(i, "weight", e.target.value)
+                    }
+                  />
+                </div>
+                {filamentUsages.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-destructive/50 hover:text-destructive"
+                    onClick={() => removeFilament(i)}
+                  >
+                    <Trash2 size={13} />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Extras */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                Extras
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addExtra}
+              >
+                <Plus size={12} className="mr-1" /> Adicionar
+              </Button>
+            </div>
+
+            {extraUsages.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                Nenhum extra adicionado.
+              </p>
+            )}
+
+            {extraUsages.map((e, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <div className="flex-1">
+                  <SearchableSelect
+                    options={extras.map((ex) => ({
+                      value: ex.id,
+                      label: `${ex.name} — ${formatCurrency(ex.price)}/${ex.unit || "un"}`,
+                    }))}
+                    value={e.extraId}
+                    onValueChange={(v) => updateExtra(i, "extraId", v)}
+                    placeholder="Extra..."
+                    searchPlaceholder="Pesquisar extra..."
+                  />
+                </div>
+                <div className="w-28">
+                  <Input
+                    type="number"
+                    step="0.1"
+                    placeholder="qtd"
+                    value={e.quantity}
+                    onChange={(ev) =>
+                      updateExtra(i, "quantity", ev.target.value)
+                    }
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 text-destructive/50 hover:text-destructive"
+                  onClick={() => removeExtra(i)}
+                >
+                  <Trash2 size={13} />
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          {/* Margem e unidades */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="margin">Margem de lucro (%)</Label>
+              <Input
+                id="margin"
+                type="number"
+                min="0"
+                max="1000"
+                placeholder="ex: 30"
+                value={form.margin}
+                onChange={(e) => setForm({ ...form, margin: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="unitsPerPrint">Unidades por impressão</Label>
+              <Input
+                id="unitsPerPrint"
+                type="number"
+                min="1"
+                placeholder="ex: 1"
+                value={form.unitsPerPrint}
+                onChange={(e) =>
+                  setForm({ ...form, unitsPerPrint: e.target.value })
+                }
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Quantas unidades saem de cada impressão
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="alertThreshold">
+                Alerta de stock mínimo{" "}
+                <span className="text-muted-foreground font-normal">
+                  (opcional)
+                </span>
+              </Label>
+              <Input
+                id="alertThreshold"
+                type="number"
+                min="0"
+                placeholder="ex: 5"
+                value={form.alertThreshold}
+                onChange={(e) =>
+                  setForm({ ...form, alertThreshold: e.target.value })
+                }
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Recebe um alerta quando o stock baixar deste valor
               </p>
             </div>
           </div>
 
-          {/* BOTÃO SUBMIT */}
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "A criar o produto..." : "Criar Produto"}
+          {/* Preview de custo */}
+          {costData &&
+            (() => {
+              const units = Number(form.unitsPerPrint) || 1;
+              const costPerUnit = costData.totalCost / units;
+              const pricePerUnit = costData.suggestedPrice / units;
+              return (
+                <div className="p-4 rounded-lg bg-muted/40 space-y-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <p className="font-semibold text-foreground">
+                      Estimativa de custo
+                    </p>
+                    {units > 1 && (
+                      <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
+                        {units} unidades/impressão
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-1 text-xs text-muted-foreground">
+                    <div className="flex justify-between">
+                      <span>Filamentos (FIFO)</span>
+                      <span>{formatCurrency(costData.filamentCost)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Extras</span>
+                      <span>{formatCurrency(costData.extrasCost)}</span>
+                    </div>
+                    {costData.printerCost != null && (
+                      <div className="flex justify-between">
+                        <span>Impressora</span>
+                        <span>{formatCurrency(costData.printerCost)}</span>
+                      </div>
+                    )}
+                    {costData.electricityCost != null && (
+                      <div className="flex justify-between">
+                        <span>Energia</span>
+                        <span>{formatCurrency(costData.electricityCost)}</span>
+                      </div>
+                    )}
+                    {!form.printerId && (
+                      <p className="text-[10px] text-warning">
+                        ⚠️ Seleciona uma impressora para incluir custos de
+                        máquina e energia.
+                      </p>
+                    )}
+                    <div className="flex justify-between border-t border-border pt-1 mt-1 font-medium text-foreground">
+                      <span>Custo total da impressão</span>
+                      <span>{formatCurrency(costData.totalCost)}</span>
+                    </div>
+                    {units > 1 && (
+                      <div className="flex justify-between text-foreground">
+                        <span>Custo por unidade</span>
+                        <span>{formatCurrency(costPerUnit)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-primary font-bold text-sm pt-1 border-t border-border mt-1">
+                      <span>
+                        {units > 1
+                          ? `Preço sugerido/unidade (${form.margin}% margem)`
+                          : `Preço sugerido (${form.margin}% margem)`}
+                      </span>
+                      <span>{formatCurrency(pricePerUnit)}</span>
+                    </div>
+                  </div>
+                  {costData.missingSpools?.length > 0 && (
+                    <p className="text-[10px] text-warning mt-1">
+                      ⚠️ Sem bobines em stock para:{" "}
+                      {costData.missingSpools.join(", ")}. Custo estimado a 0€.
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+
+          {/* Ficheiros */}
+          <div className="space-y-4">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+              Ficheiros
+            </p>
+
+            {/* Imagem */}
+            <div className="space-y-2">
+              <Label>Imagem de Destaque</Label>
+              <div className="flex items-center gap-4">
+                {imageFile ? (
+                  <div className="flex items-center gap-2 text-sm text-primary">
+                    <span>{imageFile.name}</span>
+                    <button type="button" onClick={() => setImageFile(null)}>
+                      <X size={14} className="text-destructive" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex items-center gap-2 cursor-pointer border rounded-md px-4 py-2 text-sm hover:bg-muted/50 transition-colors">
+                    <Upload size={16} />
+                    Escolher Imagem
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageChange}
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+
+            {/* Ficheiro 3MF / STL */}
+            <div className="space-y-2">
+              <Label>Ficheiro do Modelo (Opcional)</Label>
+              <div className="p-4 border rounded-lg bg-muted/10">
+                {threemfFile ? (
+                  <div className="flex items-center justify-between bg-background p-3 rounded-md border">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">
+                        {threemfFile.name}
+                      </span>
+                      <p className="text-xs text-muted-foreground">
+                        {(threemfFile.size / (1024 * 1024)).toFixed(2)} MB
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setThreemfFile(null)}
+                      className="text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex items-center gap-2 w-fit cursor-pointer border border-dashed rounded-lg px-4 py-2 text-xs text-muted-foreground hover:border-primary/40 transition-colors">
+                    <FileBox size={14} />
+                    Escolher .3mf ou .stl
+                    <input
+                      type="file"
+                      accept=".3mf,.stl"
+                      className="hidden"
+                      onChange={handleThreemfChange}
+                    />
+                  </label>
+                )}
+                <p className="text-[10px] text-muted-foreground mt-2">
+                  Limite máximo: {limitMb} MB · Formatos aceites: .3mf, .stl
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={loading || threemfUploading}
+          >
+            {threemfUploading
+              ? "A fazer upload do ficheiro..."
+              : loading
+                ? "A criar..."
+                : "Criar Produto"}
           </Button>
         </form>
       </DialogContent>
