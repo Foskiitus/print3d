@@ -272,7 +272,7 @@ export function SpoolDetailClient({
           ) : (
             <div className="space-y-2">
               {spool.adjustments.map((adj: any) => (
-                <Card key={adj.id} className="bg-muted/20 border-none">
+                <Card key={adj.id} className="bg-card border shadow-sm">
                   <CardContent className="p-3">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -351,7 +351,7 @@ export function SpoolDetailClient({
                 const usage = log.product.filamentUsage[0];
                 const gramsUsed = usage ? usage.weight * log.quantity : 0;
                 return (
-                  <Card key={log.id} className="bg-muted/20 border-none">
+                  <Card key={log.id} className="bg-card border shadow-sm">
                     <CardContent className="p-3">
                       <div className="flex items-center justify-between gap-2">
                         <div className="min-w-0 flex-1">

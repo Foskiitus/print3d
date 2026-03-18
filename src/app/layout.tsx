@@ -46,7 +46,10 @@ export default function RootLayout({
         className={`${dmSans.variable} ${spaceGrotesk.variable}`}
         suppressHydrationWarning
       >
-        <body className="font-sans antialiased bg-background text-foreground">
+        <body
+          className="font-sans antialiased bg-background text-foreground"
+          suppressHydrationWarning={true}
+        >
           <ThemeProvider
             attribute="class"
             defaultTheme="dark"

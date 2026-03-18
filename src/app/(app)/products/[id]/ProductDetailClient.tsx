@@ -545,7 +545,7 @@ export function ProductDetailClient({
             </h2>
             <div className="space-y-2">
               {product.productionLogs.map((log: any) => (
-                <Card key={log.id} className="bg-muted/20 border-none">
+                <Card key={log.id} className="bg-card border shadow-sm">
                   <CardContent className="p-3">
                     <div className="flex items-center justify-between gap-4 text-sm">
                       <div className="flex items-center gap-3 min-w-0">
@@ -594,7 +594,7 @@ export function ProductDetailClient({
           ) : (
             <div className="space-y-2">
               {sales.map((sale: any) => (
-                <Card key={sale.id} className="bg-muted/20 border-none">
+                <Card key={sale.id} className="bg-card border shadow-sm">
                   <CardContent className="p-3">
                     <div className="flex items-center justify-between gap-4 text-sm">
                       <div className="flex items-center gap-3 min-w-0">

@@ -45,10 +45,17 @@ export function SearchableSelect({
     o.label.toLowerCase().includes(search.toLowerCase()),
   );
 
-  // Focar o input ao abrir
+  // Focar o input ao abrir e fazer scroll para o campo em mobile
   React.useEffect(() => {
     if (open) {
-      setTimeout(() => inputRef.current?.focus(), 0);
+      setTimeout(() => {
+        inputRef.current?.focus();
+        // Em mobile — fazer scroll para o input para não ficar atrás do teclado
+        inputRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 100);
     } else {
       setSearch("");
     }
@@ -86,6 +93,9 @@ export function SearchableSelect({
         <PopoverPrimitive.Content
           sideOffset={4}
           align="start"
+          side="bottom"
+          avoidCollisions={true}
+          collisionPadding={16}
           className={cn(
             "z-50 rounded-xl border border-border bg-card text-foreground shadow-lg",
             "w-[var(--radix-popover-trigger-width)]",
@@ -94,8 +104,8 @@ export function SearchableSelect({
             "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
           )}
         >
-          {/* Input de pesquisa */}
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
+          {/* Input de pesquisa — sticky para ficar sempre visível */}
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-border sticky top-0 bg-card z-10">
             <Search size={13} className="text-muted-foreground flex-shrink-0" />
             <input
               ref={inputRef}

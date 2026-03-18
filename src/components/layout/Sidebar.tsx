@@ -17,6 +17,7 @@ import {
   Boxes,
 } from "lucide-react";
 import { useSidebar } from "@/components/layout/SidebarContext";
+import { useState, useEffect } from "react";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 
@@ -173,7 +174,16 @@ export function Sidebar() {
   const { open, setOpen } = useSidebar();
   const { user } = useUser();
   const { signOut } = useClerk();
-  const role = user?.publicMetadata?.role as string | undefined;
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    fetch("/api/auth/role")
+      .then((r) => r.json())
+      .then((d) => setRole(d.role ?? "user"))
+      .catch(() => setRole("user"));
+  }, [user]);
+
   const isAdmin = role === "admin" || role === "superadmin";
   const close = () => setOpen(false);
 
