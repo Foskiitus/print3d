@@ -46,6 +46,7 @@ async function executeDirectUpload(file: File, bucket: "images" | "models") {
     body: JSON.stringify({
       fileName: file.name,
       contentType: file.type,
+      fileSize: file.size,
       bucket: bucket,
     }),
   });
