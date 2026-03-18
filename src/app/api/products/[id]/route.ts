@@ -88,10 +88,9 @@ export async function PATCH(
         margin,
         unitsPerPrint,
         alertThreshold,
-        imageUrl, // <-- ADICIONADO AQUI
-        fileUrl, // <-- ADICIONADO AQUI
+        imageUrl,
+        fileUrl,
 
-        // (A tua lógica existente para atualizar os relacionamentos de filamentos e extras)
         filamentUsage: {
           deleteMany: {},
           create:
@@ -109,6 +108,21 @@ export async function PATCH(
             })) || [],
         },
       },
+      // --- ADICIONA ESTE BLOCO INCLUDE AQUI ---
+      include: {
+        category: true,
+        printer: true,
+        filamentUsage: { include: { filamentType: true } },
+        extras: { include: { extra: true } },
+        printProfiles: true,
+        productionLogs: {
+          include: { printer: true },
+          orderBy: { date: "desc" },
+          take: 10,
+        },
+        _count: { select: { productionLogs: true, sales: true } },
+      },
+      // ----------------------------------------
     });
 
     return NextResponse.json(updatedProduct);
