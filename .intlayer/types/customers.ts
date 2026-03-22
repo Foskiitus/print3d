@@ -1,0 +1,110 @@
+/* eslint-disable */
+export default {
+  "key": "customers",
+  "content": {
+    "nodeType": "translation",
+    "translation": {
+      "pt": {
+        "title": "Clientes",
+        "subtitle": "Gere a lista de clientes e consulta o histórico de compras.",
+        "searchPlaceholder": "Buscar por nome, email ou telefone...",
+        "emptySearch": "Nenhum cliente encontrado.",
+        "emptyList": "Nenhum cliente adicionado ainda.",
+        "salesSuffix": "venda(s)",
+        "edit": {
+          "name": "Nome *",
+          "email": "Email",
+          "phone": "Telefone",
+          "nif": "NIF",
+          "address": "Morada",
+          "addressPlaceholder": "Rua, cidade, código postal",
+          "notes": "Notas",
+          "notesPlaceholder": "Observações...",
+          "cancel": "Cancelar",
+          "save": "Guardar",
+          "saving": "A guardar..."
+        },
+        "toasts": {
+          "updated": "Cliente atualizado",
+          "deleted": "Cliente eliminado",
+          "error": "Erro"
+        },
+        "confirmDelete": "Eliminar este cliente? As vendas associadas não serão apagadas.",
+        "detail": {
+          "customerSince": "Cliente desde",
+          "info": "Informação",
+          "noInfo": "Sem informação adicional.",
+          "summary": "Resumo",
+          "totalSpent": "Total gasto",
+          "unitsBought": "Unidades compradas",
+          "profitGenerated": "Lucro gerado",
+          "topProducts": "Produtos mais comprados",
+          "noPurchases": "Sem compras",
+          "purchaseHistory": "Histórico de compras",
+          "noPurchasesRegistered": "Nenhuma compra registada.",
+          "tableHeaders": {
+            "date": "Data",
+            "product": "Produto",
+            "qty": "Qtd",
+            "pricePerUnit": "Preço/un",
+            "total": "Total",
+            "profit": "Lucro"
+          },
+          "units": "un."
+        }
+      },
+      "en": {
+        "title": "Customers",
+        "subtitle": "Manage your customer list and view purchase history.",
+        "searchPlaceholder": "Search by name, email or phone...",
+        "emptySearch": "No customers found.",
+        "emptyList": "No customers added yet.",
+        "salesSuffix": "sale(s)",
+        "edit": {
+          "name": "Name *",
+          "email": "Email",
+          "phone": "Phone",
+          "nif": "VAT number",
+          "address": "Address",
+          "addressPlaceholder": "Street, city, postal code",
+          "notes": "Notes",
+          "notesPlaceholder": "Observations...",
+          "cancel": "Cancel",
+          "save": "Save",
+          "saving": "Saving..."
+        },
+        "toasts": {
+          "updated": "Customer updated",
+          "deleted": "Customer deleted",
+          "error": "Error"
+        },
+        "confirmDelete": "Delete this customer? Associated sales will not be deleted.",
+        "detail": {
+          "customerSince": "Customer since",
+          "info": "Information",
+          "noInfo": "No additional information.",
+          "summary": "Summary",
+          "totalSpent": "Total spent",
+          "unitsBought": "Units purchased",
+          "profitGenerated": "Profit generated",
+          "topProducts": "Most purchased products",
+          "noPurchases": "No purchases",
+          "purchaseHistory": "Purchase history",
+          "noPurchasesRegistered": "No purchases registered.",
+          "tableHeaders": {
+            "date": "Date",
+            "product": "Product",
+            "qty": "Qty",
+            "pricePerUnit": "Price/unit",
+            "total": "Total",
+            "profit": "Profit"
+          },
+          "units": "units"
+        }
+      }
+    }
+  },
+  "localIds": [
+    "customers::local::src/app/[locale]/(app)/customers/customers.content.ts"
+  ]
+} as const;

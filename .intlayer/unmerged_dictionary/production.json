@@ -1,0 +1,181 @@
+[
+  {
+    "key": "production",
+    "content": {
+      "page": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Production",
+            "pt": "Produção"
+          }
+        },
+        "heading": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Production",
+            "pt": "Produção"
+          }
+        },
+        "description": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Log produced batches and track your history.",
+            "pt": "Registe lotes produzidos e acompanhe o histórico."
+          }
+        }
+      },
+      "summary": {
+        "producedThisMonth": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Produced this month",
+            "pt": "Produzido este mês"
+          }
+        },
+        "units": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "units",
+            "pt": "unidades"
+          }
+        },
+        "costThisMonth": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Cost this month",
+            "pt": "Custo este mês"
+          }
+        },
+        "costSubtitle": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "in materials and machine",
+            "pt": "em materiais e máquina"
+          }
+        }
+      },
+      "table": {
+        "totalRecords": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "record(s) total",
+            "pt": "registo(s) no total"
+          }
+        },
+        "empty": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "No production records yet.",
+            "pt": "Nenhuma produção registada ainda."
+          }
+        },
+        "columns": {
+          "date": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "Date",
+              "pt": "Data"
+            }
+          },
+          "product": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "Product",
+              "pt": "Produto"
+            }
+          },
+          "printer": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "Printer",
+              "pt": "Impressora"
+            }
+          },
+          "qty": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "Qty",
+              "pt": "Qtd"
+            }
+          },
+          "time": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "Time",
+              "pt": "Tempo"
+            }
+          },
+          "filament": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "Filament",
+              "pt": "Filamento"
+            }
+          },
+          "totalCost": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "Total cost",
+              "pt": "Custo total"
+            }
+          },
+          "costPerUnit": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "Cost/unit",
+              "pt": "Custo/un"
+            }
+          },
+          "notes": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "Notes",
+              "pt": "Notas"
+            }
+          }
+        },
+        "notesPlaceholder": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Notes...",
+            "pt": "Notas..."
+          }
+        }
+      },
+      "toast": {
+        "updated": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Record updated",
+            "pt": "Registo atualizado"
+          }
+        },
+        "deleted": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Record deleted",
+            "pt": "Registo apagado"
+          }
+        },
+        "error": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Error",
+            "pt": "Erro"
+          }
+        },
+        "confirmDelete": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Delete this record?",
+            "pt": "Apagar este registo?"
+          }
+        }
+      }
+    },
+    "location": "local",
+    "localId": "production::local::src/app/[locale]/(app)/production/production.content.ts",
+    "filePath": "src/app/[locale]/(app)/production/production.content.ts"
+  }
+]

@@ -1,0 +1,77 @@
+{
+  "key": "users",
+  "content": {
+    "nodeType": "translation",
+    "translation": {
+      "pt": {
+        "page": {
+          "title": "Utilizadores",
+          "heading": "Utilizadores",
+          "description": "Gestão de acessos ao sistema."
+        },
+        "dialog": {
+          "triggerButton": "Novo Utilizador",
+          "title": "Criar Utilizador",
+          "fields": {
+            "name": "Nome",
+            "email": "Email",
+            "password": "Password",
+            "role": "Role"
+          },
+          "submitButton": "Criar Utilizador",
+          "submitting": "A criar..."
+        },
+        "table": {
+          "name": "Nome",
+          "email": "Email",
+          "role": "Role",
+          "createdAt": "Criado em",
+          "empty": "Nenhum utilizador encontrado."
+        },
+        "noName": "Sem Nome",
+        "toast": {
+          "created": "Utilizador criado!",
+          "deleted": "Utilizador apagado.",
+          "createError": "Erro ao criar utilizador",
+          "confirmDelete": "Tens a certeza que queres apagar este utilizador?"
+        }
+      },
+      "en": {
+        "page": {
+          "title": "Users",
+          "heading": "Users",
+          "description": "System access management."
+        },
+        "dialog": {
+          "triggerButton": "New User",
+          "title": "Create User",
+          "fields": {
+            "name": "Name",
+            "email": "Email",
+            "password": "Password",
+            "role": "Role"
+          },
+          "submitButton": "Create User",
+          "submitting": "Creating..."
+        },
+        "table": {
+          "name": "Name",
+          "email": "Email",
+          "role": "Role",
+          "createdAt": "Created at",
+          "empty": "No users found."
+        },
+        "noName": "No Name",
+        "toast": {
+          "created": "User created!",
+          "deleted": "User deleted.",
+          "createError": "Error creating user",
+          "confirmDelete": "Are you sure you want to delete this user?"
+        }
+      }
+    }
+  },
+  "localIds": [
+    "users::local::src/app/[locale]/(app)/users/users.content.ts"
+  ]
+}

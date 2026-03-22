@@ -1,0 +1,51 @@
+{
+  "key": "features",
+  "content": {
+    "nodeType": "translation",
+    "translation": {
+      "pt": {
+        "inventory_title": "Inventário Inteligente",
+        "inventory_desc": "Rastreia cada bobina em tempo real. Alertas de stock baixo, custos por grama e estimativas automáticas de consumo.",
+        "inventory_tag": "Filamentos & Hardware",
+        "printers_title": "Gestão de Impressoras",
+        "printers_desc": "Estado de cada máquina, histórico de manutenção com lembretes por horas ou datas, e associação direta ao filamento em uso.",
+        "printers_tag": "Maquinaria",
+        "costs_title": "Custos Reais",
+        "costs_desc": "Calcula o custo exato de cada peça — filamento, eletricidade, mão de obra. Define margens e exporta para faturas.",
+        "costs_tag": "Financeiro",
+        "qr_title": "Scan QR Rápido",
+        "qr_desc": "Scan uma bobina ou impressora com o telemóvel. Ação imediata no inventário sem abrir menus. Perfeito em bancada.",
+        "qr_tag": "Mobile / PWA",
+        "orders_title": "Encomendas & Vendas",
+        "orders_desc": "Regista pedidos de clientes, acompanha o estado de produção e calcula automaticamente o valor de cada encomenda.",
+        "orders_tag": "Comercial",
+        "maintenance_title": "Manutenção Preditiva",
+        "maintenance_desc": "Agenda revisões por horas impressas. Recebe alertas antes de avarias. Guarda fotos e histórico de cada intervenção.",
+        "maintenance_tag": "Preventivo"
+      },
+      "en": {
+        "inventory_title": "Smart Inventory",
+        "inventory_desc": "Track every spool in real time. Low stock alerts, cost per gram and automatic consumption estimates.",
+        "inventory_tag": "Filaments & Hardware",
+        "printers_title": "Printer Management",
+        "printers_desc": "Status of each machine, maintenance history with hour or date reminders, and direct association with the filament in use.",
+        "printers_tag": "Machinery",
+        "costs_title": "Real Costs",
+        "costs_desc": "Calculate the exact cost of each part — filament, electricity, labour. Set margins and export to invoices.",
+        "costs_tag": "Financial",
+        "qr_title": "Quick QR Scan",
+        "qr_desc": "Scan a spool or printer with your phone. Immediate action in inventory without opening menus. Perfect at the workbench.",
+        "qr_tag": "Mobile / PWA",
+        "orders_title": "Orders & Sales",
+        "orders_desc": "Log customer orders, track production status and automatically calculate the value of each order.",
+        "orders_tag": "Commercial",
+        "maintenance_title": "Predictive Maintenance",
+        "maintenance_desc": "Schedule reviews by printed hours. Receive alerts before breakdowns. Store photos and history of each intervention.",
+        "maintenance_tag": "Preventive"
+      }
+    }
+  },
+  "localIds": [
+    "features::local::src/app/[locale]/features.content.ts"
+  ]
+}

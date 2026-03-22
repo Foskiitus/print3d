@@ -16,6 +16,9 @@ model User {
   name     String?
   password String? // ← tornar opcional (Clerk gere a autenticação)
   role     String  @default("user")
+  stripeCustomerId     String?
+  plan                 String  @default("hobby") // "hobby" | "pro"
+  subscription         Subscription?
 
   createdAt DateTime @default(now())
 
@@ -32,6 +35,25 @@ model User {
   printProfiles  PrintProfile[]
   settings       Settings[]
   spoolAdjustments SpoolAdjustment[]
+}
+
+//////////////////////////////////////////////////////////
+// SUBSCRIPTIONS (para gerir planos pagos e funcionalidades associadas)
+//////////////////////////////////////////////////////////
+
+model Subscription {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  stripeSubscriptionId String   @unique
+  stripePriceId        String
+  status               String   // "active" | "canceled" | "past_due" | "trialing"
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  cancelAtPeriodEnd    Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 //////////////////////////////////////////////////////////

@@ -1,4 +1,4 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -9,6 +9,21 @@ type ApiAuthResult =
   | { userId: string; error: null }
   | { userId: null; error: NextResponse };
 
+// ─── Helpers internos ─────────────────────────────────────────────────────────
+
+async function ensureUserInDb(
+  userId: string,
+  email: string,
+  name: string | null,
+) {
+  const existing = await prisma.user.findUnique({ where: { id: userId } });
+  if (!existing) {
+    await prisma.user.create({
+      data: { id: userId, email, name, role: "user" },
+    });
+  }
+}
+
 // ─── API Routes ───────────────────────────────────────────────────────────────
 
 /**
@@ -16,36 +31,26 @@ type ApiAuthResult =
  *
  *   const { userId, error } = await requireApiAuth();
  *   if (error) return error;
- *   // userId garantidamente string aqui
  */
 export async function requireApiAuth(): Promise<ApiAuthResult> {
-  const { userId } = await auth();
-  if (!userId) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
     return {
       userId: null,
       error: NextResponse.json({ error: "Não autenticado" }, { status: 401 }),
     };
   }
 
-  // Garantir que o utilizador existe na BD (caso o webhook ainda não tenha disparado)
-  const existing = await prisma.user.findUnique({ where: { id: userId } });
-  if (!existing) {
-    const clerkUser = await currentUser();
-    if (clerkUser) {
-      await prisma.user.create({
-        data: {
-          id: userId,
-          email: clerkUser.emailAddresses[0]?.emailAddress ?? "",
-          name:
-            `${clerkUser.firstName ?? ""} ${clerkUser.lastName ?? ""}`.trim() ||
-            null,
-          role: "user",
-        },
-      });
-    }
-  }
+  const email = user.email ?? "";
+  const name =
+    user.user_metadata?.full_name ?? user.user_metadata?.name ?? null;
+  await ensureUserInDb(user.id, email, name);
 
-  return { userId, error: null };
+  return { userId: user.id, error: null };
 }
 
 /**
@@ -55,27 +60,31 @@ export async function requireApiAuth(): Promise<ApiAuthResult> {
  *   if (error) return error;
  */
 export async function requireApiAdmin(): Promise<ApiAuthResult> {
-  const { userId } = await auth();
-  if (!userId) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
     return {
       userId: null,
       error: NextResponse.json({ error: "Não autenticado" }, { status: 401 }),
     };
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
+  const dbUser = await prisma.user.findUnique({
+    where: { id: user.id },
     select: { role: true },
   });
 
-  if (user?.role !== "admin" && user?.role !== "superadmin") {
+  if (dbUser?.role !== "admin" && dbUser?.role !== "superadmin") {
     return {
       userId: null,
       error: NextResponse.json({ error: "Acesso negado" }, { status: 403 }),
     };
   }
 
-  return { userId, error: null };
+  return { userId: user.id, error: null };
 }
 
 // ─── Server Components / Pages ────────────────────────────────────────────────
@@ -87,28 +96,19 @@ export async function requireApiAdmin(): Promise<ApiAuthResult> {
  *   // redireciona para /sign-in se não autenticado
  */
 export async function requirePageAuth(): Promise<string> {
-  const { userId } = await auth();
-  if (!userId) redirect("/sign-in");
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  // Garantir que o utilizador existe na BD
-  const existing = await prisma.user.findUnique({ where: { id: userId } });
-  if (!existing) {
-    const clerkUser = await currentUser();
-    if (clerkUser) {
-      await prisma.user.create({
-        data: {
-          id: userId,
-          email: clerkUser.emailAddresses[0]?.emailAddress ?? "",
-          name:
-            `${clerkUser.firstName ?? ""} ${clerkUser.lastName ?? ""}`.trim() ||
-            null,
-          role: "user",
-        },
-      });
-    }
-  }
+  if (!user) redirect("/sign-in");
 
-  return userId;
+  const email = user.email ?? "";
+  const name =
+    user.user_metadata?.full_name ?? user.user_metadata?.name ?? null;
+  await ensureUserInDb(user.id, email, name);
+
+  return user.id;
 }
 
 /**
@@ -117,88 +117,171 @@ export async function requirePageAuth(): Promise<string> {
  *   const userId = await requirePageAdmin();
  */
 export async function requirePageAdmin(): Promise<string> {
-  const { userId } = await auth();
-  if (!userId) redirect("/sign-in");
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  let user = await prisma.user.findUnique({
-    where: { id: userId },
+  if (!user) redirect("/sign-in");
+
+  let dbUser = await prisma.user.findUnique({
+    where: { id: user.id },
     select: { role: true },
   });
 
-  // Criar utilizador se não existir
-  if (!user) {
-    const clerkUser = await currentUser();
-    if (clerkUser) {
-      user = await prisma.user.create({
-        data: {
-          id: userId,
-          email: clerkUser.emailAddresses[0]?.emailAddress ?? "",
-          name:
-            `${clerkUser.firstName ?? ""} ${clerkUser.lastName ?? ""}`.trim() ||
-            null,
-          role: "user",
-        },
-        select: { role: true },
-      });
-    }
+  if (!dbUser) {
+    const email = user.email ?? "";
+    const name =
+      user.user_metadata?.full_name ?? user.user_metadata?.name ?? null;
+    dbUser = await prisma.user.create({
+      data: { id: user.id, email, name, role: "user" },
+      select: { role: true },
+    });
   }
 
-  if (user?.role !== "admin" && user?.role !== "superadmin") {
+  if (dbUser?.role !== "admin" && dbUser?.role !== "superadmin") {
     redirect("/dashboard");
   }
 
-  return userId;
+  return user.id;
 }
 
-// ─── Helpers individuais (compatibilidade) ────────────────────────────────────
+// ─── Helpers individuais ──────────────────────────────────────────────────────
 
 export async function getAuthUserId(): Promise<string | null> {
-  const { userId } = await auth();
-  return userId;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user?.id ?? null;
 }
 
 export async function getAuthUserIsAdmin(): Promise<boolean> {
-  const { userId } = await auth();
-  if (!userId) return false;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
+  const dbUser = await prisma.user.findUnique({
+    where: { id: user.id },
     select: { role: true },
   });
 
-  return user?.role === "admin" || user?.role === "superadmin";
+  return dbUser?.role === "admin" || dbUser?.role === "superadmin";
 }
 
 export async function getAuthUserRole(): Promise<string | null> {
-  const { userId } = await auth();
-  if (!userId) return null;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
+  const dbUser = await prisma.user.findUnique({
+    where: { id: user.id },
     select: { role: true },
   });
 
-  return user?.role ?? null;
+  return dbUser?.role ?? null;
 }
 
 export async function getOrCreateDbUser() {
-  const { userId } = await auth();
-  if (!userId) return null;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
 
-  const existing = await prisma.user.findUnique({ where: { id: userId } });
+  const existing = await prisma.user.findUnique({ where: { id: user.id } });
   if (existing) return existing;
 
-  const clerkUser = await currentUser();
-  if (!clerkUser) return null;
+  const email = user.email ?? "";
+  const name =
+    user.user_metadata?.full_name ?? user.user_metadata?.name ?? null;
 
   return await prisma.user.create({
-    data: {
-      id: userId,
-      email: clerkUser.emailAddresses[0]?.emailAddress ?? "",
-      name:
-        `${clerkUser.firstName ?? ""} ${clerkUser.lastName ?? ""}`.trim() ||
-        null,
-      role: "user",
-    },
+    data: { id: user.id, email, name, role: "user" },
   });
+}
+// ─── Sign Up com locale (formulário) ─────────────────────────────────────────
+
+/**
+ * Chama a partir de um Server Action — recebe o locale do Client Component.
+ *
+ *   const { userId, error } = await signUpWithLocale(email, password, locale)
+ */
+export async function signUpWithLocale(
+  email: string,
+  password: string,
+  locale: string,
+  name: string | null = null,
+  plan?: string,
+) {
+  const supabase = await createClient();
+
+  let data, error;
+  try {
+    const result = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: name, locale, plan },
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?locale=${locale}`,
+      },
+    });
+    data = result.data;
+    error = result.error;
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e);
+    return { userId: null, needsConfirmation: false, error: message };
+  }
+
+  if (error)
+    return { userId: null, needsConfirmation: false, error: error.message };
+  if (!data.user)
+    return {
+      userId: null,
+      needsConfirmation: false,
+      error: "Erro desconhecido",
+    };
+
+  // Usa o 'name' passado como argumento directamente, não o do user_metadata
+  await ensureUserInDb(data.user.id, email, name);
+
+  return {
+    userId: data.user.id,
+    needsConfirmation: !data.session,
+    error: null,
+  };
+}
+
+// ─── OAuth com locale (Google, GitHub, etc.) ──────────────────────────────────
+
+/**
+ * Para OAuth, o locale é passado como parâmetro na URL de redirect.
+ * O Supabase guarda o `user_metadata` automaticamente depois do callback.
+ * Aqui usamos o `queryString` para saber o locale e actualizamos o perfil.
+ */
+export async function handleOAuthCallback(locale: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return null;
+
+  // Só actualiza se ainda não tiver locale guardado
+  if (!user.user_metadata?.locale) {
+    await supabase.auth.updateUser({
+      data: { locale },
+    });
+  }
+
+  const email = user.email ?? "";
+  const name =
+    user.user_metadata?.full_name ?? user.user_metadata?.name ?? null;
+  await ensureUserInDb(user.id, email, name);
+
+  return user.id;
 }

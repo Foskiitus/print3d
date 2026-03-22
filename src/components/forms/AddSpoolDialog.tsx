@@ -23,24 +23,30 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { pt } from "date-fns/locale";
+import { pt, enGB } from "date-fns/locale";
+import { useIntlayer } from "next-intlayer";
 
 export function AddSpoolDialog({
   types,
   onAdded,
   trigger,
   onOpenChange: onOpenChangeProp,
+  locale,
 }: {
   types: any[];
   onAdded: () => void;
   trigger?: React.ReactNode;
   onOpenChange?: (open: boolean) => void;
+  locale?: string;
 }) {
+  const c = useIntlayer("dialogs");
+  const d = c.spool;
+
   const today = new Date().toISOString().split("T")[0];
+  const dateLocale = locale === "en" ? enGB : pt;
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-
   const [form, setForm] = useState({
     filamentTypeId: "",
     spoolWeight: "1000",
@@ -57,13 +63,12 @@ export function AddSpoolDialog({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     e.stopPropagation();
-
     if (!form.filamentTypeId || !form.price) return;
 
     if (form.purchaseDate > today) {
       toast({
-        title: "Data inválida",
-        description: "A data de compra não pode ser no futuro.",
+        title: d.invalidDate.value,
+        description: d.invalidDateDesc.value,
         variant: "destructive",
       });
       return;
@@ -97,7 +102,7 @@ export function AddSpoolDialog({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro desconhecido");
 
-      toast({ title: `${form.quantity} bobine(s) registadas no inventário!` });
+      toast({ title: `${form.quantity} ${d.successToast.value}` });
       setForm({
         filamentTypeId: "",
         spoolWeight: "1000",
@@ -110,8 +115,8 @@ export function AddSpoolDialog({
       onAdded();
     } catch (error: any) {
       toast({
-        title: "Erro",
-        description: error.message || "Não foi possível registar a bobine.",
+        title: c.common.error.value,
+        description: error.message || d.errorDefault.value,
         variant: "destructive",
       });
     } finally {
@@ -119,7 +124,6 @@ export function AddSpoolDialog({
     }
   }
 
-  // Opções para o SearchableSelect com dot de cor
   const typeOptions = types.map((t) => ({
     value: t.id,
     label: `${t.brand} ${t.material} (${t.colorName})`,
@@ -146,31 +150,30 @@ export function AddSpoolDialog({
           {trigger ?? (
             <Button size="sm">
               <Plus size={14} className="mr-1.5" />
-              Entrada de Stock
+              {d.triggerLabel}
             </Button>
           )}
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Registar Nova Bobine</DialogTitle>
+            <DialogTitle>{d.dialogTitle}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-            {/* Tipo de material — com pesquisa */}
             <div className="space-y-1.5">
-              <Label>Tipo de Material</Label>
+              <Label>{d.materialType}</Label>
               <SearchableSelect
                 options={typeOptions}
                 value={form.filamentTypeId}
                 onValueChange={(v) => setForm({ ...form, filamentTypeId: v })}
-                placeholder="Selecione o material..."
-                searchPlaceholder="Pesquisar marca, material ou cor..."
-                emptyText="Nenhum material encontrado."
+                placeholder={d.materialPlaceholder.value}
+                searchPlaceholder={d.materialSearch.value}
+                emptyText={d.materialEmpty.value}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="weight">Peso Líquido (g)</Label>
+                <Label htmlFor="weight">{d.weight}</Label>
                 <Input
                   id="weight"
                   type="number"
@@ -182,7 +185,7 @@ export function AddSpoolDialog({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="price">Preço de Compra (€)</Label>
+                <Label htmlFor="price">{d.price}</Label>
                 <Input
                   id="price"
                   type="number"
@@ -196,7 +199,7 @@ export function AddSpoolDialog({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="quantity">Quantidade de Bobines</Label>
+                <Label htmlFor="quantity">{d.quantity}</Label>
                 <Input
                   id="quantity"
                   type="number"
@@ -213,7 +216,7 @@ export function AddSpoolDialog({
             </div>
 
             <div className="space-y-1.5 flex flex-col mt-2">
-              <Label htmlFor="date">Data de Compra</Label>
+              <Label htmlFor="date">{d.purchaseDate}</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -225,9 +228,11 @@ export function AddSpoolDialog({
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {form.purchaseDate ? (
-                      format(new Date(form.purchaseDate), "PPP", { locale: pt })
+                      format(new Date(form.purchaseDate), "PPP", {
+                        locale: dateLocale,
+                      })
                     ) : (
-                      <span>Escolha uma data</span>
+                      <span>{d.pickDate}</span>
                     )}
                   </Button>
                 </PopoverTrigger>
@@ -257,7 +262,7 @@ export function AddSpoolDialog({
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "A registar..." : "Adicionar ao Stock"}
+              {loading ? d.submitting : d.submit}
             </Button>
           </form>
         </DialogContent>

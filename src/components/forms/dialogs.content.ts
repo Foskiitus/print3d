@@ -1,0 +1,515 @@
+import { t, type DeclarationContent } from "intlayer";
+
+const dialogsContent = {
+  key: "dialogs",
+  content: {
+    common: {
+      cancel: t({ pt: "Cancelar", en: "Cancel" }),
+      save: t({ pt: "Guardar", en: "Save" }),
+      saving: t({ pt: "A guardar...", en: "Saving..." }),
+      creating: t({ pt: "A criar...", en: "Creating..." }),
+      processing: t({ pt: "A processar...", en: "Processing..." }),
+      optional: t({ pt: "opcional", en: "optional" }),
+      error: t({ pt: "Erro", en: "Error" }),
+      add: t({ pt: "Adicionar", en: "Add" }),
+      noResults: t({ pt: "Sem resultados.", en: "No results." }),
+      total: t({ pt: "Total", en: "Total" }),
+      hours: t({ pt: "h", en: "h" }),
+      minutes: t({ pt: "min", en: "min" }),
+      grams: t({ pt: "gramas", en: "grams" }),
+    },
+
+    customer: {
+      triggerLabel: t({ pt: "Novo Cliente", en: "New Customer" }),
+      dialogTitle: t({ pt: "Adicionar Cliente", en: "Add Customer" }),
+      name: t({ pt: "Nome *", en: "Name *" }),
+      namePlaceholder: t({ pt: "Nome completo", en: "Full name" }),
+      email: t({ pt: "Email", en: "Email" }),
+      emailPlaceholder: t({ pt: "email@exemplo.com", en: "email@example.com" }),
+      phone: t({ pt: "Telefone", en: "Phone" }),
+      phonePlaceholder: t({ pt: "9XX XXX XXX", en: "Phone number" }),
+      nif: t({ pt: "NIF", en: "VAT number" }),
+      nifPlaceholder: t({ pt: "123456789", en: "123456789" }),
+      address: t({ pt: "Morada", en: "Address" }),
+      addressPlaceholder: t({ pt: "Rua, cidade...", en: "Street, city..." }),
+      notes: t({ pt: "Notas", en: "Notes" }),
+      notesPlaceholder: t({
+        pt: "Observações sobre o cliente...",
+        en: "Notes about the customer...",
+      }),
+      submit: t({ pt: "Criar Cliente", en: "Create Customer" }),
+      submitting: t({ pt: "A criar...", en: "Creating..." }),
+      successToast: t({ pt: "Cliente criado!", en: "Customer created!" }),
+      errorToast: t({
+        pt: "Erro ao criar cliente",
+        en: "Error creating customer",
+      }),
+    },
+
+    spool: {
+      triggerLabel: t({ pt: "Entrada de Stock", en: "Add Stock" }),
+      dialogTitle: t({ pt: "Registar Nova Bobine", en: "Register New Spool" }),
+      materialType: t({ pt: "Tipo de Material", en: "Material Type" }),
+      materialPlaceholder: t({
+        pt: "Selecione o material...",
+        en: "Select material...",
+      }),
+      materialSearch: t({
+        pt: "Pesquisar marca, material ou cor...",
+        en: "Search brand, material or color...",
+      }),
+      materialEmpty: t({
+        pt: "Nenhum material encontrado.",
+        en: "No material found.",
+      }),
+      weight: t({ pt: "Peso Líquido (g)", en: "Net Weight (g)" }),
+      price: t({ pt: "Preço de Compra (€)", en: "Purchase Price (€)" }),
+      quantity: t({ pt: "Quantidade de Bobines", en: "Number of Spools" }),
+      purchaseDate: t({ pt: "Data de Compra", en: "Purchase Date" }),
+      pickDate: t({ pt: "Escolha uma data", en: "Pick a date" }),
+      submit: t({ pt: "Adicionar ao Stock", en: "Add to Stock" }),
+      submitting: t({ pt: "A registar...", en: "Registering..." }),
+      successToast: t({
+        pt: "bobine(s) registadas no inventário!",
+        en: "spool(s) added to inventory!",
+      }),
+      errorDefault: t({
+        pt: "Não foi possível registar a bobine.",
+        en: "Could not register spool.",
+      }),
+      invalidDate: t({ pt: "Data inválida", en: "Invalid date" }),
+      invalidDateDesc: t({
+        pt: "A data de compra não pode ser no futuro.",
+        en: "Purchase date cannot be in the future.",
+      }),
+    },
+
+    filamentType: {
+      newTrigger: t({ pt: "Novo Material", en: "New Material" }),
+      newTitle: t({
+        pt: "Registar Novo Filamento",
+        en: "Register New Filament",
+      }),
+      brand: t({ pt: "Marca", en: "Brand" }),
+      brandPlaceholder: t({ pt: "Ex: Bambu Lab", en: "E.g.: Bambu Lab" }),
+      material: t({ pt: "Material", en: "Material" }),
+      materialPlaceholder: t({
+        pt: "Ex: PLA Basic, PETG, ASA",
+        en: "E.g.: PLA Basic, PETG, ASA",
+      }),
+      suggestedColors: t({ pt: "Cores sugeridas", en: "Suggested colors" }),
+      suggestedColorsSub: t({
+        pt: "Clica para preencher — ou define uma cor personalizada abaixo.",
+        en: "Click to fill — or set a custom color below.",
+      }),
+      colorName: t({ pt: "Nome/Código da Cor", en: "Color Name/Code" }),
+      colorNamePlaceholder: t({ pt: "Ex: Preto", en: "E.g.: Black" }),
+      colorVisual: t({ pt: "Cor Visual", en: "Visual Color" }),
+      alertThreshold: t({
+        pt: "Alerta de stock mínimo (g)",
+        en: "Minimum stock alert (g)",
+      }),
+      alertThresholdPlaceholder: t({ pt: "Padrão: 500g", en: "Default: 500g" }),
+      alertThresholdSub: t({
+        pt: "Se não definires, usa 500g.",
+        en: "If not set, defaults to 500g.",
+      }),
+      newSubmit: t({ pt: "Guardar no Catálogo", en: "Save to Catalog" }),
+      newSubmitting: t({ pt: "A processar...", en: "Processing..." }),
+      newSuccess: t({
+        pt: "Material adicionado ao catálogo!",
+        en: "Material added to catalog!",
+      }),
+      newError: t({
+        pt: "Falha ao comunicar com a base de dados.",
+        en: "Failed to communicate with the database.",
+      }),
+      editTitle: t({ pt: "Editar Material", en: "Edit Material" }),
+      lockedWarning: t({
+        pt: "Este material tem bobines associadas. A Marca e o Material estão bloqueados para proteger o histórico de consumo.",
+        en: "This material has associated spools. Brand and Material are locked to protect consumption history.",
+      }),
+      alertThresholdEditSub: t({
+        pt: "Recebe um alerta quando o total deste filamento baixar deste valor.",
+        en: "You will receive an alert when total filament drops below this value.",
+      }),
+      editSubmit: t({ pt: "Guardar Alterações", en: "Save Changes" }),
+      editSuccess: t({ pt: "Material atualizado!", en: "Material updated!" }),
+      editError: t({
+        pt: "Falha ao atualizar o material.",
+        en: "Failed to update material.",
+      }),
+    },
+
+    production: {
+      trigger: t({ pt: "Registar produção", en: "Register production" }),
+      title: t({ pt: "Registar Produção", en: "Register Production" }),
+      product: t({ pt: "Produto", en: "Product" }),
+      productPlaceholder: t({
+        pt: "Selecionar produto...",
+        en: "Select product...",
+      }),
+      productSearch: t({ pt: "Pesquisar produto...", en: "Search product..." }),
+      printer: t({ pt: "Impressora", en: "Printer" }),
+      printerPlaceholder: t({
+        pt: "Selecionar impressora...",
+        en: "Select printer...",
+      }),
+      printerSearch: t({
+        pt: "Pesquisar impressora...",
+        en: "Search printer...",
+      }),
+      printerEmpty: t({
+        pt: "Nenhuma impressora registada.",
+        en: "No printers registered.",
+      }),
+      printerSetOnProduct: t({
+        pt: "definida no produto",
+        en: "set on product",
+      }),
+      unitsProduced: t({ pt: "Unidades produzidas", en: "Units produced" }),
+      estimatedFilament: t({
+        pt: "Filamento estimado",
+        en: "Estimated filament",
+      }),
+      autoCalculated: t({
+        pt: "Calculado automaticamente",
+        en: "Auto calculated",
+      }),
+      unitsPerPrint: t({ pt: "unidades/impressão", en: "units/print" }),
+      printTime: t({ pt: "Tempo de impressão", en: "Print time" }),
+      printTimeSub: t({
+        pt: "Pré-preenchido com o valor do produto — altere se o tempo real foi diferente",
+        en: "Pre-filled from product — change if actual time was different",
+      }),
+      notes: t({ pt: "Notas", en: "Notes" }),
+      notesPlaceholder: t({
+        pt: "Observações sobre esta produção...",
+        en: "Observations about this production...",
+      }),
+      submit: t({ pt: "Registar no Stock", en: "Add to Stock" }),
+      submitting: t({ pt: "A processar...", en: "Processing..." }),
+      successTitle: t({
+        pt: "Produção registada!",
+        en: "Production registered!",
+      }),
+      errorTitle: t({ pt: "Produção recusada", en: "Production rejected" }),
+      errorDefault: t({
+        pt: "Não foi possível registar a produção.",
+        en: "Could not register production.",
+      }),
+      unitsPerPrintLabel: t({ pt: "unidades/impressão", en: "units/print" }),
+    },
+
+    category: {
+      trigger: t({ pt: "Nova Categoria", en: "New Category" }),
+      title: t({ pt: "Criar Categoria", en: "Create Category" }),
+      name: t({ pt: "Nome", en: "Name" }),
+      namePlaceholder: t({
+        pt: "ex: Porta-chaves, Decoração, Peças técnicas...",
+        en: "e.g.: Keychains, Decoration, Technical parts...",
+      }),
+      description: t({ pt: "Descrição", en: "Description" }),
+      descriptionPlaceholder: t({
+        pt: "Descrição da categoria...",
+        en: "Category description...",
+      }),
+      submit: t({ pt: "Criar Categoria", en: "Create Category" }),
+      successToast: t({ pt: "Categoria criada!", en: "Category created!" }),
+    },
+
+    extra: {
+      trigger: t({ pt: "Novo Extra", en: "New Extra" }),
+      title: t({ pt: "Criar Extra", en: "Create Extra" }),
+      name: t({ pt: "Nome", en: "Name" }),
+      namePlaceholder: t({
+        pt: "ex: Corrente porta-chaves, Supercola, Parafuso M3...",
+        en: "e.g.: Keychain ring, Superglue, M3 screw...",
+      }),
+      description: t({ pt: "Descrição", en: "Description" }),
+      descriptionPlaceholder: t({
+        pt: "ex: Corrente mosquetão 25mm dourada...",
+        en: "e.g.: 25mm gold carabiner chain...",
+      }),
+      price: t({ pt: "Preço (€)", en: "Price (€)" }),
+      unit: t({ pt: "Unidade", en: "Unit" }),
+      submit: t({ pt: "Criar Extra", en: "Create Extra" }),
+      successToast: t({ pt: "Extra criado!", en: "Extra created!" }),
+    },
+
+    preset: {
+      trigger: t({ pt: "Novo Preset", en: "New Preset" }),
+      title: t({ pt: "Criar Preset Global", en: "Create Global Preset" }),
+      printerName: t({ pt: "Nome da impressora", en: "Printer name" }),
+      printerNamePlaceholder: t({ pt: "ex: Bambu X1C", en: "e.g.: Bambu X1C" }),
+      hourlyCost: t({ pt: "Custo horário (€/h)", en: "Hourly cost (€/h)" }),
+      hourlyCostPlaceholder: t({ pt: "ex: 0.50", en: "e.g.: 0.50" }),
+      power: t({ pt: "Consumo (W)", en: "Power (W)" }),
+      powerPlaceholder: t({ pt: "ex: 300", en: "e.g.: 300" }),
+      electricalEstimate: t({
+        pt: "Estimativa elétrica",
+        en: "Electrical estimate",
+      }),
+      electricalAt: t({ pt: "A 0.20€/kWh:", en: "At 0.20€/kWh:" }),
+      submit: t({ pt: "Criar Preset Global", en: "Create Global Preset" }),
+      successToast: t({ pt: "Preset criado!", en: "Preset created!" }),
+    },
+
+    printer: {
+      trigger: t({ pt: "Nova Impressora", en: "New Printer" }),
+      title: t({ pt: "Adicionar Impressora", en: "Add Printer" }),
+      choosePreset: t({
+        pt: "Escolher de preset global",
+        en: "Choose from global preset",
+      }),
+      orCustomize: t({ pt: "ou personalizar", en: "or customize" }),
+      printerName: t({ pt: "Nome da impressora", en: "Printer name" }),
+      printerNamePlaceholder: t({ pt: "ex: Bambu X1C", en: "e.g.: Bambu X1C" }),
+      hourlyCost: t({ pt: "Custo horário (€/h)", en: "Hourly cost (€/h)" }),
+      hourlyCostPlaceholder: t({ pt: "ex: 0.50", en: "e.g.: 0.50" }),
+      power: t({ pt: "Consumo (W)", en: "Power (W)" }),
+      powerPlaceholder: t({ pt: "ex: 300", en: "e.g.: 300" }),
+      electricalEstimate: t({
+        pt: "Estimativa elétrica",
+        en: "Electrical estimate",
+      }),
+      electricalAt: t({ pt: "A 0.20€/kWh:", en: "At 0.20€/kWh:" }),
+      submit: t({ pt: "Adicionar Impressora", en: "Add Printer" }),
+      submitting: t({ pt: "A adicionar...", en: "Adding..." }),
+      successToast: t({ pt: "Impressora adicionada!", en: "Printer added!" }),
+    },
+
+    sale: {
+      trigger: t({ pt: "Nova Venda", en: "New Sale" }),
+      title: t({ pt: "Registar Venda", en: "Register Sale" }),
+      product: t({ pt: "Produto", en: "Product" }),
+      productPlaceholder: t({
+        pt: "Selecionar produto...",
+        en: "Select product...",
+      }),
+      productSearch: t({ pt: "Pesquisar produto...", en: "Search product..." }),
+      noStock: t({ pt: "Sem stock disponível", en: "No stock available" }),
+      unitsAvailable: t({
+        pt: "unidade(s) disponível(eis)",
+        en: "unit(s) available",
+      }),
+      quantity: t({ pt: "Quantidade", en: "Quantity" }),
+      quantityPlaceholder: t({ pt: "ex: 1", en: "e.g.: 1" }),
+      exceedsStock: t({ pt: "Excede o stock", en: "Exceeds stock" }),
+      unitPrice: t({ pt: "Preço por unidade (€)", en: "Price per unit (€)" }),
+      totalSale: t({ pt: "Total da venda", en: "Sale total" }),
+      estimatedProfit: t({ pt: "Lucro estimado", en: "Estimated profit" }),
+      customer: t({ pt: "Cliente", en: "Customer" }),
+      customerPlaceholder: t({
+        pt: "Selecionar cliente...",
+        en: "Select customer...",
+      }),
+      customerSearch: t({
+        pt: "Pesquisar nome ou email...",
+        en: "Search name or email...",
+      }),
+      customerEmpty: t({
+        pt: "Nenhum cliente registado.",
+        en: "No customers registered.",
+      }),
+      manageCustomers: t({ pt: "Gerir clientes", en: "Manage customers" }),
+      notes: t({ pt: "Notas", en: "Notes" }),
+      notesPlaceholder: t({ pt: "Observações...", en: "Observations..." }),
+      submit: t({ pt: "Registar Venda", en: "Register Sale" }),
+      submitting: t({ pt: "A registar...", en: "Registering..." }),
+      successTitle: t({ pt: "Venda registada!", en: "Sale registered!" }),
+      errorDefault: t({
+        pt: "Erro ao registar venda",
+        en: "Error registering sale",
+      }),
+    },
+
+    spoolAdjust: {
+      title: t({
+        pt: "Registar Ajuste de Stock",
+        en: "Register Stock Adjustment",
+      }),
+      buttonTitle: t({ pt: "Registar ajuste", en: "Register adjustment" }),
+      typeLabel: t({ pt: "Tipo de ajuste", en: "Adjustment type" }),
+      waste: t({ pt: "— Desperdício", en: "— Waste" }),
+      correction: t({ pt: "± Correção", en: "± Correction" }),
+      wasteAmount: t({
+        pt: "Quantidade desperdiçada (g)",
+        en: "Wasted amount (g)",
+      }),
+      correctionAmount: t({
+        pt: "Ajuste em gramas (use - para reduzir)",
+        en: "Adjustment in grams (use - to reduce)",
+      }),
+      wastePlaceholder: t({ pt: "ex: 20", en: "e.g.: 20" }),
+      correctionPlaceholder: t({ pt: "ex: -20 ou 15", en: "e.g.: -20 or 15" }),
+      reason: t({ pt: "Motivo", en: "Reason" }),
+      reasonPlaceholder: t({
+        pt: "Selecione um motivo...",
+        en: "Select a reason...",
+      }),
+      currentWeight: t({ pt: "Peso atual", en: "Current weight" }),
+      adjustment: t({ pt: "Ajuste", en: "Adjustment" }),
+      newWeight: t({ pt: "Novo peso", en: "New weight" }),
+      invalid: t({ pt: "Inválido", en: "Invalid" }),
+      submit: t({ pt: "Confirmar Ajuste", en: "Confirm Adjustment" }),
+      submitting: t({ pt: "A registar...", en: "Registering..." }),
+      successTitle: t({ pt: "Ajuste registado", en: "Adjustment registered" }),
+      successDesc: t({ pt: "Novo peso:", en: "New weight:" }),
+      errorTitle: t({
+        pt: "Erro ao registar ajuste",
+        en: "Error registering adjustment",
+      }),
+      reasons: {
+        failedPrint: t({ pt: "Impressão falhada", en: "Failed print" }),
+        wrongWeight: t({
+          pt: "Bobine com peso errado",
+          en: "Spool with wrong weight",
+        }),
+        brokenFilament: t({ pt: "Filamento partido", en: "Broken filament" }),
+        purge: t({ pt: "Purga/limpeza", en: "Purge/cleaning" }),
+        manualCorrection: t({ pt: "Correção manual", en: "Manual correction" }),
+        other: t({ pt: "Outro", en: "Other" }),
+      },
+    },
+
+    product: {
+      trigger: t({ pt: "Novo Produto", en: "New Product" }),
+      title: t({ pt: "Criar Produto", en: "Create Product" }),
+      sectionBasic: t({ pt: "Informação básica", en: "Basic information" }),
+      name: t({ pt: "Nome do produto", en: "Product name" }),
+      namePlaceholder: t({
+        pt: "ex: Porta-chaves Coração",
+        en: "e.g.: Heart Keychain",
+      }),
+      nameRequired: t({ pt: "O nome é obrigatório.", en: "Name is required." }),
+      description: t({ pt: "Descrição", en: "Description" }),
+      descriptionPlaceholder: t({
+        pt: "Descrição do produto...",
+        en: "Product description...",
+      }),
+      category: t({ pt: "Categoria", en: "Category" }),
+      categoryPlaceholder: t({ pt: "Selecionar...", en: "Select..." }),
+      categorySearch: t({
+        pt: "Pesquisar categoria...",
+        en: "Search category...",
+      }),
+      categoryRequired: t({
+        pt: "Seleciona uma categoria.",
+        en: "Select a category.",
+      }),
+      printer: t({ pt: "Impressora", en: "Printer" }),
+      printerPlaceholder: t({ pt: "Selecionar...", en: "Select..." }),
+      printerSearch: t({
+        pt: "Pesquisar impressora...",
+        en: "Search printer...",
+      }),
+      printerRequired: t({
+        pt: "Seleciona uma impressora.",
+        en: "Select a printer.",
+      }),
+      printTime: t({ pt: "Tempo de impressão", en: "Print time" }),
+      printTimeTotal: t({ pt: "Total:", en: "Total:" }),
+      printTimeMinutes: t({ pt: "minutos", en: "minutes" }),
+      printTimeRequired: t({
+        pt: "Define o tempo de impressão.",
+        en: "Set the print time.",
+      }),
+      sectionFilaments: t({ pt: "Filamentos usados", en: "Filaments used" }),
+      filamentRequired: t({
+        pt: "Adiciona pelo menos um filamento com peso definido.",
+        en: "Add at least one filament with weight defined.",
+      }),
+      filamentPlaceholder: t({
+        pt: "Tipo de filamento...",
+        en: "Filament type...",
+      }),
+      filamentSearch: t({
+        pt: "Pesquisar filamento...",
+        en: "Search filament...",
+      }),
+      filamentEmpty: t({
+        pt: "Nenhum filamento encontrado.",
+        en: "No filament found.",
+      }),
+      filamentGramsPlaceholder: t({ pt: "gramas", en: "grams" }),
+      registerSpool: t({
+        pt: "Registar nova bobine",
+        en: "Register new spool",
+      }),
+      sectionExtras: t({ pt: "Extras", en: "Extras" }),
+      noExtras: t({ pt: "Nenhum extra adicionado.", en: "No extras added." }),
+      extraPlaceholder: t({ pt: "Extra...", en: "Extra..." }),
+      extraSearch: t({ pt: "Pesquisar extra...", en: "Search extra..." }),
+      extraQtyPlaceholder: t({ pt: "qtd", en: "qty" }),
+      margin: t({ pt: "Margem de lucro (%)", en: "Profit margin (%)" }),
+      marginPlaceholder: t({ pt: "ex: 30", en: "e.g.: 30" }),
+      unitsPerPrint: t({ pt: "Unidades por impressão", en: "Units per print" }),
+      unitsPerPrintPlaceholder: t({ pt: "ex: 1", en: "e.g.: 1" }),
+      unitsPerPrintSub: t({
+        pt: "Quantas unidades saem de cada impressão",
+        en: "How many units come out per print",
+      }),
+      alertThreshold: t({
+        pt: "Alerta de stock mínimo",
+        en: "Minimum stock alert",
+      }),
+      alertThresholdPlaceholder: t({ pt: "ex: 5", en: "e.g.: 5" }),
+      alertThresholdSub: t({
+        pt: "Recebe um alerta quando o stock baixar deste valor",
+        en: "Receive an alert when stock drops below this value",
+      }),
+      costEstimate: t({ pt: "Estimativa de custo", en: "Cost estimate" }),
+      costFilaments: t({ pt: "Filamentos (FIFO)", en: "Filaments (FIFO)" }),
+      costExtras: t({ pt: "Extras", en: "Extras" }),
+      costPrinter: t({ pt: "Impressora", en: "Printer" }),
+      costEnergy: t({ pt: "Energia", en: "Energy" }),
+      costNoPrinter: t({
+        pt: "Seleciona uma impressora para incluir custos de máquina e energia.",
+        en: "Select a printer to include machine and energy costs.",
+      }),
+      costTotal: t({ pt: "Custo total da impressão", en: "Total print cost" }),
+      costPerUnit: t({ pt: "Custo por unidade", en: "Cost per unit" }),
+      suggestedPriceUnit: t({
+        pt: "Preço sugerido/unidade",
+        en: "Suggested price/unit",
+      }),
+      suggestedPrice: t({ pt: "Preço sugerido", en: "Suggested price" }),
+      margin2: t({ pt: "margem", en: "margin" }),
+      missingSpools: t({
+        pt: "Sem bobines em stock para:",
+        en: "No spools in stock for:",
+      }),
+      missingSpoilsEst: t({
+        pt: "Custo estimado a 0€.",
+        en: "Cost estimated at €0.",
+      }),
+      sectionFiles: t({ pt: "Ficheiros", en: "Files" }),
+      image: t({ pt: "Imagem de Destaque", en: "Featured Image" }),
+      chooseImage: t({ pt: "Escolher Imagem", en: "Choose Image" }),
+      model: t({
+        pt: "Ficheiro do Modelo (Opcional)",
+        en: "Model File (Optional)",
+      }),
+      chooseModel: t({
+        pt: "Escolher .3mf ou .stl",
+        en: "Choose .3mf or .stl",
+      }),
+      modelLimit: t({ pt: "Limite máximo:", en: "Maximum limit:" }),
+      modelFormats: t({
+        pt: "Formatos aceites: .3mf, .stl",
+        en: "Accepted formats: .3mf, .stl",
+      }),
+      submit: t({ pt: "Criar Produto", en: "Create Product" }),
+      submittingUpload: t({
+        pt: "A fazer upload do ficheiro...",
+        en: "Uploading file...",
+      }),
+      submitting: t({ pt: "A criar...", en: "Creating..." }),
+      successToast: t({ pt: "Produto criado!", en: "Product created!" }),
+      unitsPerPrintLabel: t({ pt: "unidades/impressão", en: "units/print" }),
+    },
+  },
+} satisfies DeclarationContent;
+
+export default dialogsContent;

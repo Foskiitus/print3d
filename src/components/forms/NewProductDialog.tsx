@@ -18,10 +18,9 @@ import { formatCurrency } from "@/lib/utils";
 import { AddSpoolDialog } from "@/components/forms/AddSpoolDialog";
 import { SearchableSelect } from "@/components/ui/searchableSelect";
 import { useUploadLimit } from "@/hooks/useUploadLimit";
+import { useIntlayer } from "next-intlayer";
 
-// Função auxiliar para fazer o upload direto para o R2 (ignora limite da Vercel)
 async function executeDirectUpload(file: File, bucket: "images" | "models") {
-  // 1. Pede a URL assinada
   const signRes = await fetch("/api/upload", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -29,34 +28,30 @@ async function executeDirectUpload(file: File, bucket: "images" | "models") {
       fileName: file.name,
       contentType: file.type,
       fileSize: file.size,
-      bucket: bucket,
+      bucket,
     }),
   });
-
   if (!signRes.ok) throw new Error("Falha ao gerar link de upload");
-
   const { url, key } = await signRes.json();
-
-  // 2. Faz o upload diretamente para a Cloudflare R2
   const uploadRes = await fetch(url, {
     method: "PUT",
     body: file,
     headers: { "Content-Type": file.type },
   });
-
   if (!uploadRes.ok) throw new Error("Falha no upload para o storage");
-
-  return key; // Retornamos a key para guardar na base de dados
+  return key;
 }
 
 export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
+  const c = useIntlayer("dialogs");
+  const d = c.product;
+
   const [open, setOpen] = useState(false);
   const { limitMb, limitBytes } = useUploadLimit();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [costData, setCostData] = useState<any>(null);
   const [isChildDialogOpen, setIsChildDialogOpen] = useState(false);
-
   const [categories, setCategories] = useState<any[]>([]);
   const [filamentTypes, setFilamentTypes] = useState<any[]>([]);
   const [extras, setExtras] = useState<any[]>([]);
@@ -78,17 +73,13 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
     unitsPerPrint: "1",
     alertThreshold: "",
   });
-
   const [filamentUsages, setFilamentUsages] = useState<
     { filamentTypeId: string; weight: string }[]
   >([{ filamentTypeId: "", weight: "" }]);
-
   const [extraUsages, setExtraUsages] = useState<
     { extraId: string; quantity: string }[]
   >([]);
-
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [threemfFile, setThreemfFile] = useState<File | null>(null);
   const [threemfUploading, setThreemfUploading] = useState(false);
 
@@ -151,18 +142,12 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
     open,
   ]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setImageFile(e.target.files[0]);
-    }
-  };
-
   const handleThreemfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (file.size > limitBytes) {
         toast({
-          title: "Ficheiro demasiado grande",
+          title: c.common.error.value,
           description: `O limite é ${limitMb}MB`,
           variant: "destructive",
         });
@@ -174,23 +159,18 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
 
   const addFilament = () =>
     setFilamentUsages([...filamentUsages, { filamentTypeId: "", weight: "" }]);
-
   const removeFilament = (i: number) =>
     setFilamentUsages(filamentUsages.filter((_, idx) => idx !== i));
-
   const updateFilament = (i: number, field: string, value: string) =>
     setFilamentUsages(
       filamentUsages.map((f, idx) =>
         idx === i ? { ...f, [field]: value } : f,
       ),
     );
-
   const addExtra = () =>
     setExtraUsages([...extraUsages, { extraId: "", quantity: "1" }]);
-
   const removeExtra = (i: number) =>
     setExtraUsages(extraUsages.filter((_, idx) => idx !== i));
-
   const updateExtra = (i: number, field: string, value: string) =>
     setExtraUsages(
       extraUsages.map((e, idx) => (idx === i ? { ...e, [field]: value } : e)),
@@ -211,7 +191,6 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
     setFilamentUsages([{ filamentTypeId: "", weight: "" }]);
     setExtraUsages([]);
     setImageFile(null);
-    setImagePreview(null);
     setThreemfFile(null);
     setCostData(null);
     setErrors({});
@@ -219,52 +198,37 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
-    // Validação
     const newErrors: Record<string, string> = {};
-    if (!form.name.trim()) newErrors.name = "O nome é obrigatório.";
-    if (!form.categoryId) newErrors.categoryId = "Seleciona uma categoria.";
-    if (!form.printerId) newErrors.printerId = "Seleciona uma impressora.";
+    if (!form.name.trim()) newErrors.name = d.nameRequired.value;
+    if (!form.categoryId) newErrors.categoryId = d.categoryRequired.value;
+    if (!form.printerId) newErrors.printerId = d.printerRequired.value;
     const totalMinutes =
       (parseInt(form.productionHours || "0") || 0) * 60 +
       (parseInt(form.productionMinutes || "0") || 0);
-    if (totalMinutes <= 0)
-      newErrors.productionTime = "Define o tempo de impressão.";
-
+    if (totalMinutes <= 0) newErrors.productionTime = d.printTimeRequired.value;
     const validFilaments = filamentUsages.filter(
       (f) => f.filamentTypeId && f.weight && Number(f.weight) > 0,
     );
     if (validFilaments.length === 0)
-      newErrors.filaments =
-        "Adiciona pelo menos um filamento com peso definido.";
-
+      newErrors.filaments = d.filamentRequired.value;
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
     setErrors({});
-
     setLoading(true);
     try {
       let imageKey = "";
       let modelKey = "";
-
-      // 1. Upload direto da imagem
-      if (imageFile) {
-        imageKey = await executeDirectUpload(imageFile, "images");
-      }
-
-      // 2. Upload direto do ficheiro .3mf / .stl
+      if (imageFile) imageKey = await executeDirectUpload(imageFile, "images");
       if (threemfFile) {
-        setThreemfUploading(true); // Ativa o texto de loading específico
+        setThreemfUploading(true);
         try {
           modelKey = await executeDirectUpload(threemfFile, "models");
         } finally {
-          setThreemfUploading(false); // Desativa mal o upload termine
+          setThreemfUploading(false);
         }
       }
-
-      // 3. Enviar os dados finais para a API
       const res = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -284,11 +248,8 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
           alertThreshold: form.alertThreshold
             ? Number(form.alertThreshold)
             : null,
-
-          // CORREÇÃO AQUI: A API espera 'imageUrl' e 'fileUrl'
           imageUrl: imageKey !== "" ? imageKey : null,
           fileUrl: modelKey !== "" ? modelKey : null,
-
           filamentUsages: validFilaments.map((f) => ({
             filamentTypeId: f.filamentTypeId,
             weight: Number(f.weight),
@@ -298,18 +259,15 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
             .map((e) => ({ extraId: e.extraId, quantity: Number(e.quantity) })),
         }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-
-      toast({ title: "Produto criado!" });
+      toast({ title: d.successToast.value });
       resetForm();
       setOpen(false);
       onCreated();
     } catch (error: any) {
-      console.error(error);
       toast({
-        title: "Erro",
+        title: c.common.error.value,
         description: error.message,
         variant: "destructive",
       });
@@ -331,26 +289,24 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
       <DialogTrigger asChild>
         <Button size="sm">
           <Plus size={14} className="mr-1.5" />
-          Novo Produto
+          {d.trigger}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Criar Produto</DialogTitle>
+          <DialogTitle>{d.title}</DialogTitle>
         </DialogHeader>
-
         <form onSubmit={handleSubmit} className="space-y-6 mt-2">
           {/* Informação básica */}
           <div className="space-y-4">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-              Informação básica
+              {d.sectionBasic}
             </p>
-
             <div className="space-y-1.5">
-              <Label htmlFor="name">Nome do produto</Label>
+              <Label htmlFor="name">{d.name}</Label>
               <Input
                 id="name"
-                placeholder="ex: Porta-chaves Coração"
+                placeholder={d.namePlaceholder.value}
                 value={form.name}
                 onChange={(e) => {
                   setForm({ ...form, name: e.target.value });
@@ -362,17 +318,16 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                 <p className="text-xs text-destructive">{errors.name}</p>
               )}
             </div>
-
             <div className="space-y-1.5">
               <Label htmlFor="description">
-                Descrição{" "}
+                {d.description}{" "}
                 <span className="text-muted-foreground font-normal">
-                  (opcional)
+                  ({c.common.optional})
                 </span>
               </Label>
               <Textarea
                 id="description"
-                placeholder="Descrição do produto..."
+                placeholder={d.descriptionPlaceholder.value}
                 value={form.description}
                 onChange={(e) =>
                   setForm({ ...form, description: e.target.value })
@@ -380,10 +335,9 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                 rows={2}
               />
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>Categoria</Label>
+                <Label>{d.category}</Label>
                 <SearchableSelect
                   options={categories.map((c) => ({
                     value: c.id,
@@ -394,8 +348,8 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                     setForm({ ...form, categoryId: v });
                     setErrors((er) => ({ ...er, categoryId: "" }));
                   }}
-                  placeholder="Selecionar..."
-                  searchPlaceholder="Pesquisar categoria..."
+                  placeholder={d.categoryPlaceholder.value}
+                  searchPlaceholder={d.categorySearch.value}
                   className={errors.categoryId ? "border-destructive" : ""}
                 />
                 {errors.categoryId && (
@@ -405,7 +359,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                 )}
               </div>
               <div className="space-y-1.5">
-                <Label>Impressora</Label>
+                <Label>{d.printer}</Label>
                 <SearchableSelect
                   options={printers.map((p) => ({
                     value: p.id,
@@ -416,8 +370,8 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                     setForm({ ...form, printerId: v });
                     setErrors((er) => ({ ...er, printerId: "" }));
                   }}
-                  placeholder="Selecionar..."
-                  searchPlaceholder="Pesquisar impressora..."
+                  placeholder={d.printerPlaceholder.value}
+                  searchPlaceholder={d.printerSearch.value}
                   className={errors.printerId ? "border-destructive" : ""}
                 />
                 {errors.printerId && (
@@ -425,9 +379,8 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                 )}
               </div>
             </div>
-
             <div className="space-y-1.5">
-              <Label>Tempo de impressão</Label>
+              <Label>{d.printTime}</Label>
               <div
                 className={`flex items-center gap-2 ${errors.productionTime ? "ring-1 ring-destructive rounded-lg" : ""}`}
               >
@@ -443,7 +396,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                     }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
-                    h
+                    {c.common.hours}
                   </span>
                 </div>
                 <div className="relative flex-1">
@@ -459,16 +412,16 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                     }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
-                    min
+                    {c.common.minutes}
                   </span>
                 </div>
               </div>
               {(form.productionHours || form.productionMinutes) && (
                 <p className="text-[10px] text-muted-foreground">
-                  Total:{" "}
+                  {d.printTimeTotal}{" "}
                   {Number(form.productionHours || 0) * 60 +
                     Number(form.productionMinutes || 0)}{" "}
-                  minutos
+                  {d.printTimeMinutes}
                 </p>
               )}
             </div>
@@ -479,7 +432,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                  Filamentos usados
+                  {d.sectionFilaments}
                 </p>
                 {errors.filaments && (
                   <p className="text-xs text-destructive mt-0.5">
@@ -493,10 +446,9 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                 size="sm"
                 onClick={addFilament}
               >
-                <Plus size={12} className="mr-1" /> Adicionar
+                <Plus size={12} className="mr-1" /> {c.common.add}
               </Button>
             </div>
-
             {filamentUsages.map((f, i) => (
               <div key={i} className="flex items-center gap-2">
                 <div className="flex-1 space-y-1">
@@ -518,9 +470,9 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                     onValueChange={(v) =>
                       updateFilament(i, "filamentTypeId", v)
                     }
-                    placeholder="Tipo de filamento..."
-                    searchPlaceholder="Pesquisar filamento..."
-                    emptyText="Nenhum filamento encontrado."
+                    placeholder={d.filamentPlaceholder.value}
+                    searchPlaceholder={d.filamentSearch.value}
+                    emptyText={d.filamentEmpty.value}
                   />
                   <AddSpoolDialog
                     types={filamentTypes}
@@ -531,7 +483,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                         type="button"
                         className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors py-0.5"
                       >
-                        <Plus size={11} /> Registar nova bobine
+                        <Plus size={11} /> {d.registerSpool}
                       </button>
                     }
                   />
@@ -540,7 +492,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                   <Input
                     type="number"
                     step="0.1"
-                    placeholder="gramas"
+                    placeholder={d.filamentGramsPlaceholder.value}
                     value={f.weight}
                     onChange={(e) =>
                       updateFilament(i, "weight", e.target.value)
@@ -566,7 +518,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                Extras
+                {d.sectionExtras}
               </p>
               <Button
                 type="button"
@@ -574,16 +526,12 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                 size="sm"
                 onClick={addExtra}
               >
-                <Plus size={12} className="mr-1" /> Adicionar
+                <Plus size={12} className="mr-1" /> {c.common.add}
               </Button>
             </div>
-
             {extraUsages.length === 0 && (
-              <p className="text-xs text-muted-foreground">
-                Nenhum extra adicionado.
-              </p>
+              <p className="text-xs text-muted-foreground">{d.noExtras}</p>
             )}
-
             {extraUsages.map((e, i) => (
               <div key={i} className="flex items-center gap-2">
                 <div className="flex-1">
@@ -594,15 +542,15 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                     }))}
                     value={e.extraId}
                     onValueChange={(v) => updateExtra(i, "extraId", v)}
-                    placeholder="Extra..."
-                    searchPlaceholder="Pesquisar extra..."
+                    placeholder={d.extraPlaceholder.value}
+                    searchPlaceholder={d.extraSearch.value}
                   />
                 </div>
                 <div className="w-28">
                   <Input
                     type="number"
                     step="0.1"
-                    placeholder="qtd"
+                    placeholder={d.extraQtyPlaceholder.value}
                     value={e.quantity}
                     onChange={(ev) =>
                       updateExtra(i, "quantity", ev.target.value)
@@ -625,52 +573,52 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
           {/* Margem e unidades */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="margin">Margem de lucro (%)</Label>
+              <Label htmlFor="margin">{d.margin}</Label>
               <Input
                 id="margin"
                 type="number"
                 min="0"
                 max="1000"
-                placeholder="ex: 30"
+                placeholder={d.marginPlaceholder.value}
                 value={form.margin}
                 onChange={(e) => setForm({ ...form, margin: e.target.value })}
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="unitsPerPrint">Unidades por impressão</Label>
+              <Label htmlFor="unitsPerPrint">{d.unitsPerPrint}</Label>
               <Input
                 id="unitsPerPrint"
                 type="number"
                 min="1"
-                placeholder="ex: 1"
+                placeholder={d.unitsPerPrintPlaceholder.value}
                 value={form.unitsPerPrint}
                 onChange={(e) =>
                   setForm({ ...form, unitsPerPrint: e.target.value })
                 }
               />
               <p className="text-[10px] text-muted-foreground">
-                Quantas unidades saem de cada impressão
+                {d.unitsPerPrintSub}
               </p>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="alertThreshold">
-                Alerta de stock mínimo{" "}
+                {d.alertThreshold}{" "}
                 <span className="text-muted-foreground font-normal">
-                  (opcional)
+                  ({c.common.optional})
                 </span>
               </Label>
               <Input
                 id="alertThreshold"
                 type="number"
                 min="0"
-                placeholder="ex: 5"
+                placeholder={d.alertThresholdPlaceholder.value}
                 value={form.alertThreshold}
                 onChange={(e) =>
                   setForm({ ...form, alertThreshold: e.target.value })
                 }
               />
               <p className="text-[10px] text-muted-foreground">
-                Recebe um alerta quando o stock baixar deste valor
+                {d.alertThresholdSub}
               </p>
             </div>
           </div>
@@ -685,64 +633,63 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                 <div className="p-4 rounded-lg bg-muted/40 space-y-2 text-sm">
                   <div className="flex items-center justify-between">
                     <p className="font-semibold text-foreground">
-                      Estimativa de custo
+                      {d.costEstimate}
                     </p>
                     {units > 1 && (
                       <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
-                        {units} unidades/impressão
+                        {units} {d.unitsPerPrintLabel}
                       </span>
                     )}
                   </div>
                   <div className="space-y-1 text-xs text-muted-foreground">
                     <div className="flex justify-between">
-                      <span>Filamentos (FIFO)</span>
+                      <span>{d.costFilaments}</span>
                       <span>{formatCurrency(costData.filamentCost)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Extras</span>
+                      <span>{d.costExtras}</span>
                       <span>{formatCurrency(costData.extrasCost)}</span>
                     </div>
                     {costData.printerCost != null && (
                       <div className="flex justify-between">
-                        <span>Impressora</span>
+                        <span>{d.costPrinter}</span>
                         <span>{formatCurrency(costData.printerCost)}</span>
                       </div>
                     )}
                     {costData.electricityCost != null && (
                       <div className="flex justify-between">
-                        <span>Energia</span>
+                        <span>{d.costEnergy}</span>
                         <span>{formatCurrency(costData.electricityCost)}</span>
                       </div>
                     )}
                     {!form.printerId && (
                       <p className="text-[10px] text-warning">
-                        ⚠️ Seleciona uma impressora para incluir custos de
-                        máquina e energia.
+                        ⚠️ {d.costNoPrinter}
                       </p>
                     )}
                     <div className="flex justify-between border-t border-border pt-1 mt-1 font-medium text-foreground">
-                      <span>Custo total da impressão</span>
+                      <span>{d.costTotal}</span>
                       <span>{formatCurrency(costData.totalCost)}</span>
                     </div>
                     {units > 1 && (
                       <div className="flex justify-between text-foreground">
-                        <span>Custo por unidade</span>
+                        <span>{d.costPerUnit}</span>
                         <span>{formatCurrency(costPerUnit)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-primary font-bold text-sm pt-1 border-t border-border mt-1">
                       <span>
                         {units > 1
-                          ? `Preço sugerido/unidade (${form.margin}% margem)`
-                          : `Preço sugerido (${form.margin}% margem)`}
+                          ? `${d.suggestedPriceUnit} (${form.margin}% ${d.margin2})`
+                          : `${d.suggestedPrice} (${form.margin}% ${d.margin2})`}
                       </span>
                       <span>{formatCurrency(pricePerUnit)}</span>
                     </div>
                   </div>
                   {costData.missingSpools?.length > 0 && (
                     <p className="text-[10px] text-warning mt-1">
-                      ⚠️ Sem bobines em stock para:{" "}
-                      {costData.missingSpools.join(", ")}. Custo estimado a 0€.
+                      ⚠️ {d.missingSpools} {costData.missingSpools.join(", ")}.{" "}
+                      {d.missingSpoilsEst}
                     </p>
                   )}
                 </div>
@@ -752,12 +699,10 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
           {/* Ficheiros */}
           <div className="space-y-4">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-              Ficheiros
+              {d.sectionFiles}
             </p>
-
-            {/* Imagem */}
             <div className="space-y-2">
-              <Label>Imagem de Destaque</Label>
+              <Label>{d.image}</Label>
               <div className="flex items-center gap-4">
                 {imageFile ? (
                   <div className="flex items-center gap-2 text-sm text-primary">
@@ -769,21 +714,22 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                 ) : (
                   <label className="flex items-center gap-2 cursor-pointer border rounded-md px-4 py-2 text-sm hover:bg-muted/50 transition-colors">
                     <Upload size={16} />
-                    Escolher Imagem
+                    {d.chooseImage}
                     <input
                       type="file"
                       accept="image/*"
                       className="hidden"
-                      onChange={handleImageChange}
+                      onChange={(e) => {
+                        if (e.target.files?.[0])
+                          setImageFile(e.target.files[0]);
+                      }}
                     />
                   </label>
                 )}
               </div>
             </div>
-
-            {/* Ficheiro 3MF / STL */}
             <div className="space-y-2">
-              <Label>Ficheiro do Modelo (Opcional)</Label>
+              <Label>{d.model}</Label>
               <div className="p-4 border rounded-lg bg-muted/10">
                 {threemfFile ? (
                   <div className="flex items-center justify-between bg-background p-3 rounded-md border">
@@ -806,7 +752,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                 ) : (
                   <label className="flex items-center gap-2 w-fit cursor-pointer border border-dashed rounded-lg px-4 py-2 text-xs text-muted-foreground hover:border-primary/40 transition-colors">
                     <FileBox size={14} />
-                    Escolher .3mf ou .stl
+                    {d.chooseModel}
                     <input
                       type="file"
                       accept=".3mf,.stl"
@@ -816,7 +762,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                   </label>
                 )}
                 <p className="text-[10px] text-muted-foreground mt-2">
-                  Limite máximo: {limitMb} MB · Formatos aceites: .3mf, .stl
+                  {d.modelLimit} {limitMb} MB · {d.modelFormats}
                 </p>
               </div>
             </div>
@@ -828,10 +774,10 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
             disabled={loading || threemfUploading}
           >
             {threemfUploading
-              ? "A fazer upload do ficheiro..."
+              ? d.submittingUpload
               : loading
-                ? "A criar..."
-                : "Criar Produto"}
+                ? d.submitting
+                : d.submit}
           </Button>
         </form>
       </DialogContent>

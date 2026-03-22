@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Package, Droplets, ChevronRight } from "lucide-react";
+import { useIntlayer, useLocale } from "next-intlayer";
 import { cn } from "@/lib/utils";
 
 function AlertBadge({ items }: { items: any[] }) {
@@ -12,7 +13,6 @@ function AlertBadge({ items }: { items: any[] }) {
     <span
       className={cn(
         "absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full text-white text-[9px] font-bold flex items-center justify-center",
-        // ✅ bg-warning em vez de bg-yellow-500
         hasCritical ? "bg-destructive" : "bg-warning",
       )}
     >
@@ -22,7 +22,6 @@ function AlertBadge({ items }: { items: any[] }) {
 }
 
 function severityClass(severity: string) {
-  // ✅ text-warning em vez de text-yellow-500
   return severity === "critical" ? "text-destructive" : "text-warning";
 }
 
@@ -33,6 +32,8 @@ function AlertDropdown({
   renderItem,
   emptyText,
   linkHref,
+  alertCountLabel,
+  viewAllLabel,
 }: {
   title: string;
   icon: any;
@@ -40,6 +41,8 @@ function AlertDropdown({
   renderItem: (item: any) => React.ReactNode;
   emptyText: string;
   linkHref: string;
+  alertCountLabel: string;
+  viewAllLabel: string;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -64,8 +67,7 @@ function AlertDropdown({
           items.length > 0
             ? hasCritical
               ? "text-destructive hover:bg-destructive/10"
-              : // ✅ text-warning / hover:bg-warning/10
-                "text-warning hover:bg-warning/10"
+              : "text-warning hover:bg-warning/10"
             : "text-muted-foreground hover:bg-accent hover:text-foreground",
         )}
       >
@@ -74,7 +76,6 @@ function AlertDropdown({
       </button>
 
       {open && (
-        // ✅ rounded-xl em vez de rounded-lg
         <div className="absolute right-0 top-full mt-2 w-72 bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <div className="flex items-center gap-2">
@@ -92,7 +93,7 @@ function AlertDropdown({
                     : "bg-warning/10 text-warning",
                 )}
               >
-                {items.length} alerta(s)
+                {items.length} {alertCountLabel}
               </span>
             )}
           </div>
@@ -122,7 +123,7 @@ function AlertDropdown({
               onClick={() => setOpen(false)}
               className="flex items-center justify-between text-xs text-primary hover:text-primary/80 transition-colors"
             >
-              <span>Ver todos os alertas</span>
+              <span>{viewAllLabel}</span>
               <ChevronRight size={12} />
             </Link>
           </div>
@@ -133,6 +134,8 @@ function AlertDropdown({
 }
 
 export function AlertsHeader() {
+  const c = useIntlayer("alerts");
+  const { locale } = useLocale();
   const [productAlerts, setProductAlerts] = useState<any[]>([]);
   const [spoolAlerts, setSpoolAlerts] = useState<any[]>([]);
 
@@ -181,32 +184,36 @@ export function AlertsHeader() {
   return (
     <div className="flex items-center gap-1">
       <AlertDropdown
-        title="Stock de produtos"
+        title={c.products.title.value}
         icon={Package}
         items={productAlerts}
-        emptyText="Nenhum produto com stock baixo."
-        linkHref="/alerts"
+        emptyText={c.products.empty.value}
+        linkHref={`/${locale}/alerts`}
+        alertCountLabel={c.alertCount.value}
+        viewAllLabel={c.viewAll.value}
         renderItem={(item) => (
-          <Link href={`/products/${item.id}`} className="block">
+          <Link href={`/${locale}/products/${item.id}`} className="block">
             <p className="text-sm font-medium truncate text-foreground">
               {item.name}
             </p>
             <p
               className={cn("text-[10px] mt-0.5", severityClass(item.severity))}
             >
-              {item.stock} un. em stock · alerta abaixo de {item.threshold}
+              {item.stock} {c.products.stockInfo.value} {item.threshold}
             </p>
           </Link>
         )}
       />
       <AlertDropdown
-        title="Filamentos"
+        title={c.filaments.title.value}
         icon={Droplets}
         items={spoolAlerts}
-        emptyText="Nenhuma bobine com stock baixo."
-        linkHref="/alerts"
+        emptyText={c.filaments.empty.value}
+        linkHref={`/${locale}/alerts`}
+        alertCountLabel={c.alertCount.value}
+        viewAllLabel={c.viewAll.value}
         renderItem={(item) => (
-          <Link href="/filaments" className="block">
+          <Link href={`/${locale}/filaments`} className="block">
             <div className="flex items-center gap-1.5 mb-0.5">
               <div
                 className="w-2 h-2 rounded-full flex-shrink-0"
@@ -217,9 +224,10 @@ export function AlertsHeader() {
               </p>
             </div>
             <p className={cn("text-[10px]", severityClass(item.severity))}>
-              {item.remaining.toFixed(0)}g no total · alerta abaixo de{" "}
-              {item.threshold}g
-              {item.spoolCount > 1 && ` (${item.spoolCount} bobines)`}
+              {item.remaining.toFixed(0)}
+              {c.filaments.remaining.value} {item.threshold}g
+              {item.spoolCount > 1 &&
+                ` (${item.spoolCount} ${c.filaments.spools.value})`}
             </p>
           </Link>
         )}

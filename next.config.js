@@ -1,3 +1,5 @@
+import { withIntlayer } from "next-intlayer/server";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   serverExternalPackages: ["better-sqlite3", "@prisma/adapter-better-sqlite3"],
@@ -12,4 +14,5 @@ const nextConfig = {
     return config;
   },
 };
-module.exports = nextConfig;
+
+export default withIntlayer(nextConfig);

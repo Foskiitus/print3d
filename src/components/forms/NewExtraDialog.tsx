@@ -20,11 +20,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
-import { Plus } from "lucide-react";
+import { Plus, ShieldCheck } from "lucide-react";
+import { useIntlayer } from "next-intlayer";
 
 const UNITS = ["unidade", "ml", "g", "cm", "m", "folha", "par"];
 
 export function NewExtraDialog({ onCreated }: { onCreated: () => void }) {
+  const c = useIntlayer("dialogs");
+  const d = c.extra;
+
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -37,7 +41,6 @@ export function NewExtraDialog({ onCreated }: { onCreated: () => void }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name.trim() || !form.price) return;
-
     setLoading(true);
     try {
       const res = await fetch("/api/extras", {
@@ -50,17 +53,15 @@ export function NewExtraDialog({ onCreated }: { onCreated: () => void }) {
           unit: form.unit || null,
         }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro desconhecido");
-
-      toast({ title: "Extra criado!" });
+      toast({ title: d.successToast.value });
       setForm({ name: "", description: "", price: "", unit: "unidade" });
       setOpen(false);
       onCreated();
     } catch (error: any) {
       toast({
-        title: "Erro",
+        title: c.common.error.value,
         description: error.message,
         variant: "destructive",
       });
@@ -74,35 +75,34 @@ export function NewExtraDialog({ onCreated }: { onCreated: () => void }) {
       <DialogTrigger asChild>
         <Button size="sm">
           <Plus size={14} className="mr-1.5" />
-          Novo Extra
+          {d.trigger}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Criar Extra</DialogTitle>
+          <DialogTitle>{d.title}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           <div className="space-y-1.5">
-            <Label htmlFor="name">Nome</Label>
+            <Label htmlFor="name">{d.name}</Label>
             <Input
               id="name"
-              placeholder="ex: Corrente porta-chaves, Supercola, Parafuso M3..."
+              placeholder={d.namePlaceholder.value}
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               required
             />
           </div>
-
           <div className="space-y-1.5">
             <Label htmlFor="description">
-              Descrição{" "}
+              {d.description}{" "}
               <span className="text-muted-foreground font-normal">
-                (opcional)
+                ({c.common.optional})
               </span>
             </Label>
             <Textarea
               id="description"
-              placeholder="ex: Corrente mosquetão 25mm dourada..."
+              placeholder={d.descriptionPlaceholder.value}
               value={form.description}
               onChange={(e) =>
                 setForm({ ...form, description: e.target.value })
@@ -110,10 +110,9 @@ export function NewExtraDialog({ onCreated }: { onCreated: () => void }) {
               rows={2}
             />
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="price">Preço (€)</Label>
+              <Label htmlFor="price">{d.price}</Label>
               <Input
                 id="price"
                 type="number"
@@ -125,7 +124,7 @@ export function NewExtraDialog({ onCreated }: { onCreated: () => void }) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Unidade</Label>
+              <Label>{d.unit}</Label>
               <Select
                 value={form.unit}
                 onValueChange={(v) => setForm({ ...form, unit: v })}
@@ -143,9 +142,8 @@ export function NewExtraDialog({ onCreated }: { onCreated: () => void }) {
               </Select>
             </div>
           </div>
-
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "A criar..." : "Criar Extra"}
+            {loading ? c.common.creating : d.submit}
           </Button>
         </form>
       </DialogContent>

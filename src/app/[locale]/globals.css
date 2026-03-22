@@ -1,0 +1,437 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root,
+  .light,
+  .dark {
+    & [data-radix-popper-content-wrapper] {
+      --popover: var(--bg-surface);
+      --popover-foreground: var(--text-primary);
+      --border: var(--border);
+    }
+  }
+  /* ─────────────────────────────────────
+     SpoolIQ — Blue Steel Design System
+     Light mode (default :root)
+  ───────────────────────────────────── */
+  :root {
+    /* Backgrounds */
+    --background: 216 100% 97%; /* #f0f6ff — Page BG */
+    --card: 0 0% 100%; /* #ffffff */
+
+    /* Foregrounds */
+    --foreground: 222 47% 11%; /* #0f172a — Navy text */
+    --card-foreground: 222 47% 11%; /* #0f172a */
+
+    /* Brand primary — Ocean Blue (darker for light mode contrast) */
+    --primary: 200 98% 39%; /* #0284c7 */
+    --primary-foreground: 0 0% 100%; /* white text on primary btn */
+
+    /* Secondary */
+    --secondary: 210 100% 97%; /* #f0f9ff */
+    --secondary-foreground: 200 98% 39%; /* #0284c7 */
+
+    /* Muted */
+    --muted: 210 40% 96%; /* #f0f6ff */
+    --muted-foreground: 215 20% 38%; /* #475569 — mais escuro para melhor legibilidade */
+
+    /* Accent */
+    --accent: 204 94% 94%; /* #e0f2fe */
+    --accent-foreground: 201 96% 32%; /* #0369a1 */
+
+    /* Borders & inputs */
+    --border: 213 40% 88%; /* #dde8f8 */
+    --input: 0 0% 100%; /* #ffffff */
+    --ring: 200 98% 39%; /* #0284c7 */
+
+    /* Semantic */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Radius */
+    --radius: 0.5rem;
+
+    /* ── SpoolIQ extended tokens (light) ── */
+    --success: 158 64% 36%; /* #059669 */
+    --success-foreground: 152 76% 10%; /* #065f46 */
+    --warning: 32 95% 44%; /* #d97706 */
+    --warning-foreground: 26 83% 14%; /* #92400e */
+    --info: 200 98% 39%; /* #0284c7 */
+    --info-foreground: 201 96% 32%; /* #0369a1 */
+
+    /* Brand blue ramp */
+    --blue-50: 210 100% 97%;
+    --blue-100: 204 94% 94%;
+    --blue-300: 199 93% 73%;
+    --blue-400: 199 84% 60%;
+    --blue-500: 199 89% 48%;
+    --blue-600: 200 98% 39%;
+    --blue-700: 201 96% 32%;
+    --blue-900: 222 47% 11%;
+  }
+
+  /* ─────────────────────────────────────
+     Dark mode — classe .dark no <html>
+     aplicada pelo next-themes
+  ───────────────────────────────────── */
+  .dark {
+    /* Backgrounds */
+    --background: 220 50% 4%; /* #060c18 — Deep Navy */
+    --card: 222 45% 7%; /* #0a1020 — Card surface */
+
+    /* Foregrounds */
+    --foreground: 214 32% 91%; /* #e2e8f0 — Primary text */
+    --card-foreground: 214 32% 91%; /* #e2e8f0 */
+
+    /* Brand primary — Sky Blue */
+    --primary: 199 89% 48%; /* #0ea5e9 */
+    --primary-foreground: 222 50% 4%; /* #060c18 — text on primary btn */
+
+    /* Secondary surface */
+    --secondary: 222 47% 11%; /* #0f172a — Navy */
+    --secondary-foreground: 199 70% 61%; /* #38bdf8 — Ice Blue */
+
+    /* Muted */
+    --muted: 220 40% 9%; /* #0a1020 */
+    --muted-foreground: 215 20% 40%; /* #3d5a80 */
+
+    /* Accent */
+    --accent: 222 47% 11%; /* #0f172a */
+    --accent-foreground: 199 93% 73%; /* #7dd3fc — Mist Blue */
+
+    /* Borders & inputs */
+    --border: 220 44% 12%; /* #0f1c30 */
+    --input: 220 50% 4%; /* #060c18 */
+    --ring: 199 89% 48%; /* #0ea5e9 */
+
+    /* Semantic */
+    --destructive: 0 90% 60%; /* #f84848 — vermelho mais intenso */
+    --destructive-foreground: 0 0% 98%;
+
+    /* ── SpoolIQ extended tokens (dark) ── */
+    --success: 160 84% 39%; /* #10b981 */
+    --success-foreground: 160 60% 90%; /* #d1fae5 */
+    --warning: 38 92% 50%; /* #f59e0b */
+    --warning-foreground: 38 80% 10%;
+    --info: 199 89% 48%; /* #0ea5e9 */
+    --info-foreground: 199 93% 73%; /* #7dd3fc */
+
+    /* Brand blue ramp */
+    --blue-50: 210 100% 97%;
+    --blue-100: 204 94% 94%;
+    --blue-300: 199 93% 73%;
+    --blue-400: 199 84% 60%;
+    --blue-500: 199 89% 48%;
+    --blue-600: 200 98% 39%;
+    --blue-700: 201 96% 32%;
+    --blue-900: 222 47% 11%;
+  }
+
+  /* No globals.css ou landing.css */
+  .lp-theme {
+    --font-display: "Space Grotesk", sans-serif;
+    --font-sans: "DM Sans", sans-serif;
+    --font-mono: "JetBrains Mono", monospace;
+
+    --radius: 0.625rem;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-2xl: 20px;
+    --radius-full: 9999px;
+
+    /* Cores fixas de marca */
+    --color-brand: #0284c7;
+    --color-brand-light: #0ea5e9;
+    --color-brand-sky: #38bdf8;
+    --color-brand-fill: #e0f2fe;
+    --color-success: #059669;
+    --color-success-bg: #d1fae5;
+    --color-success-dark: #065f46;
+    --color-warning: #d97706;
+    --color-warning-bg: #fef3c7;
+    --color-warning-dark: #92400e;
+
+    /* Tokens semânticos SpoolIQ */
+    --bg: #060c18;
+    --bg-surface: #0a1020;
+    --bg-elevated: #0f1829;
+    --bg-muted: #1e2d47;
+    --bg-input: #060c18;
+    --border: #0f1c30;
+    --border-subtle: #1e2d47;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #3d5a80;
+    --text-subtle: #64748b;
+
+    /* Nav */
+    --sidebar-bg: #0a1020;
+    --sidebar-border: #0f1c30;
+    --page-bg: #060c18;
+    --nav-text: #94a3b8;
+    --nav-subtle: #3d5a80;
+    --nav-hover: rgba(255, 255, 255, 0.05);
+    --nav-active-bg: rgba(14, 165, 233, 0.12);
+    --nav-active-text: #38bdf8;
+    --nav-active-border: #0ea5e9;
+    --nav-border: #0f1c30;
+
+    --background: #060c18;
+    --foreground: 210 40% 98%;
+    --card: #0a1020;
+    --card-foreground: #e2e8f0;
+    --popover: #0a1020;
+    --popover-foreground: #e2e8f0;
+    --primary: #0ea5e9;
+    --primary-foreground: #ffffff;
+    --secondary: #1e2d47;
+    --secondary-foreground: #e2e8f0;
+    --muted: #1e2d47;
+    --muted-foreground: #64748b;
+    --accent: rgba(14, 165, 233, 0.12);
+    --accent-foreground: #38bdf8;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --input: #0f1c30;
+    --ring: #0ea5e9;
+    --chart-1: #0ea5e9;
+    --chart-2: #38bdf8;
+    --chart-3: #0284c7;
+    --chart-4: #059669;
+    --chart-5: #d97706;
+    --sidebar: #0a1020;
+    --sidebar-foreground: #94a3b8;
+    --sidebar-primary: #0ea5e9;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: rgba(14, 165, 233, 0.12);
+    --sidebar-accent-foreground: #38bdf8;
+    --sidebar-ring: #0ea5e9;
+  }
+
+  /* Garante que os estilos da landing page só afetam o que estiver dentro de .lp-theme */
+  .lp-theme .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
+  }
+
+  /* ─── Scrollbar ─── */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+}
+
+/* ─── Hide number input arrows ─── */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg
+           bg-brand-600 text-white font-medium text-sm
+           hover:bg-brand-500 active:bg-brand-700
+           transition-all duration-150 cursor-pointer
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-dark-surface;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg
+           font-medium text-sm border border-brand-500/30
+           bg-brand-500/10 text-brand-400
+           hover:bg-brand-500/15 hover:border-brand-400/60
+           transition-all duration-150 cursor-pointer
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg
+           font-medium text-sm transition-all duration-150 cursor-pointer;
+    color: var(--text-secondary);
+  }
+  .btn-ghost:hover {
+    color: var(--text-primary);
+    background-color: var(--bg-muted);
+  }
+
+  .card {
+    @apply rounded-xl p-5 border;
+    background-color: var(--bg-surface);
+    border-color: var(--border);
+    transition:
+      background-color 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .card-glow {
+    @apply rounded-xl p-5 border relative overflow-hidden;
+    background-color: var(--bg-surface);
+    border-color: var(--border);
+    background-image: radial-gradient(
+      ellipse 60% 40% at 50% 0%,
+      rgba(14, 165, 233, 0.06) 0%,
+      transparent 70%
+    );
+  }
+
+  .badge-success {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full
+           bg-success-light text-success-dark text-xs font-medium;
+  }
+
+  .badge-warning {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full
+           bg-warning-light text-warning-dark text-xs font-medium;
+  }
+
+  .badge-brand {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full
+           bg-brand-500/15 text-brand-400 border border-brand-500/30 text-xs font-medium;
+  }
+
+  .input {
+    @apply w-full px-3.5 py-2.5 rounded-lg text-sm font-sans border
+           focus:outline-none focus:ring-1 transition-colors duration-150;
+    background-color: var(--bg-input);
+    border-color: var(--border);
+    color: var(--text-primary);
+  }
+  .input::placeholder {
+    color: var(--text-muted);
+  }
+  .input:focus {
+    border-color: rgba(14, 165, 233, 0.6);
+    box-shadow: 0 0 0 1px rgba(14, 165, 233, 0.3);
+    outline: none;
+  }
+  .input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .label {
+    @apply block text-xs font-medium uppercase tracking-widest mb-1.5;
+    color: var(--text-subtle);
+  }
+
+  .nav-link {
+    @apply flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150;
+    color: var(--nav-subtle);
+  }
+  .nav-link:hover {
+    color: var(--nav-text);
+    background-color: var(--nav-hover);
+  }
+  .nav-link.active {
+    color: var(--nav-active-text);
+    background-color: var(--nav-active-bg);
+  }
+
+  .section-label {
+    @apply text-xs font-semibold uppercase tracking-widest pb-2.5 mb-5 border-b;
+    color: var(--text-muted);
+    border-color: var(--border);
+  }
+
+  .animate-delay-100 {
+    animation-delay: 100ms;
+  }
+  .animate-delay-200 {
+    animation-delay: 200ms;
+  }
+  .animate-delay-300 {
+    animation-delay: 300ms;
+  }
+  .animate-delay-400 {
+    animation-delay: 400ms;
+  }
+  .animate-delay-500 {
+    animation-delay: 500ms;
+  }
+  .animate-delay-600 {
+    animation-delay: 600ms;
+  }
+  .opacity-0-init {
+    opacity: 0;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(
+      135deg,
+      #38bdf8 0%,
+      #0ea5e9 40%,
+      #0284c7 100%
+    );
+  }
+
+  .bg-grid-pattern {
+    background-image:
+      linear-gradient(rgba(14, 165, 233, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(14, 165, 233, 0.04) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  .scrollbar-hidden {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+  }
+
+  .bg-theme {
+    background-color: var(--bg);
+  }
+  .bg-theme-surface {
+    background-color: var(--bg-surface);
+  }
+  .bg-theme-muted {
+    background-color: var(--bg-muted);
+  }
+  .border-theme {
+    border-color: var(--border);
+  }
+  .text-theme {
+    color: var(--text-primary);
+  }
+  .text-theme-muted {
+    color: var(--text-secondary);
+  }
+  .text-theme-subtle {
+    color: var(--text-muted);
+  }
+}

@@ -1,0 +1,52 @@
+/* eslint-disable */
+export default {
+  "key": "sign-up",
+  "content": {
+    "nodeType": "translation",
+    "translation": {
+      "pt": {
+        "title": "Criar conta",
+        "subtitle": "Começa a usar o SpoolIQ hoje",
+        "nameLabel": "Nome",
+        "namePlaceholder": "O teu nome",
+        "emailLabel": "Email",
+        "emailPlaceholder": "tu@exemplo.com",
+        "passwordLabel": "Password",
+        "passwordPlaceholder": "Mínimo 8 caracteres",
+        "submitButton": "Criar conta",
+        "submittingButton": "A criar conta…",
+        "orDivider": "ou",
+        "googleButton": "Registar com Google",
+        "hasAccount": "Já tens conta?",
+        "loginLink": "Entrar",
+        "confirmTitle": "Confirma o teu email",
+        "confirmMessage": "Enviámos um link de confirmação para",
+        "confirmSub": "Clica no link para ativares a tua conta.",
+        "backToLogin": "Voltar ao login"
+      },
+      "en": {
+        "title": "Create account",
+        "subtitle": "Start using SpoolIQ today",
+        "nameLabel": "Name",
+        "namePlaceholder": "Your name",
+        "emailLabel": "Email",
+        "emailPlaceholder": "you@example.com",
+        "passwordLabel": "Password",
+        "passwordPlaceholder": "Minimum 8 characters",
+        "submitButton": "Create account",
+        "submittingButton": "Creating account…",
+        "orDivider": "or",
+        "googleButton": "Sign up with Google",
+        "hasAccount": "Already have an account?",
+        "loginLink": "Sign in",
+        "confirmTitle": "Confirm your email",
+        "confirmMessage": "We sent a confirmation link to",
+        "confirmSub": "Click the link to activate your account.",
+        "backToLogin": "Back to login"
+      }
+    }
+  },
+  "localIds": [
+    "sign-up::local::src/app/[locale]/sign-up/[[...sign-up]]/sign-up.content.ts"
+  ]
+} as const;

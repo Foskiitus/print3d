@@ -15,6 +15,7 @@ import { ColorPicker } from "@/components/ui/colorPicker";
 import { numericInputProps } from "@/lib/numericInput";
 import { Lock } from "lucide-react";
 import { refreshAlerts } from "@/lib/refreshAlerts";
+import { useIntlayer } from "next-intlayer";
 
 type FilamentType = {
   id: string;
@@ -37,6 +38,9 @@ export function EditFilamentTypeDialog({
   onOpenChange: (open: boolean) => void;
   onUpdated: () => void;
 }) {
+  const c = useIntlayer("dialogs");
+  const d = c.filamentType;
+
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     brand: "",
@@ -63,17 +67,14 @@ export function EditFilamentTypeDialog({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!type) return;
-
     setLoading(true);
     try {
       const res = await fetch(`/api/filaments/types/${type.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          // Campos bloqueados: envia os originais sem alteração
           brand: form.brand,
           material: form.material,
-          // Campos sempre editáveis
           colorHex: form.colorHex,
           colorName: form.colorName,
           alertThreshold: form.alertThreshold
@@ -81,17 +82,15 @@ export function EditFilamentTypeDialog({
             : null,
         }),
       });
-
       if (!res.ok) throw new Error();
-
-      toast({ title: "Material atualizado!" });
+      toast({ title: d.editSuccess.value });
       onOpenChange(false);
       refreshAlerts();
       onUpdated();
     } catch {
       toast({
-        title: "Erro",
-        description: "Falha ao atualizar o material.",
+        title: c.common.error.value,
+        description: d.editError.value,
         variant: "destructive",
       });
     } finally {
@@ -103,35 +102,29 @@ export function EditFilamentTypeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Editar Material</DialogTitle>
+          <DialogTitle>{d.editTitle}</DialogTitle>
         </DialogHeader>
 
-        {/* Aviso quando há bobines associadas */}
         {hasSpools && (
           <div className="flex items-start gap-2 text-[11px] text-muted-foreground bg-muted/40 border border-border rounded-lg px-3 py-2">
             <Lock
               size={12}
               className="mt-0.5 flex-shrink-0 text-muted-foreground"
             />
-            <span>
-              Este material tem bobines associadas. A <strong>Marca</strong> e o{" "}
-              <strong>Material</strong> estão bloqueados para proteger o
-              histórico de consumo.
-            </span>
+            <span>{d.lockedWarning}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-1">
-          {/* Marca — bloqueada se tiver bobines */}
           <div className="space-y-1.5">
             <Label className={hasSpools ? "text-muted-foreground" : ""}>
-              Marca
+              {d.brand}
               {hasSpools && (
                 <Lock size={11} className="inline ml-1.5 opacity-50" />
               )}
             </Label>
             <Input
-              placeholder="Ex: Bambu Lab"
+              placeholder={d.brandPlaceholder.value}
               value={form.brand}
               onChange={(e) => setForm({ ...form, brand: e.target.value })}
               disabled={hasSpools}
@@ -139,16 +132,15 @@ export function EditFilamentTypeDialog({
             />
           </div>
 
-          {/* Material — bloqueado se tiver bobines */}
           <div className="space-y-1.5">
             <Label className={hasSpools ? "text-muted-foreground" : ""}>
-              Material
+              {d.material}
               {hasSpools && (
                 <Lock size={11} className="inline ml-1.5 opacity-50" />
               )}
             </Label>
             <Input
-              placeholder="Ex: PLA Basic, PETG, ASA"
+              placeholder={d.materialPlaceholder.value}
               value={form.material}
               onChange={(e) => setForm({ ...form, material: e.target.value })}
               disabled={hasSpools}
@@ -157,11 +149,10 @@ export function EditFilamentTypeDialog({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            {/* Nome da cor — sempre editável */}
             <div className="space-y-1.5">
-              <Label>Nome/Código da Cor</Label>
+              <Label>{d.colorName}</Label>
               <Input
-                placeholder="Ex: 11101 Preto"
+                placeholder={d.colorNamePlaceholder.value}
                 value={form.colorName}
                 onChange={(e) =>
                   setForm({ ...form, colorName: e.target.value })
@@ -169,10 +160,8 @@ export function EditFilamentTypeDialog({
                 required
               />
             </div>
-
-            {/* Cor visual — sempre editável */}
             <div className="space-y-1.5">
-              <Label>Cor Visual (Glow)</Label>
+              <Label>{d.colorVisual}</Label>
               <div className="flex gap-2">
                 <ColorPicker
                   value={form.colorHex}
@@ -193,18 +182,17 @@ export function EditFilamentTypeDialog({
             </div>
           </div>
 
-          {/* Alerta de stock — sempre editável */}
           <div className="space-y-1.5">
             <Label>
-              Alerta de stock mínimo (g){" "}
+              {d.alertThreshold}{" "}
               <span className="text-muted-foreground font-normal">
-                (opcional)
+                ({c.common.optional})
               </span>
             </Label>
             <Input
               type="number"
               min="0"
-              placeholder="Padrão: 500g"
+              placeholder={d.alertThresholdPlaceholder.value}
               value={form.alertThreshold}
               onChange={(e) =>
                 setForm({ ...form, alertThreshold: e.target.value })
@@ -212,8 +200,7 @@ export function EditFilamentTypeDialog({
               {...numericInputProps()}
             />
             <p className="text-[10px] text-muted-foreground">
-              Recebe um alerta quando o total deste filamento baixar deste
-              valor.
+              {d.alertThresholdEditSub}
             </p>
           </div>
 
@@ -224,10 +211,10 @@ export function EditFilamentTypeDialog({
               className="flex-1"
               onClick={() => onOpenChange(false)}
             >
-              Cancelar
+              {c.common.cancel}
             </Button>
             <Button type="submit" className="flex-1" disabled={loading}>
-              {loading ? "A guardar..." : "Guardar Alterações"}
+              {loading ? c.common.saving : d.editSubmit}
             </Button>
           </div>
         </form>

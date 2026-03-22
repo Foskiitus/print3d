@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Package,
@@ -15,42 +15,13 @@ import {
   FileDown,
   AlertTriangle,
   Boxes,
+  CreditCard,
 } from "lucide-react";
 import { useSidebar } from "@/components/layout/SidebarContext";
 import { useState, useEffect } from "react";
-import { useClerk, useUser } from "@clerk/nextjs";
+import { createClient } from "@/lib/supabase/client";
+import { useIntlayer } from "next-intlayer";
 import { cn } from "@/lib/utils";
-
-const navGroups = [
-  {
-    label: null,
-    items: [{ label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" }],
-  },
-  {
-    label: "Gestão",
-    items: [
-      { label: "Filamentos", icon: Droplets, href: "/filaments" },
-      { label: "Produtos", icon: Package, href: "/products" },
-      { label: "Stock", icon: Boxes, href: "/stock" },
-      { label: "Produção", icon: Factory, href: "/production" },
-      { label: "Vendas", icon: ShoppingCart, href: "/sales-ledger" },
-      { label: "Impressoras", icon: Printer, href: "/printers" },
-    ],
-  },
-  {
-    label: "Outros",
-    items: [
-      { label: "Clientes", icon: Users, href: "/customers" },
-      { label: "Exportação", icon: FileDown, href: "/export" },
-      { label: "Alertas", icon: AlertTriangle, href: "/alerts" },
-    ],
-  },
-];
-
-const adminItems = [
-  { label: "Utilizadores", icon: Users, href: "/users" },
-  { label: "Configurações", icon: Settings, href: "/settings" },
-];
 
 function SpoolIcon({ className }: { className?: string }) {
   return (
@@ -171,18 +142,81 @@ function NavLink({
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { open, setOpen } = useSidebar();
-  const { user } = useUser();
-  const { signOut } = useClerk();
   const [role, setRole] = useState<string | null>(null);
+  const [userInfo, setUserInfo] = useState<{
+    name: string;
+    email: string;
+  } | null>(null);
+  const supabase = createClient();
+  const c = useIntlayer("sidebar");
+
+  // Extrai o locale do pathname: /pt/dashboard → "pt"
+  const locale = pathname.split("/")[1] ?? "pt";
+
+  // Helper: prefixo de locale nos links
+  const l = (path: string) => `/${locale}${path}`;
+
+  const navGroups = [
+    {
+      label: null,
+      items: [
+        {
+          label: c.nav.dashboard.value,
+          icon: LayoutDashboard,
+          href: "/dashboard",
+        },
+      ],
+    },
+    {
+      label: c.groups.management.value,
+      items: [
+        { label: c.nav.filaments.value, icon: Droplets, href: "/filaments" },
+        { label: c.nav.products.value, icon: Package, href: "/products" },
+        { label: c.nav.stock.value, icon: Boxes, href: "/stock" },
+        { label: c.nav.production.value, icon: Factory, href: "/production" },
+        { label: c.nav.sales.value, icon: ShoppingCart, href: "/sales-ledger" },
+        { label: c.nav.printers.value, icon: Printer, href: "/printers" },
+      ],
+    },
+    {
+      label: c.groups.others.value,
+      items: [
+        { label: c.nav.customers.value, icon: Users, href: "/customers" },
+        { label: c.nav.export.value, icon: FileDown, href: "/export" },
+        { label: c.nav.alerts.value, icon: AlertTriangle, href: "/alerts" },
+      ],
+    },
+  ];
+
+  const adminItems = [
+    { label: c.nav.users.value, icon: Users, href: "/users" },
+    { label: c.nav.settings.value, icon: Settings, href: "/settings" },
+  ];
 
   useEffect(() => {
-    if (!user) return;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      const name =
+        user.user_metadata?.full_name ??
+        user.user_metadata?.name ??
+        user.email?.split("@")[0] ??
+        "";
+      setUserInfo({ name, email: user.email ?? "" });
+    });
+
     fetch("/api/auth/role")
       .then((r) => r.json())
       .then((d) => setRole(d.role ?? "user"))
       .catch(() => setRole("user"));
-  }, [user]);
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push(`/${locale}/sign-in`);
+    router.refresh();
+  };
 
   const isAdmin = role === "admin" || role === "superadmin";
   const close = () => setOpen(false);
@@ -198,12 +232,14 @@ export function Sidebar() {
 
       <aside
         className={cn(
-          "fixed md:static inset-y-0 left-0 z-40 w-56 flex flex-col bg-card border-r border-border transition-transform duration-200",
+          "fixed md:relative inset-y-0 left-0 z-40",
+          "w-56 flex-shrink-0 flex flex-col h-full",
+          "bg-card border-r border-border transition-transform duration-200",
           open ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         )}
       >
         {/* Logo */}
-        <div className="flex items-center gap-2.5 px-4 py-5 border-b border-border">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
           <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center text-primary flex-shrink-0">
             <SpoolIcon className="w-5 h-5" />
           </div>
@@ -225,10 +261,10 @@ export function Sidebar() {
                 {group.items.map(({ href, label, icon }) => (
                   <NavLink
                     key={href}
-                    href={href}
+                    href={l(href)}
                     label={label}
                     icon={icon}
-                    active={pathname.startsWith(href)}
+                    active={pathname.startsWith(`/${locale}${href}`)}
                     onClick={close}
                   />
                 ))}
@@ -239,10 +275,17 @@ export function Sidebar() {
           {!isAdmin && (
             <div className="space-y-0.5">
               <NavLink
-                href="/settings"
-                label="Configurações"
+                href={l("/settings")}
+                label={c.nav.settings.value}
                 icon={Settings}
-                active={pathname.startsWith("/settings")}
+                active={pathname.startsWith(`/${locale}/settings`)}
+                onClick={close}
+              />
+              <NavLink
+                href={l("/billing")}
+                label={c.nav.billing.value}
+                icon={CreditCard}
+                active={pathname.startsWith(`/${locale}/billing`)}
                 onClick={close}
               />
             </div>
@@ -251,16 +294,16 @@ export function Sidebar() {
           {isAdmin && (
             <div>
               <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
-                Administração
+                {c.groups.admin.value}
               </p>
               <div className="space-y-0.5">
                 {adminItems.map(({ href, label, icon }) => (
                   <NavLink
                     key={href}
-                    href={href}
+                    href={l(href)}
                     label={label}
                     icon={icon}
-                    active={pathname.startsWith(href)}
+                    active={pathname.startsWith(`/${locale}${href}`)}
                     onClick={close}
                   />
                 ))}
@@ -271,13 +314,13 @@ export function Sidebar() {
 
         {/* User / logout */}
         <div className="px-4 py-4 border-t border-border space-y-3">
-          {user && (
+          {userInfo && (
             <div className="space-y-0.5">
               <p className="text-xs font-semibold text-foreground truncate">
-                {user.firstName} {user.lastName}
+                {userInfo.name}
               </p>
               <p className="text-xs text-muted-foreground truncate">
-                {user.emailAddresses[0]?.emailAddress}
+                {userInfo.email}
               </p>
               <span
                 className={cn(
@@ -287,16 +330,16 @@ export function Sidebar() {
                     : "bg-muted text-muted-foreground",
                 )}
               >
-                {isAdmin ? "Admin" : "Viewer"}
+                {isAdmin ? c.roles.admin.value : c.roles.viewer.value}
               </span>
             </div>
           )}
           <button
-            onClick={() => signOut({ redirectUrl: "/sign-in" })}
+            onClick={handleSignOut}
             className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
           >
             <LogOut size={13} />
-            Sair
+            {c.signOut.value}
           </button>
         </div>
       </aside>

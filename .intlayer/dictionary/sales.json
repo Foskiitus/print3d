@@ -1,0 +1,123 @@
+{
+  "key": "sales",
+  "content": {
+    "nodeType": "translation",
+    "translation": {
+      "pt": {
+        "page": {
+          "title": "Vendas",
+          "heading": "Vendas",
+          "description": "Registe vendas e consulte o histórico de transações."
+        },
+        "summary": {
+          "transactions": "Transações",
+          "totalRevenue": "Receita total",
+          "estimatedProfit": "Lucro estimado"
+        },
+        "search": {
+          "placeholder": "Buscar por cliente ou produto..."
+        },
+        "table": {
+          "date": "Data",
+          "product": "Produto",
+          "customer": "Cliente",
+          "qty": "Qtd",
+          "pricePerUnit": "Preço/un",
+          "total": "Total",
+          "profit": "Lucro",
+          "notes": "Notas",
+          "noData": "sem dados",
+          "emptySearch": "Nenhuma venda encontrada.",
+          "emptyAll": "Nenhuma venda registada ainda."
+        },
+        "edit": {
+          "noCustomer": "— Sem cliente —",
+          "selectPlaceholder": "Selecionar...",
+          "notesPlaceholder": "Notas..."
+        },
+        "mobileDialog": {
+          "title": "Editar Venda",
+          "stockAvailable": "Stock disponível",
+          "units": "un.",
+          "quantity": "Quantidade",
+          "pricePerUnit": "Preço/un (€)",
+          "customerLabel": "Cliente",
+          "optional": "(opcional)",
+          "noCustomer": "— Sem cliente —",
+          "selectCustomer": "Selecionar cliente...",
+          "searchCustomer": "Pesquisar cliente...",
+          "notesLabel": "Notas",
+          "notesPlaceholder": "Observações...",
+          "cancel": "Cancelar",
+          "save": "Guardar",
+          "saving": "A guardar..."
+        },
+        "toast": {
+          "updated": "Venda atualizada",
+          "deleted": "Venda apagada",
+          "error": "Erro",
+          "confirmDelete": "Apagar esta venda?"
+        }
+      },
+      "en": {
+        "page": {
+          "title": "Sales",
+          "heading": "Sales",
+          "description": "Log sales and view your transaction history."
+        },
+        "summary": {
+          "transactions": "Transactions",
+          "totalRevenue": "Total revenue",
+          "estimatedProfit": "Estimated profit"
+        },
+        "search": {
+          "placeholder": "Search by customer or product..."
+        },
+        "table": {
+          "date": "Date",
+          "product": "Product",
+          "customer": "Customer",
+          "qty": "Qty",
+          "pricePerUnit": "Price/unit",
+          "total": "Total",
+          "profit": "Profit",
+          "notes": "Notes",
+          "noData": "No data",
+          "emptySearch": "No sales found.",
+          "emptyAll": "No sales recorded yet."
+        },
+        "edit": {
+          "noCustomer": "— No customer —",
+          "selectPlaceholder": "Select...",
+          "notesPlaceholder": "Notes..."
+        },
+        "mobileDialog": {
+          "title": "Edit Sale",
+          "stockAvailable": "Available stock",
+          "units": "un.",
+          "quantity": "Quantity",
+          "pricePerUnit": "Price/unit (€)",
+          "customerLabel": "Customer",
+          "optional": "(optional)",
+          "noCustomer": "— No customer —",
+          "selectCustomer": "Select customer...",
+          "searchCustomer": "Search customer...",
+          "notesLabel": "Notes",
+          "notesPlaceholder": "Observations...",
+          "cancel": "Cancel",
+          "save": "Save",
+          "saving": "Saving..."
+        },
+        "toast": {
+          "updated": "Sale updated",
+          "deleted": "Sale deleted",
+          "error": "Error",
+          "confirmDelete": "Delete this sale?"
+        }
+      }
+    }
+  },
+  "localIds": [
+    "sales::local::src/app/[locale]/(app)/sales-ledger/sales.content.ts"
+  ]
+}

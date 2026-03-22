@@ -12,10 +12,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
-import { Plus } from "lucide-react";
+import { Plus, ShieldCheck } from "lucide-react";
+import { useIntlayer } from "next-intlayer";
 
 export function NewCategoryDialog({ onCreated }: { onCreated: () => void }) {
+  const c = useIntlayer("dialogs");
+  const d = c.category;
+
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: "", description: "" });
@@ -23,7 +34,6 @@ export function NewCategoryDialog({ onCreated }: { onCreated: () => void }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name.trim()) return;
-
     setLoading(true);
     try {
       const res = await fetch("/api/categories", {
@@ -34,17 +44,15 @@ export function NewCategoryDialog({ onCreated }: { onCreated: () => void }) {
           description: form.description.trim() || null,
         }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro desconhecido");
-
-      toast({ title: "Categoria criada!" });
+      toast({ title: d.successToast.value });
       setForm({ name: "", description: "" });
       setOpen(false);
       onCreated();
     } catch (error: any) {
       toast({
-        title: "Erro",
+        title: c.common.error.value,
         description: error.message,
         variant: "destructive",
       });
@@ -58,19 +66,19 @@ export function NewCategoryDialog({ onCreated }: { onCreated: () => void }) {
       <DialogTrigger asChild>
         <Button size="sm">
           <Plus size={14} className="mr-1.5" />
-          Nova Categoria
+          {d.trigger}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Criar Categoria</DialogTitle>
+          <DialogTitle>{d.title}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           <div className="space-y-1.5">
-            <Label htmlFor="name">Nome</Label>
+            <Label htmlFor="name">{d.name}</Label>
             <Input
               id="name"
-              placeholder="ex: Porta-chaves, Decoração, Peças técnicas..."
+              placeholder={d.namePlaceholder.value}
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               required
@@ -78,14 +86,14 @@ export function NewCategoryDialog({ onCreated }: { onCreated: () => void }) {
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="description">
-              Descrição{" "}
+              {d.description}{" "}
               <span className="text-muted-foreground font-normal">
-                (opcional)
+                ({c.common.optional})
               </span>
             </Label>
             <Textarea
               id="description"
-              placeholder="Descrição da categoria..."
+              placeholder={d.descriptionPlaceholder.value}
               value={form.description}
               onChange={(e) =>
                 setForm({ ...form, description: e.target.value })
@@ -94,7 +102,7 @@ export function NewCategoryDialog({ onCreated }: { onCreated: () => void }) {
             />
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "A criar..." : "Criar Categoria"}
+            {loading ? c.common.creating : d.submit}
           </Button>
         </form>
       </DialogContent>

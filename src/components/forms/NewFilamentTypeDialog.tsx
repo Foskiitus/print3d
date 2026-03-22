@@ -16,8 +16,8 @@ import { Plus } from "lucide-react";
 import { ColorPicker } from "@/components/ui/colorPicker";
 import { numericInputProps } from "@/lib/numericInput";
 import { cn } from "@/lib/utils";
+import { useIntlayer } from "next-intlayer";
 
-// ─── Input com sugestões dropdown ────────────────────────────────────────────
 function SuggestInput({
   label,
   value,
@@ -85,16 +85,17 @@ function SuggestInput({
   );
 }
 
-// ─── NewFilamentTypeDialog ────────────────────────────────────────────────────
 export function NewFilamentTypeDialog({
   onCreated,
 }: {
   onCreated: () => void;
 }) {
+  const c = useIntlayer("dialogs");
+  const d = c.filamentType;
+
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [presets, setPresets] = useState<any[]>([]);
-
   const [form, setForm] = useState({
     brand: "",
     material: "",
@@ -145,7 +146,7 @@ export function NewFilamentTypeDialog({
         }),
       });
       if (!res.ok) throw new Error();
-      toast({ title: "Material adicionado ao catálogo!" });
+      toast({ title: d.newSuccess.value });
       setForm({
         brand: "",
         material: "",
@@ -157,8 +158,8 @@ export function NewFilamentTypeDialog({
       onCreated();
     } catch {
       toast({
-        title: "Erro",
-        description: "Falha ao comunicar com a base de dados.",
+        title: c.common.error.value,
+        description: d.newError.value,
         variant: "destructive",
       });
     } finally {
@@ -171,36 +172,34 @@ export function NewFilamentTypeDialog({
       <DialogTrigger asChild>
         <Button size="sm" variant="outline">
           <Plus size={14} className="mr-1.5" />
-          Novo Material
+          {d.newTrigger}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Registar Novo Filamento</DialogTitle>
+          <DialogTitle>{d.newTitle}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           <SuggestInput
-            label="Marca"
+            label={d.brand.value}
             value={form.brand}
             onChange={(v) => setForm((f) => ({ ...f, brand: v }))}
             suggestions={brandSuggestions}
-            placeholder="Ex: Bambu Lab"
+            placeholder={d.brandPlaceholder.value}
             required
           />
-
           <SuggestInput
-            label="Material"
+            label={d.material.value}
             value={form.material}
             onChange={(v) => setForm((f) => ({ ...f, material: v }))}
             suggestions={materialSuggestions}
-            placeholder="Ex: PLA Basic, PETG, ASA"
+            placeholder={d.materialPlaceholder.value}
             required
           />
 
-          {/* Cores sugeridas pelo preset */}
           {colorSuggestions.length > 0 && (
             <div className="space-y-1.5">
-              <Label>Cores sugeridas</Label>
+              <Label>{d.suggestedColors}</Label>
               <div className="flex flex-wrap gap-1.5 p-2.5 bg-muted/30 rounded-lg border border-border max-h-32 overflow-y-auto">
                 {colorSuggestions.map((p) => (
                   <button
@@ -235,16 +234,16 @@ export function NewFilamentTypeDialog({
                 ))}
               </div>
               <p className="text-[10px] text-muted-foreground">
-                Clica para preencher — ou define uma cor personalizada abaixo.
+                {d.suggestedColorsSub}
               </p>
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>Nome/Código da Cor</Label>
+              <Label>{d.colorName}</Label>
               <Input
-                placeholder="Ex: Preto"
+                placeholder={d.colorNamePlaceholder.value}
                 value={form.colorName}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, colorName: e.target.value }))
@@ -253,7 +252,7 @@ export function NewFilamentTypeDialog({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Cor Visual</Label>
+              <Label>{d.colorVisual}</Label>
               <div className="flex gap-2">
                 <ColorPicker
                   value={form.colorHex}
@@ -278,15 +277,15 @@ export function NewFilamentTypeDialog({
 
           <div className="space-y-1.5">
             <Label>
-              Alerta de stock mínimo (g){" "}
+              {d.alertThreshold}{" "}
               <span className="text-muted-foreground font-normal">
-                (opcional)
+                ({c.common.optional})
               </span>
             </Label>
             <Input
               type="number"
               min="0"
-              placeholder="Padrão: 500g"
+              placeholder={d.alertThresholdPlaceholder.value}
               value={form.alertThreshold}
               onChange={(e) =>
                 setForm((f) => ({ ...f, alertThreshold: e.target.value }))
@@ -294,12 +293,12 @@ export function NewFilamentTypeDialog({
               {...numericInputProps()}
             />
             <p className="text-[10px] text-muted-foreground">
-              Se não definires, usa 500g.
+              {d.alertThresholdSub}
             </p>
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "A processar..." : "Guardar no Catálogo"}
+            {loading ? d.newSubmitting : d.newSubmit}
           </Button>
         </form>
       </DialogContent>

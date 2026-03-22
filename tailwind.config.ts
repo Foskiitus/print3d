@@ -19,6 +19,43 @@ module.exports = {
 
       // ─── Color tokens ────────────────────────────────────────────
       colors: {
+        // SpoolIQ Blue Steel palette
+        brand: {
+          DEFAULT: "#0284c7",
+          50: "#f0f9ff",
+          100: "#e0f2fe",
+          200: "#bae6fd",
+          300: "#7dd3fc",
+          400: "#38bdf8",
+          500: "#0ea5e9",
+          600: "#0284c7",
+          700: "#0369a1",
+          800: "#075985",
+          900: "#0c4a6e",
+        },
+        navy: {
+          DEFAULT: "#0f172a",
+          50: "#f8fafc",
+          100: "#f1f5f9",
+          200: "#e2e8f0",
+          300: "#cbd5e1",
+          400: "#94a3b8",
+          500: "#64748b",
+          600: "#475569",
+          700: "#334155",
+          800: "#1e293b",
+          850: "#0f1c30",
+          900: "#0a1020",
+          950: "#060c18",
+        },
+        dark: {
+          bg: "#060c18",
+          surface: "#0a1020",
+          border: "#0f1c30",
+          muted: "#1e2d47",
+          subtle: "#3d5a80",
+        },
+
         // shadcn/ui base tokens (mapped to CSS vars)
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

@@ -1,0 +1,66 @@
+/* eslint-disable */
+export default {
+  "key": "sidebar",
+  "content": {
+    "nodeType": "translation",
+    "translation": {
+      "pt": {
+        "groups": {
+          "management": "Gestão",
+          "others": "Outros",
+          "admin": "Administração"
+        },
+        "nav": {
+          "dashboard": "Dashboard",
+          "filaments": "Filamentos",
+          "products": "Produtos",
+          "stock": "Stock",
+          "production": "Produção",
+          "sales": "Vendas",
+          "printers": "Impressoras",
+          "customers": "Clientes",
+          "export": "Exportação",
+          "alerts": "Alertas",
+          "settings": "Configurações",
+          "billing": "Subscrição",
+          "users": "Utilizadores"
+        },
+        "roles": {
+          "admin": "Admin",
+          "viewer": "Viewer"
+        },
+        "signOut": "Sair"
+      },
+      "en": {
+        "groups": {
+          "management": "Management",
+          "others": "Others",
+          "admin": "Administration"
+        },
+        "nav": {
+          "dashboard": "Dashboard",
+          "filaments": "Filaments",
+          "products": "Products",
+          "stock": "Stock",
+          "production": "Production",
+          "sales": "Sales",
+          "printers": "Printers",
+          "customers": "Customers",
+          "export": "Export",
+          "alerts": "Alerts",
+          "settings": "Settings",
+          "billing": "Billing",
+          "users": "Users"
+        },
+        "roles": {
+          "admin": "Admin",
+          "viewer": "Viewer"
+        },
+        "signOut": "Sign out"
+      }
+    }
+  },
+  "localIds": [
+    "sidebar::local::src/components/layout/sidebar.content.ts"
+  ]
+} as const;

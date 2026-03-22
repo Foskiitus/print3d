@@ -17,6 +17,7 @@ import { toast } from "@/components/ui/toaster";
 import { refreshAlerts } from "@/lib/refreshAlerts";
 import { Factory, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { useIntlayer } from "next-intlayer";
 
 export function AddProductionDialog({
   products,
@@ -27,6 +28,9 @@ export function AddProductionDialog({
   printers: any[];
   onAdded: () => void;
 }) {
+  const c = useIntlayer("dialogs");
+  const d = c.production;
+
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [productId, setProductId] = useState("");
@@ -62,11 +66,9 @@ export function AddProductionDialog({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!productId || !printerId) return;
-
     const printTime =
       (parseInt(printHours || "0", 10) || 0) * 60 +
       (parseInt(printMinutes || "0", 10) || 0);
-
     setLoading(true);
     try {
       const res = await fetch("/api/production", {
@@ -81,21 +83,18 @@ export function AddProductionDialog({
         }),
       });
       const data = await res.json();
-      if (!res.ok)
-        throw new Error(data.error || "Não foi possível registar a produção.");
-
+      if (!res.ok) throw new Error(data.error || d.errorDefault.value);
       toast({
-        title: "Produção registada!",
-        description: `+${quantity} unidade(s) de "${selectedProduct?.name}". Custo: ${formatCurrency(data.totalCost || 0)}`,
+        title: d.successTitle.value,
+        description: `+${quantity} × "${selectedProduct?.name}". ${c.common.total.value}: ${formatCurrency(data.totalCost || 0)}`,
       });
-
       reset();
       setOpen(false);
       refreshAlerts();
       onAdded();
     } catch (error: any) {
       toast({
-        title: "Produção recusada",
+        title: d.errorTitle.value,
         description: error.message,
         variant: "destructive",
       });
@@ -115,35 +114,33 @@ export function AddProductionDialog({
       <DialogTrigger asChild>
         <Button size="sm">
           <Factory size={14} className="mr-1.5" />
-          Registar produção
+          {d.trigger}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Registar Produção</DialogTitle>
+          <DialogTitle>{d.title}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-          {/* Produto */}
           <div className="space-y-1.5">
-            <Label>Produto</Label>
+            <Label>{d.product}</Label>
             <SearchableSelect
               options={products.map((p) => ({
                 value: p.id,
                 label:
                   p.unitsPerPrint > 1
-                    ? `${p.name} (×${p.unitsPerPrint}/impressão)`
+                    ? `${p.name} (×${p.unitsPerPrint}/${d.unitsPerPrint.value})`
                     : p.name,
               }))}
               value={productId}
               onValueChange={handleProductChange}
-              placeholder="Selecionar produto..."
-              searchPlaceholder="Pesquisar produto..."
+              placeholder={d.productPlaceholder.value}
+              searchPlaceholder={d.productSearch.value}
             />
           </div>
 
-          {/* Impressora */}
           <div className="space-y-1.5">
-            <Label>Impressora</Label>
+            <Label>{d.printer}</Label>
             {selectedProduct?.printerId ? (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-muted/30 text-sm">
                 <span className="font-medium">
@@ -151,7 +148,7 @@ export function AddProductionDialog({
                     ?.name ?? "—"}
                 </span>
                 <span className="text-[10px] text-muted-foreground ml-auto">
-                  definida no produto
+                  {d.printerSetOnProduct}
                 </span>
               </div>
             ) : (
@@ -159,14 +156,13 @@ export function AddProductionDialog({
                 options={printers.map((p) => ({ value: p.id, label: p.name }))}
                 value={printerId}
                 onValueChange={setPrinterId}
-                placeholder="Selecionar impressora..."
-                searchPlaceholder="Pesquisar impressora..."
-                emptyText="Nenhuma impressora registada."
+                placeholder={d.printerPlaceholder.value}
+                searchPlaceholder={d.printerSearch.value}
+                emptyText={d.printerEmpty.value}
               />
             )}
           </div>
 
-          {/* Resumo do produto selecionado */}
           {selectedProduct &&
             (() => {
               const totalFilament =
@@ -178,15 +174,14 @@ export function AddProductionDialog({
                 <div className="p-3 rounded-lg bg-muted/40 text-sm space-y-1.5">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">
-                      Unidades produzidas
+                      {d.unitsProduced}
                     </span>
-                    {/* ✅ text-success em vez de text-emerald-400 */}
                     <span className="font-bold text-success">+{quantity}</span>
                   </div>
                   {totalFilament > 0 && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">
-                        Filamento estimado
+                        {d.estimatedFilament}
                       </span>
                       <span className="font-medium">{totalFilament}g</span>
                     </div>
@@ -215,17 +210,16 @@ export function AddProductionDialog({
                   )}
                   {selectedProduct.unitsPerPrint > 1 && (
                     <p className="text-[10px] text-muted-foreground pt-0.5">
-                      Calculado automaticamente ({selectedProduct.unitsPerPrint}{" "}
-                      unidades/impressão)
+                      {d.autoCalculated} ({selectedProduct.unitsPerPrint}{" "}
+                      {d.unitsPerPrintLabel.value})
                     </p>
                   )}
                 </div>
               );
             })()}
 
-          {/* Tempo de impressão */}
           <div className="space-y-1.5">
-            <Label>Tempo de impressão</Label>
+            <Label>{d.printTime}</Label>
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Input
@@ -237,7 +231,7 @@ export function AddProductionDialog({
                   className="pr-8"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
-                  h
+                  {c.common.hours}
                 </span>
               </div>
               <div className="relative flex-1">
@@ -251,26 +245,24 @@ export function AddProductionDialog({
                   className="pr-10"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
-                  min
+                  {c.common.minutes}
                 </span>
               </div>
             </div>
             <p className="text-[10px] text-muted-foreground">
-              Pré-preenchido com o valor do produto — altere se o tempo real foi
-              diferente
+              {d.printTimeSub}
             </p>
           </div>
 
-          {/* Notas */}
           <div className="space-y-1.5">
             <Label>
-              Notas{" "}
+              {d.notes}{" "}
               <span className="text-muted-foreground font-normal">
-                (opcional)
+                ({c.common.optional})
               </span>
             </Label>
             <Textarea
-              placeholder="Observações sobre esta produção..."
+              placeholder={d.notesPlaceholder.value}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
@@ -283,7 +275,7 @@ export function AddProductionDialog({
               variant="outline"
               onClick={() => setOpen(false)}
             >
-              Cancelar
+              {c.common.cancel}
             </Button>
             <Button
               type="submit"
@@ -291,11 +283,11 @@ export function AddProductionDialog({
             >
               {loading ? (
                 <>
-                  <Loader2 size={14} className="mr-2 animate-spin" />A
-                  processar...
+                  <Loader2 size={14} className="mr-2 animate-spin" />
+                  {d.submitting}
                 </>
               ) : (
-                "Registar no Stock"
+                d.submit
               )}
             </Button>
           </div>

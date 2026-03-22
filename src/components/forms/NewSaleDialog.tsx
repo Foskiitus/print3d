@@ -18,18 +18,23 @@ import { refreshAlerts } from "@/lib/refreshAlerts";
 import { ShoppingCart, UserPlus } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { useIntlayer } from "next-intlayer";
 
 export function NewSaleDialog({
   products,
   onCreated,
+  locale,
 }: {
   products: any[];
   onCreated: () => void;
+  locale?: string;
 }) {
+  const c = useIntlayer("dialogs");
+  const d = c.sale;
+
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [customers, setCustomers] = useState<any[]>([]);
-
   const [productId, setProductId] = useState("");
   const [quantity, setQuantity] = useState("");
   const [salePrice, setSalePrice] = useState("");
@@ -47,19 +52,12 @@ export function NewSaleDialog({
       .catch(() => {});
   }, [open]);
 
-  const handleProductChange = (id: string) => {
-    setProductId(id);
-    setQuantity("");
-  };
-
   const total =
     salePrice && quantity && Number(quantity) > 0
       ? Number(salePrice) * Number(quantity)
       : null;
-
   const quantityExceedsStock =
     quantity !== "" && Number(quantity) > availableStock;
-
   const productionCost = selectedProduct?.costPerUnit ?? null;
   const profit =
     total !== null && productionCost !== null
@@ -74,17 +72,15 @@ export function NewSaleDialog({
     setNotes("");
   };
 
-  // ─── Stock color helper ───────────────────────────────────────────────────
   function stockColor(stock: number) {
     if (stock <= 0) return "text-destructive";
-    if (stock <= 3) return "text-warning"; // ✅ text-warning em vez de text-yellow-500
+    if (stock <= 3) return "text-warning";
     return "text-muted-foreground";
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!productId || !salePrice || !quantity) return;
-
     setLoading(true);
     try {
       const res = await fetch("/api/sales", {
@@ -99,21 +95,19 @@ export function NewSaleDialog({
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Erro ao registar venda");
-
-      const customerName = customers.find((c) => c.id === customerId)?.name;
+      if (!res.ok) throw new Error(data.error || d.errorDefault.value);
+      const customerName = customers.find((cu) => cu.id === customerId)?.name;
       toast({
-        title: "Venda registada!",
+        title: d.successTitle.value,
         description: `${quantity}× ${selectedProduct?.name}${customerName ? ` — ${customerName}` : ""} — ${formatCurrency(Number(salePrice) * Number(quantity))}`,
       });
-
       reset();
       setOpen(false);
       refreshAlerts();
       onCreated();
     } catch (error: any) {
       toast({
-        title: "Erro",
+        title: c.common.error.value,
         description: error.message,
         variant: "destructive",
       });
@@ -133,17 +127,16 @@ export function NewSaleDialog({
       <DialogTrigger asChild>
         <Button size="sm">
           <ShoppingCart size={14} className="mr-1.5" />
-          Nova Venda
+          {d.trigger}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Registar Venda</DialogTitle>
+          <DialogTitle>{d.title}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-          {/* Produto */}
           <div className="space-y-1.5">
-            <Label>Produto</Label>
+            <Label>{d.product}</Label>
             <SearchableSelect
               options={products.map((p) => ({
                 value: p.id,
@@ -164,28 +157,31 @@ export function NewSaleDialog({
                 disabled: p.stock <= 0,
               }))}
               value={productId}
-              onValueChange={handleProductChange}
-              placeholder="Selecionar produto..."
-              searchPlaceholder="Pesquisar produto..."
+              onValueChange={(id) => {
+                setProductId(id);
+                setQuantity("");
+              }}
+              placeholder={d.productPlaceholder.value}
+              searchPlaceholder={d.productSearch.value}
             />
             {selectedProduct && (
               <p className={cn("text-[10px]", stockColor(availableStock))}>
                 {availableStock <= 0
-                  ? "Sem stock disponível"
-                  : `${availableStock} unidade(s) disponível(eis)`}
+                  ? d.noStock
+                  : `${availableStock} ${d.unitsAvailable}`}
               </p>
             )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="quantity">Quantidade</Label>
+              <Label htmlFor="quantity">{d.quantity}</Label>
               <Input
                 id="quantity"
                 type="number"
                 min="1"
                 max={availableStock || undefined}
-                placeholder="ex: 1"
+                placeholder={d.quantityPlaceholder.value}
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
                 className={quantityExceedsStock ? "border-destructive" : ""}
@@ -193,12 +189,12 @@ export function NewSaleDialog({
               />
               {quantityExceedsStock && (
                 <p className="text-[10px] text-destructive">
-                  Excede o stock ({availableStock} un.)
+                  {d.exceedsStock} ({availableStock} un.)
                 </p>
               )}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="salePrice">Preço por unidade (€)</Label>
+              <Label htmlFor="salePrice">{d.unitPrice}</Label>
               <Input
                 id="salePrice"
                 type="number"
@@ -212,17 +208,17 @@ export function NewSaleDialog({
             </div>
           </div>
 
-          {/* Total preview */}
           {total !== null && (
             <div className="p-3 rounded-lg bg-muted/40 text-sm space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Total da venda</span>
+                <span className="text-muted-foreground">{d.totalSale}</span>
                 <span className="font-bold">{formatCurrency(total)}</span>
               </div>
               {profit !== null && (
                 <div className="flex justify-between items-center border-t border-border pt-2">
-                  <span className="text-muted-foreground">Lucro estimado</span>
-                  {/* ✅ text-success em vez de text-emerald-400 */}
+                  <span className="text-muted-foreground">
+                    {d.estimatedProfit}
+                  </span>
                   <span
                     className={cn(
                       "font-bold",
@@ -237,24 +233,23 @@ export function NewSaleDialog({
             </div>
           )}
 
-          {/* Cliente */}
           <div className="space-y-1.5">
             <Label>
-              Cliente{" "}
+              {d.customer}{" "}
               <span className="text-muted-foreground font-normal">
-                (opcional)
+                ({c.common.optional})
               </span>
             </Label>
             <SearchableSelect
-              options={customers.map((c) => ({
-                value: c.id,
-                label: c.email ? `${c.name} (${c.email})` : c.name,
+              options={customers.map((cu) => ({
+                value: cu.id,
+                label: cu.email ? `${cu.name} (${cu.email})` : cu.name,
                 render: (
                   <div className="flex flex-col">
-                    <span>{c.name}</span>
-                    {c.email && (
+                    <span>{cu.name}</span>
+                    {cu.email && (
                       <span className="text-[10px] text-muted-foreground">
-                        {c.email}
+                        {cu.email}
                       </span>
                     )}
                   </div>
@@ -262,31 +257,30 @@ export function NewSaleDialog({
               }))}
               value={customerId}
               onValueChange={setCustomerId}
-              placeholder="Selecionar cliente..."
-              searchPlaceholder="Pesquisar nome ou email..."
-              emptyText="Nenhum cliente registado."
+              placeholder={d.customerPlaceholder.value}
+              searchPlaceholder={d.customerSearch.value}
+              emptyText={d.customerEmpty.value}
             />
             <a
-              href="/customers"
+              href={locale ? `/${locale}/customers` : "/customers"}
               target="_blank"
               className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors w-fit"
             >
               <UserPlus size={11} />
-              Gerir clientes
+              {d.manageCustomers}
             </a>
           </div>
 
-          {/* Notas */}
           <div className="space-y-1.5">
             <Label htmlFor="notes">
-              Notas{" "}
+              {d.notes}{" "}
               <span className="text-muted-foreground font-normal">
-                (opcional)
+                ({c.common.optional})
               </span>
             </Label>
             <Textarea
               id="notes"
-              placeholder="Observações..."
+              placeholder={d.notesPlaceholder.value}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
@@ -299,7 +293,7 @@ export function NewSaleDialog({
               variant="outline"
               onClick={() => setOpen(false)}
             >
-              Cancelar
+              {c.common.cancel}
             </Button>
             <Button
               type="submit"
@@ -312,7 +306,7 @@ export function NewSaleDialog({
                 availableStock <= 0
               }
             >
-              {loading ? "A registar..." : "Registar Venda"}
+              {loading ? d.submitting : d.submit}
             </Button>
           </div>
         </form>

@@ -1,0 +1,101 @@
+/* eslint-disable */
+export default {
+  "key": "alerts",
+  "content": {
+    "nodeType": "translation",
+    "translation": {
+      "pt": {
+        "products": {
+          "title": "Stock de produtos",
+          "empty": "Nenhum produto com stock baixo.",
+          "stockInfo": "un. em stock · alerta abaixo de"
+        },
+        "filaments": {
+          "title": "Filamentos",
+          "empty": "Nenhuma bobine com stock baixo.",
+          "remaining": "g no total · alerta abaixo de",
+          "spools": "bobines"
+        },
+        "alertCount": "alerta(s)",
+        "viewAll": "Ver todos os alertas",
+        "title": "Alertas de Stock",
+        "subtitle": "Produtos e bobines abaixo do limite definido.",
+        "activeBadge": "alerta(s) ativo(s)",
+        "allClear": {
+          "title": "Tudo em ordem!",
+          "sub": "Nenhum produto ou bobine abaixo do limite de alerta."
+        },
+        "sections": {
+          "products": "Produtos",
+          "spools": "Bobines de filamento"
+        },
+        "stock": {
+          "units": "unidades",
+          "inStock": "em stock",
+          "alertBelow": "alerta abaixo de",
+          "un": "un.",
+          "total": "no total",
+          "spoolsSuffix": "bobines",
+          "default": "padrão"
+        },
+        "links": {
+          "viewProduct": "Ver produto",
+          "viewFilaments": "Ver filamentos"
+        },
+        "howTo": {
+          "title": "Como configurar alertas",
+          "products": "Para produtos: abre o produto e define o campo \"Alerta de stock mínimo\" na edição.",
+          "spools": "Para bobines: abre o filamento e define o campo \"Alerta de stock mínimo\" na bobine."
+        }
+      },
+      "en": {
+        "products": {
+          "title": "Product stock",
+          "empty": "No products with low stock.",
+          "stockInfo": "un. in stock · alert below"
+        },
+        "filaments": {
+          "title": "Filaments",
+          "empty": "No spools with low stock.",
+          "remaining": "g total · alert below",
+          "spools": "spools"
+        },
+        "alertCount": "alert(s)",
+        "viewAll": "View all alerts",
+        "title": "Stock Alerts",
+        "subtitle": "Products and spools below the defined threshold.",
+        "activeBadge": "active alert(s)",
+        "allClear": {
+          "title": "All clear!",
+          "sub": "No products or spools below the alert threshold."
+        },
+        "sections": {
+          "products": "Products",
+          "spools": "Filament spools"
+        },
+        "stock": {
+          "units": "units",
+          "inStock": "in stock",
+          "alertBelow": "alert below",
+          "un": "units",
+          "total": "total",
+          "spoolsSuffix": "spools",
+          "default": "default"
+        },
+        "links": {
+          "viewProduct": "View product",
+          "viewFilaments": "View filaments"
+        },
+        "howTo": {
+          "title": "How to configure alerts",
+          "products": "For products: open the product and set the \"Minimum stock alert\" field when editing.",
+          "spools": "For spools: open the filament and set the \"Minimum stock alert\" field on the spool."
+        }
+      }
+    }
+  },
+  "localIds": [
+    "alerts::local::src/components/layout/alerts.content.ts",
+    "alerts::local::src/app/[locale]/(app)/alerts/alerts.content.ts"
+  ]
+} as const;

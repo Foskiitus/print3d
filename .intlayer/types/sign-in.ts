@@ -1,0 +1,42 @@
+/* eslint-disable */
+export default {
+  "key": "sign-in",
+  "content": {
+    "nodeType": "translation",
+    "translation": {
+      "pt": {
+        "title": "Entrar",
+        "subtitle": "Bem-vindo de volta ao SpoolIQ",
+        "emailLabel": "Email",
+        "emailPlaceholder": "tu@exemplo.com",
+        "passwordLabel": "Password",
+        "passwordPlaceholder": "••••••••",
+        "submitButton": "Entrar",
+        "submittingButton": "A entrar…",
+        "errorMessage": "Email ou password incorretos.",
+        "orDivider": "ou",
+        "googleButton": "Entrar com Google",
+        "noAccount": "Não tens conta?",
+        "registerLink": "Registar"
+      },
+      "en": {
+        "title": "Sign in",
+        "subtitle": "Welcome back to SpoolIQ",
+        "emailLabel": "Email",
+        "emailPlaceholder": "you@example.com",
+        "passwordLabel": "Password",
+        "passwordPlaceholder": "••••••••",
+        "submitButton": "Sign in",
+        "submittingButton": "Signing in…",
+        "errorMessage": "Incorrect email or password.",
+        "orDivider": "or",
+        "googleButton": "Sign in with Google",
+        "noAccount": "Don't have an account?",
+        "registerLink": "Register"
+      }
+    }
+  },
+  "localIds": [
+    "sign-in::local::src/app/[locale]/sign-in/[[...sign-in]]/sign-in.content.ts"
+  ]
+} as const;

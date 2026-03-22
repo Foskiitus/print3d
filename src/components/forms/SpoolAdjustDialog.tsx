@@ -22,15 +22,7 @@ import { toast } from "@/components/ui/toaster";
 import { refreshAlerts } from "@/lib/refreshAlerts";
 import { SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const REASONS = [
-  "Impressão falhada",
-  "Bobine com peso errado",
-  "Filamento partido",
-  "Purga/limpeza",
-  "Correção manual",
-  "Outro",
-];
+import { useIntlayer } from "next-intlayer";
 
 export function SpoolAdjustDialog({
   spool,
@@ -44,6 +36,9 @@ export function SpoolAdjustDialog({
   };
   onAdjusted: () => void;
 }) {
+  const c = useIntlayer("dialogs");
+  const d = c.spoolAdjust;
+
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ type: "waste", amount: "", reason: "" });
@@ -54,13 +49,20 @@ export function SpoolAdjustDialog({
       : form.type === "waste"
         ? -Math.abs(Number(form.amount))
         : Number(form.amount);
-
   const newRemaining = spool.remaining + adjustAmount;
+
+  const reasons = [
+    { value: "Impressão falhada", label: d.reasons.failedPrint.value },
+    { value: "Bobine com peso errado", label: d.reasons.wrongWeight.value },
+    { value: "Filamento partido", label: d.reasons.brokenFilament.value },
+    { value: "Purga/limpeza", label: d.reasons.purge.value },
+    { value: "Correção manual", label: d.reasons.manualCorrection.value },
+    { value: "Outro", label: d.reasons.other.value },
+  ];
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.amount || Number(form.amount) === 0) return;
-
     setLoading(true);
     try {
       const res = await fetch(`/api/filaments/spools/${spool.id}/adjust`, {
@@ -73,10 +75,9 @@ export function SpoolAdjustDialog({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro desconhecido");
-
       toast({
-        title: "Ajuste registado",
-        description: `Novo peso: ${data.spool.remaining}g`,
+        title: d.successTitle.value,
+        description: `${d.successDesc.value} ${data.spool.remaining}g`,
       });
       setForm({ type: "waste", amount: "", reason: "" });
       setOpen(false);
@@ -84,7 +85,7 @@ export function SpoolAdjustDialog({
       onAdjusted();
     } catch (error: any) {
       toast({
-        title: "Erro ao registar ajuste",
+        title: d.errorTitle.value,
         description: error.message,
         variant: "destructive",
       });
@@ -100,17 +101,15 @@ export function SpoolAdjustDialog({
           variant="ghost"
           size="icon"
           className="h-7 w-7 text-muted-foreground hover:text-foreground flex-shrink-0"
-          title="Registar ajuste"
+          title={d.buttonTitle.value}
         >
           <SlidersHorizontal size={13} />
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Registar Ajuste de Stock</DialogTitle>
+          <DialogTitle>{d.title}</DialogTitle>
         </DialogHeader>
-
-        {/* Info da bobine */}
         <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/40 text-sm">
           <div
             className="w-3 h-3 rounded-full flex-shrink-0"
@@ -129,11 +128,9 @@ export function SpoolAdjustDialog({
             {spool.remaining}g / {spool.spoolWeight}g
           </span>
         </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Tipo de ajuste */}
           <div className="space-y-1.5">
-            <Label>Tipo de ajuste</Label>
+            <Label>{d.typeLabel}</Label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -145,7 +142,7 @@ export function SpoolAdjustDialog({
                     : "border-border text-muted-foreground hover:border-foreground/30",
                 )}
               >
-                — Desperdício
+                {d.waste}
               </button>
               <button
                 type="button"
@@ -157,50 +154,46 @@ export function SpoolAdjustDialog({
                     : "border-border text-muted-foreground hover:border-foreground/30",
                 )}
               >
-                ± Correção
+                {d.correction}
               </button>
             </div>
           </div>
-
-          {/* Quantidade */}
           <div className="space-y-1.5">
             <Label htmlFor="amount">
-              {form.type === "waste"
-                ? "Quantidade desperdiçada (g)"
-                : "Ajuste em gramas (use - para reduzir)"}
+              {form.type === "waste" ? d.wasteAmount : d.correctionAmount}
             </Label>
             <Input
               id="amount"
               type="number"
               step="0.1"
-              placeholder={form.type === "waste" ? "ex: 20" : "ex: -20 ou 15"}
+              placeholder={
+                form.type === "waste"
+                  ? d.wastePlaceholder.value
+                  : d.correctionPlaceholder.value
+              }
               value={form.amount}
               onChange={(e) => setForm({ ...form, amount: e.target.value })}
               required
             />
           </div>
-
-          {/* Motivo */}
           <div className="space-y-1.5">
-            <Label>Motivo</Label>
+            <Label>{d.reason}</Label>
             <Select
               value={form.reason}
               onValueChange={(v) => setForm({ ...form, reason: v })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Selecione um motivo..." />
+                <SelectValue placeholder={d.reasonPlaceholder.value} />
               </SelectTrigger>
               <SelectContent>
-                {REASONS.map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {r}
+                {reasons.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>
+                    {r.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-
-          {/* Preview do resultado */}
           {form.amount !== "" && Number(form.amount) !== 0 && (
             <div
               className={cn(
@@ -211,12 +204,11 @@ export function SpoolAdjustDialog({
               )}
             >
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Peso atual</span>
+                <span className="text-muted-foreground">{d.currentWeight}</span>
                 <span>{spool.remaining}g</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Ajuste</span>
-                {/* ✅ text-success em vez de text-green-500 */}
+                <span className="text-muted-foreground">{d.adjustment}</span>
                 <span
                   className={
                     adjustAmount < 0 ? "text-destructive" : "text-success"
@@ -227,22 +219,19 @@ export function SpoolAdjustDialog({
                 </span>
               </div>
               <div className="flex justify-between font-bold border-t border-border mt-1.5 pt-1.5">
-                <span>Novo peso</span>
+                <span>{d.newWeight}</span>
                 <span className={newRemaining < 0 ? "text-destructive" : ""}>
-                  {newRemaining < 0
-                    ? "Inválido"
-                    : `${newRemaining.toFixed(1)}g`}
+                  {newRemaining < 0 ? d.invalid : `${newRemaining.toFixed(1)}g`}
                 </span>
               </div>
             </div>
           )}
-
           <Button
             type="submit"
             className="w-full"
             disabled={loading || newRemaining < 0 || !form.amount}
           >
-            {loading ? "A registar..." : "Confirmar Ajuste"}
+            {loading ? d.submitting : d.submit}
           </Button>
         </form>
       </DialogContent>

@@ -1,0 +1,115 @@
+import { getAuthUserId } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { SalesClient } from "./SalesClient";
+import { getIntlayer } from "intlayer";
+import type { LocalesValues } from "intlayer";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: LocalesValues }>;
+}) {
+  const { locale } = await params;
+  const c = getIntlayer("sales", locale);
+  return { title: c.page.title };
+}
+
+export default async function SalesLedgerPage({
+  params,
+}: {
+  params: Promise<{ locale: LocalesValues }>;
+}) {
+  const { locale } = await params;
+  const c = getIntlayer("sales", locale);
+
+  const userId = await getAuthUserId();
+  if (!userId) redirect("/sign-in");
+
+  const [sales, products, productionTotals, salesTotals, productionCosts] =
+    await Promise.all([
+      prisma.sale.findMany({
+        where: { userId },
+        include: { product: true, customer: true },
+        orderBy: { date: "desc" },
+      }),
+      prisma.product.findMany({
+        where: { userId },
+        orderBy: { name: "asc" },
+      }),
+      prisma.productionLog.groupBy({
+        by: ["productId"],
+        where: { userId },
+        _sum: { quantity: true },
+      }),
+      prisma.sale.groupBy({
+        by: ["productId"],
+        where: { userId },
+        _sum: { quantity: true },
+      }),
+      prisma.productionLog.groupBy({
+        by: ["productId"],
+        where: { userId },
+        _avg: { totalCost: true },
+      }),
+    ]);
+
+  const stockMap = Object.fromEntries(
+    products.map((p) => {
+      const produced =
+        productionTotals.find((t) => t.productId === p.id)?._sum.quantity ?? 0;
+      const sold =
+        salesTotals.find((t) => t.productId === p.id)?._sum.quantity ?? 0;
+      return [p.id, produced - sold];
+    }),
+  );
+
+  const costMap = Object.fromEntries(
+    productionCosts.map((p) => [
+      p.productId,
+      (p._avg.totalCost ?? 0) /
+        (products.find((pr) => pr.id === p.productId)?.unitsPerPrint ?? 1),
+    ]),
+  );
+
+  const productsWithStock = products.map((p) => ({
+    ...p,
+    stock: stockMap[p.id] ?? 0,
+    costPerUnit: costMap[p.id] ?? null,
+    createdAt: p.createdAt.toISOString(),
+    updatedAt: p.updatedAt.toISOString(),
+  }));
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-xl font-semibold text-foreground">
+          {c.page.heading}
+        </h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          {c.page.description}
+        </p>
+      </div>
+      <SalesClient
+        initialSales={sales.map((s) => ({
+          ...s,
+          date: s.date.toISOString(),
+          product: {
+            ...s.product,
+            createdAt: s.product.createdAt.toISOString(),
+            updatedAt: s.product.updatedAt.toISOString(),
+          },
+          customer: s.customer
+            ? {
+                id: s.customer.id,
+                name: s.customer.name,
+                email: s.customer.email,
+              }
+            : null,
+          costPerUnit: costMap[s.productId] ?? null,
+        }))}
+        products={productsWithStock as any}
+      />
+    </div>
+  );
+}

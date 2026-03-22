@@ -1,0 +1,66 @@
+/* eslint-disable */
+export default {
+  "key": "landing",
+  "content": {
+    "nodeType": "translation",
+    "translation": {
+      "pt": {
+        "badge": "ERP para Makers de Impressão 3D",
+        "headline1": "Gestão inteligente",
+        "headline2": "de impressão 3D",
+        "subheadline": "Do filamento à venda, tudo calculado. Controla bobinas, impressoras, custos e encomendas numa plataforma feita para quem imprime a sério.",
+        "tagline": "Know your costs. Control your spools. Scale your prints.",
+        "cta_start": "Começar grátis",
+        "cta_login": "Login",
+        "social_makers": "+200 makers",
+        "social_rating": "4.9/5",
+        "social_no_card": "Sem cartão de crédito",
+        "features_badge": "Funcionalidades",
+        "features_title1": "Tudo o que um maker precisa,",
+        "features_title2": "num só lugar",
+        "features_subtitle": "Print smarter, not harder. Do controlo do filamento à venda final.",
+        "pricing_badge": "Preços simples",
+        "pricing_title1": "Começa grátis,",
+        "pricing_title2": " escala quando quiseres",
+        "pricing_subtitle": "Sem compromissos. Cancela quando quiseres.",
+        "faq_title": "Perguntas frequentes",
+        "cta_final_title": "Pronto para imprimir com inteligência?",
+        "cta_final_sub": "SpoolIQ — Print smarter, not harder. Começa grátis hoje.",
+        "footer_tagline": "Da bobina à venda, tudo calculado.",
+        "footer_privacy": "Privacidade",
+        "footer_terms": "Termos",
+        "footer_contact": "Contacto"
+      },
+      "en": {
+        "badge": "ERP for 3D Printing Makers",
+        "headline1": "Smart management",
+        "headline2": "of 3D printing",
+        "subheadline": "From filament to sale, everything calculated. Track spools, printers, costs and orders in a platform built for serious makers.",
+        "tagline": "Know your costs. Control your spools. Scale your prints.",
+        "cta_start": "Start for free",
+        "cta_login": "Login",
+        "social_makers": "+200 makers",
+        "social_rating": "4.9/5",
+        "social_no_card": "No credit card",
+        "features_badge": "Features",
+        "features_title1": "Everything a maker needs,",
+        "features_title2": "in one place",
+        "features_subtitle": "Print smarter, not harder. From filament control to the final sale.",
+        "pricing_badge": "Simple pricing",
+        "pricing_title1": "Start free,",
+        "pricing_title2": " scale whenever you want",
+        "pricing_subtitle": "No commitments. Cancel anytime.",
+        "faq_title": "Frequently asked questions",
+        "cta_final_title": "Ready to print smarter?",
+        "cta_final_sub": "SpoolIQ — Print smarter, not harder. Start free today.",
+        "footer_tagline": "From spool to sale, everything calculated.",
+        "footer_privacy": "Privacy",
+        "footer_terms": "Terms",
+        "footer_contact": "Contact"
+      }
+    }
+  },
+  "localIds": [
+    "landing::local::src/app/[locale]/landing.content.ts"
+  ]
+} as const;
