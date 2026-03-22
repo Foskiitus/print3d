@@ -12,6 +12,7 @@ import {
 } from "@stripe/react-stripe-js";
 import { useParams, useRouter } from "next/navigation";
 import { Check, X, Zap } from "lucide-react";
+import { redirect } from "next/navigation";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
@@ -354,283 +355,281 @@ function ComparisonTable({
 
 export default function BillingPage() {
   const { locale } = useParams<{ locale: string }>();
-  const router = useRouter();
-  const [billing, setBilling] = useState<BillingData | null>(null);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [canceling, setCanceling] = useState(false);
-  const [upgraded, setUpgraded] = useState(false);
+  redirect(`/${locale}/dashboard`);
+  return null;
+  // const router = useRouter();
+  // const [billing, setBilling] = useState<BillingData | null>(null);
+  // const [clientSecret, setClientSecret] = useState<string | null>(null);
+  // const [loading, setLoading] = useState(true);
+  // const [canceling, setCanceling] = useState(false);
+  // const [upgraded, setUpgraded] = useState(false);
 
-  const t = {
-    pt: {
-      title: "Subscrição",
-      currentPlan: "Plano actual",
-      hobby: "Hobby",
-      pro: "Pro",
-      free: "Gratuito",
-      perMonth: "/ mês",
-      renewsOn: "Renova a",
-      cancelsOn: "Cancela a",
-      canceledPlan: "A subscrição termina no fim do período actual.",
-      upgradeTitle: "Upgrade para Pro",
-      upgradeDesc: "Desbloqueia todas as funcionalidades por €5/mês.",
-      compareTitle: "Comparação de planos",
-      invoices: "Histórico de facturas",
-      noInvoices: "Nenhuma factura ainda.",
-      paid: "Pago",
-      open: "Pendente",
-      download: "Ver",
-      cancelSub: "Cancelar subscrição",
-      canceling: "A cancelar...",
-      cancelConfirm:
-        "Tens a certeza? A subscrição termina no fim do período actual.",
-      successTitle: "Upgrade concluído!",
-      successBody: "O teu plano Pro está activo. Bem-vindo!",
-      backToDashboard: "Ir para o dashboard",
-    },
-    en: {
-      title: "Subscription",
-      currentPlan: "Current plan",
-      hobby: "Hobby",
-      pro: "Pro",
-      free: "Free",
-      perMonth: "/ month",
-      renewsOn: "Renews on",
-      cancelsOn: "Cancels on",
-      canceledPlan: "Your subscription ends at the end of the current period.",
-      upgradeTitle: "Upgrade to Pro",
-      upgradeDesc: "Unlock all features for €5/month.",
-      compareTitle: "Plan comparison",
-      invoices: "Invoice history",
-      noInvoices: "No invoices yet.",
-      paid: "Paid",
-      open: "Pending",
-      download: "View",
-      cancelSub: "Cancel subscription",
-      canceling: "Canceling...",
-      cancelConfirm:
-        "Are you sure? Your subscription ends at the end of the current period.",
-      successTitle: "Upgrade complete!",
-      successBody: "Your Pro plan is now active. Welcome!",
-      backToDashboard: "Go to dashboard",
-    },
-  };
+  // const t = {
+  //   pt: {
+  //     title: "Subscrição",
+  //     currentPlan: "Plano actual",
+  //     hobby: "Hobby",
+  //     pro: "Pro",
+  //     free: "Gratuito",
+  //     perMonth: "/ mês",
+  //     renewsOn: "Renova a",
+  //     cancelsOn: "Cancela a",
+  //     canceledPlan: "A subscrição termina no fim do período actual.",
+  //     upgradeTitle: "Upgrade para Pro",
+  //     upgradeDesc: "Desbloqueia todas as funcionalidades por €5/mês.",
+  //     compareTitle: "Comparação de planos",
+  //     invoices: "Histórico de facturas",
+  //     noInvoices: "Nenhuma factura ainda.",
+  //     paid: "Pago",
+  //     open: "Pendente",
+  //     download: "Ver",
+  //     cancelSub: "Cancelar subscrição",
+  //     canceling: "A cancelar...",
+  //     cancelConfirm:
+  //       "Tens a certeza? A subscrição termina no fim do período actual.",
+  //     successTitle: "Upgrade concluído!",
+  //     successBody: "O teu plano Pro está activo. Bem-vindo!",
+  //     backToDashboard: "Ir para o dashboard",
+  //   },
+  //   en: {
+  //     title: "Subscription",
+  //     currentPlan: "Current plan",
+  //     hobby: "Hobby",
+  //     pro: "Pro",
+  //     free: "Free",
+  //     perMonth: "/ month",
+  //     renewsOn: "Renews on",
+  //     cancelsOn: "Cancels on",
+  //     canceledPlan: "Your subscription ends at the end of the current period.",
+  //     upgradeTitle: "Upgrade to Pro",
+  //     upgradeDesc: "Unlock all features for €5/month.",
+  //     compareTitle: "Plan comparison",
+  //     invoices: "Invoice history",
+  //     noInvoices: "No invoices yet.",
+  //     paid: "Paid",
+  //     open: "Pending",
+  //     download: "View",
+  //     cancelSub: "Cancel subscription",
+  //     canceling: "Canceling...",
+  //     cancelConfirm:
+  //       "Are you sure? Your subscription ends at the end of the current period.",
+  //     successTitle: "Upgrade complete!",
+  //     successBody: "Your Pro plan is now active. Welcome!",
+  //     backToDashboard: "Go to dashboard",
+  //   },
+  // };
 
-  const c = t[locale as keyof typeof t] ?? t.en;
+  // const c = t[locale as keyof typeof t] ?? t.en;
 
-  const loadBilling = useCallback(async () => {
-    const res = await fetch("/api/billing");
-    if (res.ok) setBilling(await res.json());
-    setLoading(false);
-  }, []);
+  // const loadBilling = useCallback(async () => {
+  //   const res = await fetch("/api/billing");
+  //   if (res.ok) setBilling(await res.json());
+  //   setLoading(false);
+  // }, []);
 
-  useEffect(() => {
-    loadBilling();
-  }, [loadBilling]);
+  // useEffect(() => {
+  //   loadBilling();
+  // }, [loadBilling]);
 
-  useEffect(() => {
-    if (billing?.plan === "hobby") {
-      fetch("/api/billing/setup-intent", { method: "POST" })
-        .then((r) => r.json())
-        .then((d) => setClientSecret(d.clientSecret));
-    }
-  }, [billing?.plan]);
+  // useEffect(() => {
+  //   if (billing?.plan === "hobby") {
+  //     fetch("/api/billing/setup-intent", { method: "POST" })
+  //       .then((r) => r.json())
+  //       .then((d) => setClientSecret(d.clientSecret));
+  //   }
+  // }, [billing?.plan]);
 
-  const handleCancel = async () => {
-    if (!confirm(c.cancelConfirm)) return;
-    setCanceling(true);
-    await fetch("/api/billing/cancel", { method: "POST" });
-    await loadBilling();
-    setCanceling(false);
-  };
+  // const handleCancel = async () => {
+  //   if (!confirm(c.cancelConfirm)) return;
+  //   setCanceling(true);
+  //   await fetch("/api/billing/cancel", { method: "POST" });
+  //   await loadBilling();
+  //   setCanceling(false);
+  // };
 
-  const handleUpgradeSuccess = async () => {
-    setUpgraded(true);
-    await loadBilling();
-  };
+  // const handleUpgradeSuccess = async () => {
+  //   setUpgraded(true);
+  //   await loadBilling();
+  // };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <div className="flex items-center justify-center min-h-[400px]">
+  //       <div className="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+  //     </div>
+  //   );
+  // }
 
-  if (upgraded) {
-    return (
-      <div className="max-w-md mx-auto py-16 text-center space-y-4">
-        <div className="flex justify-center">
-          <div className="w-14 h-14 rounded-full bg-brand-500/10 border border-brand-500/20 flex items-center justify-center">
-            <Check className="w-6 h-6 text-brand-400" />
-          </div>
-        </div>
-        <h2
-          className="font-display font-bold text-theme text-xl"
-          style={{ letterSpacing: "-0.02em" }}
-        >
-          {c.successTitle}
-        </h2>
-        <p className="text-navy-400 text-sm">{c.successBody}</p>
-        <button
-          onClick={() => router.push(`/${locale}/dashboard`)}
-          className="btn-primary mt-2"
-        >
-          {c.backToDashboard}
-        </button>
-      </div>
-    );
-  }
+  // if (upgraded) {
+  //   return (
+  //     <div className="max-w-md mx-auto py-16 text-center space-y-4">
+  //       <div className="flex justify-center">
+  //         <div className="w-14 h-14 rounded-full bg-brand-500/10 border border-brand-500/20 flex items-center justify-center">
+  //           <Check className="w-6 h-6 text-brand-400" />
+  //         </div>
+  //       </div>
+  //       <h2
+  //         className="font-display font-bold text-theme text-xl"
+  //         style={{ letterSpacing: "-0.02em" }}
+  //       >
+  //         {c.successTitle}
+  //       </h2>
+  //       <p className="text-navy-400 text-sm">{c.successBody}</p>
+  //       <button
+  //         onClick={() => router.push(`/${locale}/dashboard`)}
+  //         className="btn-primary mt-2"
+  //       >
+  //         {c.backToDashboard}
+  //       </button>
+  //     </div>
+  //   );
+  // }
 
-  const sub = billing?.subscription;
-  const isPro = billing?.plan === "pro";
+  // const sub = billing?.subscription;
+  // const isPro = billing?.plan === "pro";
 
-  return (
-    <div className="max-w-2xl mx-auto py-10 px-4 space-y-8">
-      {/* Plano actual */}
-      <div className="card space-y-4">
-        <h2
-          className="font-display font-semibold text-theme text-lg"
-          style={{ letterSpacing: "-0.02em" }}
-        >
-          {c.currentPlan}
-        </h2>
+  // return (
+  //   <div className="max-w-2xl mx-auto py-10 px-4 space-y-8">
+  //     <div className="card space-y-4">
+  //       <h2
+  //         className="font-display font-semibold text-theme text-lg"
+  //         style={{ letterSpacing: "-0.02em" }}
+  //       >
+  //         {c.currentPlan}
+  //       </h2>
 
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <span
-                className="text-2xl font-display font-bold text-theme"
-                style={{ letterSpacing: "-0.03em" }}
-              >
-                {isPro ? c.pro : c.hobby}
-              </span>
-              {isPro && (
-                <span className="badge-brand text-xs px-2 py-0.5 flex items-center gap-1">
-                  <Zap className="w-3 h-3" /> Pro
-                </span>
-              )}
-            </div>
-            {isPro ? (
-              <p className="text-sm text-navy-400">€5 {c.perMonth}</p>
-            ) : (
-              <p className="text-sm text-navy-400">{c.free}</p>
-            )}
-          </div>
+  //       <div className="flex items-center justify-between">
+  //         <div>
+  //           <div className="flex items-center gap-2">
+  //             <span
+  //               className="text-2xl font-display font-bold text-theme"
+  //               style={{ letterSpacing: "-0.03em" }}
+  //             >
+  //               {isPro ? c.pro : c.hobby}
+  //             </span>
+  //             {isPro && (
+  //               <span className="badge-brand text-xs px-2 py-0.5 flex items-center gap-1">
+  //                 <Zap className="w-3 h-3" /> Pro
+  //               </span>
+  //             )}
+  //           </div>
+  //           {isPro ? (
+  //             <p className="text-sm text-navy-400">€5 {c.perMonth}</p>
+  //           ) : (
+  //             <p className="text-sm text-navy-400">{c.free}</p>
+  //           )}
+  //         </div>
 
-          {sub && (
-            <div className="text-right text-sm text-navy-400">
-              {sub.cancelAtPeriodEnd ? (
-                <>
-                  <p className="text-red-400 text-xs mb-0.5">
-                    {c.canceledPlan}
-                  </p>
-                  <p>
-                    {c.cancelsOn}{" "}
-                    {new Date(sub.currentPeriodEnd).toLocaleDateString(locale)}
-                  </p>
-                </>
-              ) : (
-                <p>
-                  {c.renewsOn}{" "}
-                  {new Date(sub.currentPeriodEnd).toLocaleDateString(locale)}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
+  //         {sub && (
+  //           <div className="text-right text-sm text-navy-400">
+  //             {sub?.cancelAtPeriodEnd ? (
+  //               <>
+  //                 <p className="text-red-400 text-xs mb-0.5">
+  //                   {c.canceledPlan}
+  //                 </p>
+  //                 <p>
+  //                   {c.cancelsOn}{" "}
+  //                   {new Date(sub.currentPeriodEnd).toLocaleDateString(locale)}
+  //                 </p>
+  //               </>
+  //             ) : (
+  //               <p>
+  //                 {c.renewsOn}{" "}
+  //                 {new Date(sub.currentPeriodEnd).toLocaleDateString(locale)}
+  //               </p>
+  //             )}
+  //           </div>
+  //         )}
+  //       </div>
 
-        {isPro && !sub?.cancelAtPeriodEnd && (
-          <button
-            onClick={handleCancel}
-            disabled={canceling}
-            className="text-sm text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
-          >
-            {canceling ? c.canceling : c.cancelSub}
-          </button>
-        )}
-      </div>
+  //       {isPro && !sub?.cancelAtPeriodEnd && (
+  //         <button
+  //           onClick={handleCancel}
+  //           disabled={canceling}
+  //           className="text-sm text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
+  //         >
+  //           {canceling ? c.canceling : c.cancelSub}
+  //         </button>
+  //       )}
+  //     </div>
 
-      {/* Tabela de comparação */}
-      <div className="space-y-3">
-        <h2
-          className="font-display font-semibold text-theme text-lg"
-          style={{ letterSpacing: "-0.02em" }}
-        >
-          {c.compareTitle}
-        </h2>
-        <ComparisonTable locale={locale} isPro={isPro} />
-      </div>
+  //     <div className="space-y-3">
+  //       <h2
+  //         className="font-display font-semibold text-theme text-lg"
+  //         style={{ letterSpacing: "-0.02em" }}
+  //       >
+  //         {c.compareTitle}
+  //       </h2>
+  //       <ComparisonTable locale={locale} isPro={isPro} />
+  //     </div>
 
-      {/* Upgrade form */}
-      {!isPro && clientSecret && (
-        <div className="card space-y-4 border-brand-500/20">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Zap className="w-4 h-4 text-brand-400" />
-              <h2
-                className="font-display font-semibold text-theme text-lg"
-                style={{ letterSpacing: "-0.02em" }}
-              >
-                {c.upgradeTitle}
-              </h2>
-            </div>
-            <p className="text-sm text-navy-400">{c.upgradeDesc}</p>
-          </div>
-          <Elements stripe={stripePromise} options={{ clientSecret }}>
-            <CardForm onSuccess={handleUpgradeSuccess} locale={locale} />
-          </Elements>
-        </div>
-      )}
+  //     {!isPro && clientSecret && (
+  //       <div className="card space-y-4 border-brand-500/20">
+  //         <div>
+  //           <div className="flex items-center gap-2 mb-1">
+  //             <Zap className="w-4 h-4 text-brand-400" />
+  //             <h2
+  //               className="font-display font-semibold text-theme text-lg"
+  //               style={{ letterSpacing: "-0.02em" }}
+  //             >
+  //               {c.upgradeTitle}
+  //             </h2>
+  //           </div>
+  //           <p className="text-sm text-navy-400">{c.upgradeDesc}</p>
+  //         </div>
+  //         <Elements stripe={stripePromise} options={{ clientSecret }}>
+  //           <CardForm onSuccess={handleUpgradeSuccess} locale={locale} />
+  //         </Elements>
+  //       </div>
+  //     )}
 
-      {/* Histórico de facturas */}
-      <div className="card space-y-4">
-        <h2
-          className="font-display font-semibold text-theme text-lg"
-          style={{ letterSpacing: "-0.02em" }}
-        >
-          {c.invoices}
-        </h2>
+  //     <div className="card space-y-4">
+  //       <h2
+  //         className="font-display font-semibold text-theme text-lg"
+  //         style={{ letterSpacing: "-0.02em" }}
+  //       >
+  //         {c.invoices}
+  //       </h2>
 
-        {!billing?.invoices?.length ? (
-          <p className="text-sm text-navy-400">{c.noInvoices}</p>
-        ) : (
-          <div className="space-y-2">
-            {billing.invoices.map((inv) => (
-              <div
-                key={inv.id}
-                className="flex items-center justify-between py-2 border-b border-theme/20 last:border-0"
-              >
-                <div>
-                  <p className="text-sm text-theme">
-                    {new Date(inv.date).toLocaleDateString(locale)}
-                  </p>
-                  <p className="text-xs text-navy-400">
-                    {(inv.amount / 100).toFixed(2)} {inv.currency.toUpperCase()}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`text-xs font-medium ${inv.status === "paid" ? "text-green-400" : "text-yellow-400"}`}
-                  >
-                    {inv.status === "paid" ? c.paid : c.open}
-                  </span>
-                  {inv.url && (
-                    <a
-                      href={inv.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-brand-400 hover:text-brand-300 transition-colors"
-                    >
-                      {c.download}
-                    </a>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  //       {!billing?.invoices?.length ? (
+  //         <p className="text-sm text-navy-400">{c.noInvoices}</p>
+  //       ) : (
+  //         <div className="space-y-2">
+  //           {billing.invoices.map((inv) => (
+  //             <div
+  //               key={inv.id}
+  //               className="flex items-center justify-between py-2 border-b border-theme/20 last:border-0"
+  //             >
+  //               <div>
+  //                 <p className="text-sm text-theme">
+  //                   {new Date(inv.date).toLocaleDateString(locale)}
+  //                 </p>
+  //                 <p className="text-xs text-navy-400">
+  //                   {(inv.amount / 100).toFixed(2)} {inv.currency.toUpperCase()}
+  //                 </p>
+  //               </div>
+  //               <div className="flex items-center gap-3">
+  //                 <span
+  //                   className={`text-xs font-medium ${inv.status === "paid" ? "text-green-400" : "text-yellow-400"}`}
+  //                 >
+  //                   {inv.status === "paid" ? c.paid : c.open}
+  //                 </span>
+  //                 {inv.url && (
+  //                   <a
+  //                     href={inv.url}
+  //                     target="_blank"
+  //                     rel="noopener noreferrer"
+  //                     className="text-xs text-brand-400 hover:text-brand-300 transition-colors"
+  //                   >
+  //                     {c.download}
+  //                   </a>
+  //                 )}
+  //               </div>
+  //             </div>
+  //           ))}
+  //         </div>
+  //       )}
+  //     </div>
+  //   </div>
+  // );
 }

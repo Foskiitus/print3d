@@ -1,18 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useIntlayer } from "next-intlayer";
 import { SpoolIQLogo } from "@/components/ui/logo";
 import { signUpAction } from "@/app/actions/auth";
+import { createClient } from "@/lib/supabase/client";
 
 export default function SignUpPage() {
-  const searchParams = new URLSearchParams(window.location.search);
-  const plan = searchParams.get("plan") ?? undefined;
   const { locale } = useParams<{ locale: string }>();
-
-  console.log("Locale detectado:", locale); // <- adiciona isto
+  const searchParams = useSearchParams();
+  const plan = searchParams.get("plan") ?? undefined;
   const content = useIntlayer("sign-up");
 
   const [email, setEmail] = useState("");
@@ -22,6 +21,7 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const router = useRouter();
+  const supabase = createClient();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +50,6 @@ export default function SignUpPage() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        // passa o locale na querystring para o callback conseguir guardá-lo
         redirectTo: `${window.location.origin}/auth/callback?locale=${locale}`,
       },
     });

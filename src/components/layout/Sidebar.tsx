@@ -281,13 +281,13 @@ export function Sidebar() {
                 active={pathname.startsWith(`/${locale}/settings`)}
                 onClick={close}
               />
-              <NavLink
+              {/* <NavLink
                 href={l("/billing")}
                 label={c.nav.billing.value}
                 icon={CreditCard}
                 active={pathname.startsWith(`/${locale}/billing`)}
                 onClick={close}
-              />
+              /> */}
             </div>
           )}
 

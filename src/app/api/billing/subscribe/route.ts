@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth";
+import Stripe from "stripe";
+
+function toDate(ts: number | null | undefined): Date {
+  if (!ts || isNaN(ts)) return new Date();
+  return new Date(ts * 1000);
+}
 
 export async function POST(req: Request) {
   const { userId, error } = await requireApiAuth();
@@ -25,7 +31,6 @@ export async function POST(req: Request) {
 
   let customerId = user.stripeCustomerId;
 
-  // Garante que o customer existe
   if (!customerId) {
     const customer = await stripe.customers.create({
       email: user.email,
@@ -42,49 +47,62 @@ export async function POST(req: Request) {
   // Associa o método de pagamento ao customer
   await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId });
 
-  // Define como método de pagamento por defeito
   await stripe.customers.update(customerId, {
     invoice_settings: { default_payment_method: paymentMethodId },
   });
 
-  // Cria a subscrição
+  // Cria a subscrição com payment_settings para confirmar automaticamente
   const subscription = await stripe.subscriptions.create({
     customer: customerId,
     items: [{ price: process.env.STRIPE_PRO_PRICE_ID! }],
     default_payment_method: paymentMethodId,
-    expand: ["latest_invoice.payment_intent"],
+    payment_settings: {
+      payment_method_types: ["card"],
+      save_default_payment_method: "on_subscription",
+    },
+    expand: ["latest_invoice"],
   });
 
   const invoice = subscription.latest_invoice as Stripe.Invoice;
-  const paymentIntent = invoice.payment_intent as Stripe.PaymentIntent | null;
 
-  // Se precisar de confirmação 3D Secure
-  if (paymentIntent?.status === "requires_action") {
-    return NextResponse.json({
-      requiresAction: true,
-      clientSecret: paymentIntent.client_secret,
+  // Verifica se a factura precisa de confirmação (3D Secure)
+  if (invoice.status === "open") {
+    // Tenta pagar a factura manualmente
+    const paidInvoice = await stripe.invoices.pay(invoice.id, {
+      payment_method: paymentMethodId,
     });
+
+    if (paidInvoice.status !== "paid") {
+      return NextResponse.json(
+        { error: "Payment requires additional action" },
+        { status: 402 },
+      );
+    }
   }
 
-  if (subscription.status === "active" || subscription.status === "trialing") {
-    // Actualiza a DB
+  // Busca a subscrição actualizada para ter os dados correctos
+  const updatedSub = await stripe.subscriptions.retrieve(subscription.id);
+
+  if (updatedSub.status === "active" || updatedSub.status === "trialing") {
+    const rawSub = updatedSub as unknown as Record<string, number>;
+
     await prisma.subscription.upsert({
       where: { userId },
       create: {
         userId,
-        stripeSubscriptionId: subscription.id,
+        stripeSubscriptionId: updatedSub.id,
         stripePriceId: process.env.STRIPE_PRO_PRICE_ID!,
-        status: subscription.status,
-        currentPeriodStart: new Date(subscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-        cancelAtPeriodEnd: subscription.cancel_at_period_end,
+        status: updatedSub.status,
+        currentPeriodStart: toDate(rawSub.current_period_start),
+        currentPeriodEnd: toDate(rawSub.current_period_end),
+        cancelAtPeriodEnd: updatedSub.cancel_at_period_end,
       },
       update: {
-        stripeSubscriptionId: subscription.id,
-        status: subscription.status,
-        currentPeriodStart: new Date(subscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-        cancelAtPeriodEnd: subscription.cancel_at_period_end,
+        stripeSubscriptionId: updatedSub.id,
+        status: updatedSub.status,
+        currentPeriodStart: toDate(rawSub.current_period_start),
+        currentPeriodEnd: toDate(rawSub.current_period_end),
+        cancelAtPeriodEnd: updatedSub.cancel_at_period_end,
       },
     });
 
@@ -98,6 +116,3 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ error: "Payment failed" }, { status: 400 });
 }
-
-// necessário para o tipo Stripe
-import Stripe from "stripe";
