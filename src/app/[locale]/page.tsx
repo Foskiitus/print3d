@@ -108,7 +108,7 @@ export default async function HomePage({
   ];
 
   return (
-    <div className="lp-theme bg-background text-foreground min-h-screen">
+    <div className="lp-theme bg-[#060c18] text-foreground min-h-screen">
       {/* Navbar */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-theme/60 bg-dark-bg/80 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
