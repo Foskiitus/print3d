@@ -16,10 +16,21 @@ async function ensureUserInDb(
   email: string,
   name: string | null,
 ) {
-  const existing = await prisma.user.findUnique({ where: { id: userId } });
-  if (!existing) {
+  // Verifica se o utilizador existe pelo email (que é único)
+  const existingByEmail = await prisma.user.findUnique({ where: { email } });
+
+  if (!existingByEmail) {
+    // Se não existe de todo, cria
     await prisma.user.create({
       data: { id: userId, email, name, role: "user" },
+    });
+  } else if (existingByEmail.id !== userId) {
+    // Se o email existe mas o ID é diferente (ex: troca de provedor auth),
+    // podes optar por atualizar o ID ou lançar um erro controlado.
+    // Aqui vamos atualizar o ID para manter a consistência com o Supabase
+    await prisma.user.update({
+      where: { email },
+      data: { id: userId },
     });
   }
 }
