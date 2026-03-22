@@ -14,6 +14,7 @@ const _JYonKfGo07u6zOQj7ksV = require('../dictionary/privacy.json');
 const _0dmQ2nuBGaPxgSZbqJYQ = require('../dictionary/production.json');
 const _5GUIh7Gw2MV9fHxdMadz = require('../dictionary/products.json');
 const _hmB1zPGdRZ1byGmSAWoT = require('../dictionary/sales.json');
+const _ILKZs4Lb4Czy3slGbKqs = require('../dictionary/settings.json');
 const _CxgkDWwHRdJFzphWjspL = require('../dictionary/sidebar.json');
 const _ifGIGZsSCEceCNsYuBOh = require('../dictionary/sign-in.json');
 const _Y0fMSXnGwSCGlzNYeexB = require('../dictionary/sign-up.json');
@@ -38,6 +39,7 @@ const dictionaries = {
   "production": _0dmQ2nuBGaPxgSZbqJYQ,
   "products": _5GUIh7Gw2MV9fHxdMadz,
   "sales": _hmB1zPGdRZ1byGmSAWoT,
+  "settings": _ILKZs4Lb4Czy3slGbKqs,
   "sidebar": _CxgkDWwHRdJFzphWjspL,
   "sign-in": _ifGIGZsSCEceCNsYuBOh,
   "sign-up": _Y0fMSXnGwSCGlzNYeexB,

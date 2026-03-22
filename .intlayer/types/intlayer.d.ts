@@ -15,6 +15,7 @@ import _pQCFfXyIYLtSjuIMBru9 from './privacy.ts';
 import _47dPUZeshLExiCR6VHj0 from './production.ts';
 import _AJk9a6Ie8lIpiksUv7X4 from './products.ts';
 import _cYCn6iUjQGM5aGIPJ9nC from './sales.ts';
+import _herUqfKSOlOiZMTR3aZ5 from './settings.ts';
 import _CkHvRTaefkp9BFIKha5a from './sidebar.ts';
 import _jjRT7JCkdQh3Ub1iYVJ7 from './sign-in.ts';
 import _oiqNM2vfGqw5xhMWhLpV from './sign-up.ts';
@@ -40,6 +41,7 @@ declare module 'intlayer' {
     "production": typeof _47dPUZeshLExiCR6VHj0;
     "products": typeof _AJk9a6Ie8lIpiksUv7X4;
     "sales": typeof _cYCn6iUjQGM5aGIPJ9nC;
+    "settings": typeof _herUqfKSOlOiZMTR3aZ5;
     "sidebar": typeof _CkHvRTaefkp9BFIKha5a;
     "sign-in": typeof _jjRT7JCkdQh3Ub1iYVJ7;
     "sign-up": typeof _oiqNM2vfGqw5xhMWhLpV;

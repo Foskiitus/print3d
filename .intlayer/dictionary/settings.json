@@ -1,0 +1,205 @@
+{
+  "key": "settings",
+  "content": {
+    "nodeType": "translation",
+    "translation": {
+      "pt": {
+        "page": {
+          "title": "Configurações",
+          "heading": "Configurações",
+          "description": "Gerencie categorias e extras para os seus produtos."
+        },
+        "messages": {
+          "deleteCategorySuccess": "Categoria eliminada com sucesso",
+          "deleteCategoryError": "Erro ao eliminar a categoria",
+          "deleteExtraSuccess": "Extra eliminado com sucesso",
+          "deleteExtraError": "Erro ao eliminar o extra",
+          "confirmDelete": "Tem a certeza?",
+          "presetAdded": "Preset adicionado!",
+          "presetDeleted": "Preset eliminado!",
+          "presetDeleteError": "Erro ao eliminar o preset"
+        },
+        "preferences": {
+          "title": "Preferências Pessoais",
+          "description": "Configurações individuais — cada utilizador define os seus próprios valores."
+        },
+        "theme": {
+          "label": "Tema da interface",
+          "description": "Escolhe entre o modo escuro e claro. A preferência é guardada no browser.",
+          "dark": "Escuro",
+          "light": "Claro"
+        },
+        "locale": {
+          "label": "Idioma",
+          "description": "Altera o idioma da interface. A mudança é imediata.",
+          "portuguese": "Português",
+          "english": "English"
+        },
+        "electricity": {
+          "label": "Preço da eletricidade",
+          "description": "Usado para calcular o custo de energia em cada produção. O valor padrão é 0.20€/kWh.",
+          "unit": "€/kWh",
+          "save": "Guardar",
+          "saving": "A guardar...",
+          "saved": "Preço de eletricidade guardado!",
+          "invalidValue": "Valor inválido"
+        },
+        "platform": {
+          "title": "Configurações da Plataforma",
+          "description": "Configurações globais que afetam todos os utilizadores da plataforma.",
+          "admin": "Admin"
+        },
+        "uploadLimit": {
+          "label": "Limite de upload de ficheiros",
+          "description": "Tamanho máximo permitido para ficheiros .3mf e .stl. Máximo absoluto: 500 MB.",
+          "unit": "MB",
+          "save": "Guardar",
+          "saving": "A guardar...",
+          "saved": "Limite de upload guardado!",
+          "invalidValue": "Valor inválido. Deve estar entre 1 e 500 MB."
+        },
+        "filament": {
+          "title": "Presets de Filamentos",
+          "description": "Lista global de marcas, materiais e cores disponíveis como sugestões ao registar filamentos.",
+          "admin": "Admin",
+          "add": "Adicionar preset",
+          "addButton": "Adicionar Preset",
+          "adding": "A adicionar...",
+          "added": "Preset adicionado!",
+          "deleted": "Preset eliminado",
+          "deleteError": "Erro ao eliminar",
+          "deleteConfirm": "Eliminar este preset?",
+          "noPresets": "Nenhum preset criado ainda.",
+          "brand": "Marca",
+          "brandPlaceholder": "Ex: Bambu Lab",
+          "material": "Material",
+          "materialPlaceholder": "Ex: PLA Basic",
+          "colorName": "Nome da cor",
+          "colorNamePlaceholder": "Ex: Preto",
+          "colorVisual": "Cor visual"
+        },
+        "categories": {
+          "title": "Categorias",
+          "empty": "Nenhuma categoria criada.",
+          "emptyDescription": "Cria categorias para organizar os teus produtos.",
+          "products": "produto(s)",
+          "deleteConfirm": "Eliminar esta categoria? Os produtos associados ficarão sem categoria.",
+          "deleted": "Categoria eliminada",
+          "deleteError": "Erro ao eliminar"
+        },
+        "extras": {
+          "title": "Extras",
+          "empty": "Nenhum extra criado.",
+          "emptyDescription": "Adiciona materiais extra como correntes, parafusos, cola, etc.",
+          "products": "produto(s)",
+          "deleteConfirm": "Eliminar este extra?",
+          "deleted": "Extra eliminado",
+          "deleteError": "Erro ao eliminar"
+        },
+        "common": {
+          "error": "Erro"
+        }
+      },
+      "en": {
+        "page": {
+          "title": "Settings",
+          "heading": "Settings",
+          "description": "Manage categories and extras for your products."
+        },
+        "messages": {
+          "deleteCategorySuccess": "Category deleted successfully",
+          "deleteCategoryError": "Error deleting category",
+          "deleteExtraSuccess": "Extra deleted successfully",
+          "deleteExtraError": "Error deleting o extra",
+          "confirmDelete": "Are you sure?",
+          "presetAdded": "Preset added!",
+          "presetDeleted": "Preset deleted!",
+          "presetDeleteError": "Error deleting preset"
+        },
+        "preferences": {
+          "title": "Personal Preferences",
+          "description": "Individual settings — each user defines their own values."
+        },
+        "theme": {
+          "label": "Interface theme",
+          "description": "Choose between dark and light mode. The preference is saved in your browser.",
+          "dark": "Dark",
+          "light": "Light"
+        },
+        "locale": {
+          "label": "Language",
+          "description": "Change the interface language. The change is immediate.",
+          "portuguese": "Portuguese",
+          "english": "English"
+        },
+        "electricity": {
+          "label": "Electricity price",
+          "description": "Used to calculate the energy cost for each production. The default value is 0.20€/kWh.",
+          "unit": "€/kWh",
+          "save": "Save",
+          "saving": "Saving...",
+          "saved": "Electricity price saved!",
+          "invalidValue": "Invalid value"
+        },
+        "platform": {
+          "title": "Platform Settings",
+          "description": "Global settings that affect all users on the platform.",
+          "admin": "Admin"
+        },
+        "uploadLimit": {
+          "label": "File upload limit",
+          "description": "Maximum file size allowed for .3mf and .stl files. Absolute maximum: 500 MB.",
+          "unit": "MB",
+          "save": "Save",
+          "saving": "Saving...",
+          "saved": "Upload limit saved!",
+          "invalidValue": "Invalid value. Must be between 1 and 500 MB."
+        },
+        "filament": {
+          "title": "Filament Presets",
+          "description": "Global list of brands, materials and colors available as suggestions when registering filaments.",
+          "admin": "Admin",
+          "add": "Add preset",
+          "addButton": "Add Preset",
+          "adding": "Adding...",
+          "added": "Preset added!",
+          "deleted": "Preset deleted",
+          "deleteError": "Error deleting preset",
+          "deleteConfirm": "Delete this preset?",
+          "noPresets": "No presets created yet.",
+          "brand": "Brand",
+          "brandPlaceholder": "Ex: Bambu Lab",
+          "material": "Material",
+          "materialPlaceholder": "Ex: PLA Basic",
+          "colorName": "Color name",
+          "colorNamePlaceholder": "Ex: Black",
+          "colorVisual": "Visual color"
+        },
+        "categories": {
+          "title": "Categories",
+          "empty": "No categories created.",
+          "emptyDescription": "Create categories to organize your products.",
+          "products": "product(s)",
+          "deleteConfirm": "Delete this category? Associated products will have no category.",
+          "deleted": "Category deleted",
+          "deleteError": "Error deleting category"
+        },
+        "extras": {
+          "title": "Extras",
+          "empty": "No extras created.",
+          "emptyDescription": "Add extra materials such as chains, screws, glue, etc.",
+          "products": "product(s)",
+          "deleteConfirm": "Delete this extra?",
+          "deleted": "Extra deleted",
+          "deleteError": "Error deleting extra"
+        },
+        "common": {
+          "error": "Error"
+        }
+      }
+    }
+  },
+  "localIds": [
+    "settings::local::src/app/[locale]/(app)/settings/settings.content.ts"
+  ]
+}

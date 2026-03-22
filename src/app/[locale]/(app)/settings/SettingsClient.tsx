@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { getIntlayer } from "next-intlayer";
 import { useTheme } from "next-themes";
 import { usePathname, useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
@@ -69,6 +70,7 @@ export function SettingsClient({
   const pathname = usePathname();
   const router = useRouter();
   const currentLocale = pathname.split("/")[1] ?? "pt";
+  const c = getIntlayer("settings", currentLocale);
 
   const handleLocaleChange = (newLocale: string) => {
     const newPath = pathname.replace(`/${currentLocale}`, `/${newLocale}`);
@@ -112,7 +114,7 @@ export function SettingsClient({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast({ title: "Preset adicionado!" });
+      toast({ title: c.messages.presetAdded.value });
       setNewPreset({
         brand: "",
         material: "",
@@ -132,16 +134,19 @@ export function SettingsClient({
   };
 
   const handleDeletePreset = async (id: string) => {
-    if (!confirm("Eliminar este preset?")) return;
+    if (!confirm(c.messages.confirmDelete.value)) return;
     try {
       const res = await fetch(`/api/filaments/presets/${id}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error();
-      toast({ title: "Preset eliminado" });
+      toast({ title: c.messages.presetDeleted.value });
       loadPresets();
     } catch {
-      toast({ title: "Erro ao eliminar", variant: "destructive" });
+      toast({
+        title: c.messages.presetDeleteError.value,
+        variant: "destructive",
+      });
     }
   };
 
@@ -158,7 +163,7 @@ export function SettingsClient({
   const handleSaveElectricity = async () => {
     const value = Number(electricityPrice);
     if (isNaN(value) || value < 0) {
-      toast({ title: "Valor inválido", variant: "destructive" });
+      toast({ title: c.messages.invalidValue.value, variant: "destructive" });
       return;
     }
     setSavingElectricity(true);
@@ -170,7 +175,7 @@ export function SettingsClient({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast({ title: "Preço de eletricidade guardado!" });
+      toast({ title: c.electricity.saved.value });
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -186,7 +191,7 @@ export function SettingsClient({
     const value = Number(uploadLimitMb);
     if (isNaN(value) || value < 1 || value > 500) {
       toast({
-        title: "Valor inválido. Deve estar entre 1 e 500 MB.",
+        title: c.uploadLimit.invalidValue.value,
         variant: "destructive",
       });
       return;
@@ -200,7 +205,7 @@ export function SettingsClient({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast({ title: "Limite de upload guardado!" });
+      toast({ title: c.uploadLimit.saved.value });
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -213,21 +218,16 @@ export function SettingsClient({
   };
 
   const handleDeleteCategory = async (id: string) => {
-    if (
-      !confirm(
-        "Eliminar esta categoria? Os produtos associados ficarão sem categoria.",
-      )
-    )
-      return;
+    if (!confirm(c.categories.deleteConfirm.value)) return;
     try {
       const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast({ title: "Categoria eliminada" });
+      toast({ title: c.categories.deleted.value });
       refreshCategories();
     } catch (error: any) {
       toast({
-        title: "Erro ao eliminar",
+        title: c.categories.deleteError.value,
         description: error.message,
         variant: "destructive",
       });
@@ -235,16 +235,16 @@ export function SettingsClient({
   };
 
   const handleDeleteExtra = async (id: string) => {
-    if (!confirm("Eliminar este extra?")) return;
+    if (!confirm(c.extras.deleteConfirm.value)) return;
     try {
       const res = await fetch(`/api/extras/${id}`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast({ title: "Extra eliminado" });
+      toast({ title: c.extras.deleted.value });
       refreshExtras();
     } catch (error: any) {
       toast({
-        title: "Erro ao eliminar",
+        title: c.extras.deleteError.value,
         description: error.message,
         variant: "destructive",
       });
@@ -258,12 +258,11 @@ export function SettingsClient({
         <div className="flex items-center gap-2">
           <Zap size={14} className="text-muted-foreground" />
           <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-            Preferências Pessoais
+            {c.preferences.title.value}
           </h2>
         </div>
         <p className="text-xs text-muted-foreground -mt-2">
-          Configurações individuais — cada utilizador define os seus próprios
-          valores.
+          {c.preferences.description.value}
         </p>
 
         <Card>
@@ -272,11 +271,10 @@ export function SettingsClient({
             <div className="flex items-start justify-between gap-6 flex-wrap">
               <div className="space-y-1 flex-1 min-w-[200px]">
                 <p className="text-sm font-medium text-foreground">
-                  Tema da interface
+                  {c.theme.label.value}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Escolhe entre o modo escuro e claro. A preferência é guardada
-                  no browser.
+                  {c.theme.description.value}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -294,11 +292,11 @@ export function SettingsClient({
                   >
                     {t === "dark" ? (
                       <>
-                        <Moon size={14} /> Escuro
+                        <Moon size={14} /> {c.theme.dark.value}
                       </>
                     ) : (
                       <>
-                        <Sun size={14} /> Claro
+                        <Sun size={14} /> {c.theme.light.value}
                       </>
                     )}
                   </button>
@@ -312,11 +310,11 @@ export function SettingsClient({
             <div className="flex items-start justify-between gap-6 flex-wrap">
               <div className="space-y-1 flex-1 min-w-[200px]">
                 <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                  <Globe size={13} className="text-muted-foreground" />
-                  Idioma
+                  <Globe size={13} className="text-muted-foreground" />{" "}
+                  {c.locale.label.value}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Altera o idioma da interface. A mudança é imediata.
+                  {c.locale.description.value}
                 </p>
               </div>
               <Select value={currentLocale} onValueChange={handleLocaleChange}>
@@ -339,11 +337,10 @@ export function SettingsClient({
             <div className="flex items-start justify-between gap-6 flex-wrap">
               <div className="space-y-1 flex-1 min-w-[200px]">
                 <p className="text-sm font-medium text-foreground">
-                  Preço da eletricidade
+                  {c.electricity.label.value}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Usado para calcular o custo de energia em cada produção. O
-                  valor padrão é 0.20€/kWh.
+                  {c.electricity.description.value}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -366,11 +363,11 @@ export function SettingsClient({
                   disabled={savingElectricity}
                 >
                   {savingElectricity ? (
-                    "A guardar..."
+                    `${c.electricity.saving.value}`
                   ) : (
                     <>
                       <Check size={13} className="mr-1.5" />
-                      Guardar
+                      {c.electricity.save.value}
                     </>
                   )}
                 </Button>
@@ -386,26 +383,24 @@ export function SettingsClient({
           <div className="flex items-center gap-2">
             <Lock size={14} className="text-muted-foreground" />
             <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-              Configurações da Plataforma
+              {c.platform.title.value}
             </h2>
             <Badge variant="secondary" className="text-[10px]">
               Admin
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground -mt-2">
-            Configurações globais que afetam todos os utilizadores da
-            plataforma.
+            {c.platform.description.value}
           </p>
           <Card>
             <CardContent className="p-5">
               <div className="flex items-start justify-between gap-6 flex-wrap">
                 <div className="space-y-1 flex-1 min-w-[200px]">
                   <p className="text-sm font-medium text-foreground">
-                    Limite de upload de ficheiros
+                    {c.uploadLimit.label.value}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Tamanho máximo permitido para ficheiros .3mf e .stl. Máximo
-                    absoluto: 500 MB.
+                    {c.uploadLimit.description.value}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -429,11 +424,11 @@ export function SettingsClient({
                     disabled={savingUploadLimit}
                   >
                     {savingUploadLimit ? (
-                      "A guardar..."
+                      `${c.uploadLimit.saving.value}`
                     ) : (
                       <>
                         <Check size={13} className="mr-1.5" />
-                        Guardar
+                        {c.uploadLimit.save.value}
                       </>
                     )}
                   </Button>
@@ -450,7 +445,7 @@ export function SettingsClient({
           <div className="flex items-center gap-2">
             <Droplets size={14} className="text-muted-foreground" />
             <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-              Presets de Filamentos
+              {c.filament.title.value}
             </h2>
             <Badge variant="secondary" className="text-[10px]">
               Admin
@@ -460,21 +455,22 @@ export function SettingsClient({
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground -mt-2">
-            Lista global de marcas, materiais e cores disponíveis como sugestões
-            ao registar filamentos.
+            {c.filament.description.value}
           </p>
 
           <Card>
             <CardContent className="p-5 space-y-3">
               <p className="text-xs font-semibold text-foreground">
-                Adicionar preset
+                {c.filament.add.value}
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">Marca</label>
+                  <label className="text-xs text-muted-foreground">
+                    {c.filament.brand.value}
+                  </label>
                   <input
                     className="flex h-8 w-full rounded-lg border border-border bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    placeholder="Ex: Bambu Lab"
+                    placeholder={c.filament.brandPlaceholder.value}
                     value={newPreset.brand}
                     onChange={(e) =>
                       setNewPreset((p) => ({ ...p, brand: e.target.value }))
@@ -491,11 +487,11 @@ export function SettingsClient({
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">
-                    Material
+                    {c.filament.material.value}
                   </label>
                   <input
                     className="flex h-8 w-full rounded-lg border border-border bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    placeholder="Ex: PLA Basic"
+                    placeholder={c.filament.materialPlaceholder.value}
                     value={newPreset.material}
                     onChange={(e) =>
                       setNewPreset((p) => ({ ...p, material: e.target.value }))
@@ -512,11 +508,11 @@ export function SettingsClient({
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">
-                    Nome da cor
+                    {c.filament.colorName.value}
                   </label>
                   <input
                     className="flex h-8 w-full rounded-lg border border-border bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    placeholder="Ex: Preto"
+                    placeholder={c.filament.colorNamePlaceholder.value}
                     value={newPreset.colorName}
                     onChange={(e) =>
                       setNewPreset((p) => ({ ...p, colorName: e.target.value }))
@@ -525,7 +521,7 @@ export function SettingsClient({
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">
-                    Cor visual
+                    {c.filament.colorName.value}
                   </label>
                   <div className="flex gap-2">
                     <ColorPicker
@@ -559,7 +555,7 @@ export function SettingsClient({
                 }
               >
                 <Plus size={13} className="mr-1.5" />
-                {savingPreset ? "A adicionar..." : "Adicionar Preset"}
+                {savingPreset ? c.filament.adding.value : c.filament.add.value}
               </Button>
             </CardContent>
           </Card>
@@ -567,7 +563,7 @@ export function SettingsClient({
           {filamentPresets.length === 0 ? (
             <div className="border border-dashed rounded-lg py-8 text-center">
               <p className="text-sm text-muted-foreground">
-                Nenhum preset criado ainda.
+                {c.filament.noPresets.value}
               </p>
             </div>
           ) : (
@@ -638,7 +634,7 @@ export function SettingsClient({
           <div className="flex items-center gap-2">
             <Tag size={14} className="text-muted-foreground" />
             <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-              Categorias
+              {c.categories.title.value}
             </h2>
             <Badge variant="secondary" className="text-[10px]">
               {categories.length}
@@ -651,10 +647,10 @@ export function SettingsClient({
           <div className="border border-dashed rounded-lg py-10 text-center">
             <Tag size={24} className="text-muted-foreground/40 mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">
-              Nenhuma categoria criada.
+              {c.categories.empty.value}
             </p>
             <p className="text-xs text-muted-foreground/60 mt-1">
-              Cria categorias para organizar os teus produtos.
+              {c.categories.emptyDescription.value}
             </p>
           </div>
         ) : (
@@ -703,7 +699,7 @@ export function SettingsClient({
           <div className="flex items-center gap-2">
             <Package size={14} className="text-muted-foreground" />
             <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-              Extras
+              {c.extras.title.value}
             </h2>
             <Badge variant="secondary" className="text-[10px]">
               {extras.length}
@@ -719,10 +715,10 @@ export function SettingsClient({
               className="text-muted-foreground/40 mx-auto mb-2"
             />
             <p className="text-sm text-muted-foreground">
-              Nenhum extra criado.
+              {c.extras.empty.value}
             </p>
             <p className="text-xs text-muted-foreground/60 mt-1">
-              Adiciona materiais extra como correntes, parafusos, cola, etc.
+              {c.extras.emptyDescription.value}
             </p>
           </div>
         ) : (

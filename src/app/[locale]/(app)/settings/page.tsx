@@ -2,13 +2,29 @@ import { getAuthUserId, getAuthUserIsAdmin } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { SettingsClient } from "./SettingsClient";
+import { Metadata } from "next";
+import { getIntlayer } from "intlayer";
+import type { LocalesValues } from "intlayer";
 
-export const metadata = {
-  title: "Configurações",
-  description: "Gerencie categorias e extras para os seus produtos.",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: LocalesValues }>;
+}) {
+  const { locale } = await params;
+  const c = getIntlayer("settings", locale);
+  return { title: c.page.title };
+}
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  params,
+}: {
+  params: Promise<{ locale: LocalesValues }>;
+}) {
+  const { locale } = await params;
+
+  const c = getIntlayer("settings", locale);
+
   const userId = await getAuthUserId();
   if (!userId) redirect("/sign-in");
   const isAdmin = await getAuthUserIsAdmin();
@@ -43,7 +59,9 @@ export default async function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">Configurações</h1>
+        <h1 className="text-xl font-semibold text-foreground">
+          {c.page.heading.value}
+        </h1>
         <p className="text-sm text-muted-foreground mt-0.5">
           Gerencie as categorias e extras disponíveis para os seus produtos.
         </p>

@@ -14,6 +14,7 @@ import _JYonKfGo07u6zOQj7ksV from '../dictionary/privacy.json' with { type: 'jso
 import _0dmQ2nuBGaPxgSZbqJYQ from '../dictionary/production.json' with { type: 'json' };
 import _5GUIh7Gw2MV9fHxdMadz from '../dictionary/products.json' with { type: 'json' };
 import _hmB1zPGdRZ1byGmSAWoT from '../dictionary/sales.json' with { type: 'json' };
+import _ILKZs4Lb4Czy3slGbKqs from '../dictionary/settings.json' with { type: 'json' };
 import _CxgkDWwHRdJFzphWjspL from '../dictionary/sidebar.json' with { type: 'json' };
 import _ifGIGZsSCEceCNsYuBOh from '../dictionary/sign-in.json' with { type: 'json' };
 import _Y0fMSXnGwSCGlzNYeexB from '../dictionary/sign-up.json' with { type: 'json' };
@@ -38,6 +39,7 @@ const dictionaries = {
   "production": _0dmQ2nuBGaPxgSZbqJYQ,
   "products": _5GUIh7Gw2MV9fHxdMadz,
   "sales": _hmB1zPGdRZ1byGmSAWoT,
+  "settings": _ILKZs4Lb4Czy3slGbKqs,
   "sidebar": _CxgkDWwHRdJFzphWjspL,
   "sign-in": _ifGIGZsSCEceCNsYuBOh,
   "sign-up": _Y0fMSXnGwSCGlzNYeexB,
