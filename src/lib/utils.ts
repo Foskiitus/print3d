@@ -1,62 +1,23 @@
-import { type ClassValue, clsx } from "clsx";
+import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(value: number): string {
+// Adiciona isto no final do ficheiro
+export function formatMinutes(totalMinutes: number) {
+  if (!totalMinutes || totalMinutes === 0) return "0h 0m";
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = Math.round(totalMinutes % 60);
+
+  if (hours === 0) return `${minutes}m`;
+  return `${hours}h ${minutes}m`;
+}
+
+export function formatCurrency(amount: number) {
   return new Intl.NumberFormat("pt-PT", {
     style: "currency",
     currency: "EUR",
-  }).format(value);
-}
-
-export function formatDate(date: Date | string): string {
-  return new Intl.DateTimeFormat("pt-PT").format(new Date(date));
-}
-
-/**
- * Cálculos de Produção 3D
- */
-
-// Preço médio do kWh em Portugal (pode ser movido para .env no futuro)
-export const ELECTRICITY_KWH_PRICE = 0.26; // €/kWh
-
-interface ProductionCostsParams {
-  printTimeMinutes: number;
-  weightGrams: number;
-  spoolPrice: number;
-  spoolWeightGrams: number;
-  printerWattage: number;
-  printerHourlyCost: number;
-}
-
-export function calculateProductionCosts({
-  printTimeMinutes,
-  weightGrams,
-  spoolPrice,
-  spoolWeightGrams,
-  printerWattage,
-  printerHourlyCost,
-}: ProductionCostsParams) {
-  const hours = printTimeMinutes / 60;
-
-  // 1. Custo do Filamento
-  const filamentCost = (spoolPrice / spoolWeightGrams) * weightGrams;
-
-  // 2. Custo de Energia: (W / 1000) * horas * preço_kWh
-  const energyCost = (printerWattage / 1000) * hours * ELECTRICITY_KWH_PRICE;
-
-  // 3. Custo de Amortização/Manutenção
-  const maintenanceCost = hours * printerHourlyCost;
-
-  const totalCost = filamentCost + energyCost + maintenanceCost;
-
-  return {
-    filamentCost,
-    energyCost,
-    maintenanceCost,
-    totalCost,
-  };
+  }).format(amount);
 }

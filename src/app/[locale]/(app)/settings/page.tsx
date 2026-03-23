@@ -63,7 +63,7 @@ export default async function SettingsPage({
           {c.page.heading.value}
         </h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Gerencie as categorias e extras disponíveis para os seus produtos.
+          {c.page.description.value}
         </p>
       </div>
       <SettingsClient

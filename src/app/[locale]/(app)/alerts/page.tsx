@@ -28,70 +28,77 @@ export default async function AlertsPage({
   const userId = await getAuthUserId();
   if (!userId) redirect("/sign-in");
 
-  const [products, filamentTypes, productionTotals, salesTotals] =
-    await Promise.all([
-      prisma.product.findMany({
-        where: { userId, alertThreshold: { not: null } },
-      }),
-      prisma.filamentType.findMany({
-        where: { userId },
-        include: {
-          spools: { where: { userId }, select: { remaining: true } },
-        },
-      }),
-      prisma.productionLog.groupBy({
-        by: ["productId"],
-        where: { userId },
-        _sum: { quantity: true },
-      }),
-      prisma.sale.groupBy({
-        by: ["productId"],
-        where: { userId },
-        _sum: { quantity: true },
-      }),
-    ]);
+  // const [products, filamentTypes, productionTotals, salesTotals] =
+  //   await Promise.all([
+  //     prisma.product.findMany({
+  //       where: { userId, alertThreshold: { not: null } },
+  //     }),
+  //     prisma.filamentType.findMany({
+  //       where: { userId },
+  //       include: {
+  //         spools: { where: { userId }, select: { remaining: true } },
+  //       },
+  //     }),
+  //     prisma.productionLog.groupBy({
+  //       by: ["productId"],
+  //       where: { userId },
+  //       _sum: { quantity: true },
+  //     }),
+  //     prisma.sale.groupBy({
+  //       by: ["productId"],
+  //       where: { userId },
+  //       _sum: { quantity: true },
+  //     }),
+  //   ]);
+  const products = [] as any[];
+  const filamentTypes = [] as any[];
+  const productionTotals = [] as any[];
+  const salesTotals = [] as any[];
 
   const DEFAULT_THRESHOLD = 500;
 
-  const productAlerts = products
-    .map((p) => {
-      const produced =
-        productionTotals.find((t) => t.productId === p.id)?._sum.quantity ?? 0;
-      const sold =
-        salesTotals.find((t) => t.productId === p.id)?._sum.quantity ?? 0;
-      const stock = produced - sold;
-      if (produced === 0) return null;
-      if (stock > p.alertThreshold!) return null;
-      return {
-        id: p.id,
-        name: p.name,
-        stock,
-        threshold: p.alertThreshold!,
-        severity: stock === 0 ? "critical" : "warning",
-      };
-    })
-    .filter((x): x is NonNullable<typeof x> => x !== null);
+  // const productAlerts = products
+  //   .map((p) => {
+  //     const produced =
+  //       productionTotals.find((t) => t.productId === p.id)?._sum.quantity ?? 0;
+  //     const sold =
+  //       salesTotals.find((t) => t.productId === p.id)?._sum.quantity ?? 0;
+  //     const stock = produced - sold;
+  //     if (produced === 0) return null;
+  //     if (stock > p.alertThreshold!) return null;
+  //     return {
+  //       id: p.id,
+  //       name: p.name,
+  //       stock,
+  //       threshold: p.alertThreshold!,
+  //       severity: stock === 0 ? "critical" : "warning",
+  //     };
+  //   })
+  //   .filter((x): x is NonNullable<typeof x> => x !== null);
 
-  const spoolAlerts = filamentTypes
-    .map((ft) => {
-      if (ft.spools.length === 0) return null;
-      const totalRemaining = ft.spools.reduce((s, sp) => s + sp.remaining, 0);
-      const threshold = ft.alertThreshold ?? DEFAULT_THRESHOLD;
-      if (totalRemaining > threshold) return null;
-      return {
-        id: ft.id,
-        name: `${ft.brand} ${ft.colorName}`,
-        colorHex: ft.colorHex,
-        remaining: totalRemaining,
-        threshold,
-        spoolCount: ft.spools.length,
-        isDefault: ft.alertThreshold == null,
-        severity: totalRemaining < 100 ? "critical" : "warning",
-      };
-    })
-    .filter((x): x is NonNullable<typeof x> => x !== null);
+  // const spoolAlerts = filamentTypes
+  //   .map((ft) => {
+  //     if (ft.spools.length === 0) return null;
+  //     const totalRemaining = ft.spools.reduce((s, sp) => s + sp.remaining, 0);
+  //     const threshold = ft.alertThreshold ?? DEFAULT_THRESHOLD;
+  //     if (totalRemaining > threshold) return null;
+  //     return {
+  //       id: ft.id,
+  //       name: `${ft.brand} ${ft.colorName}`,
+  //       colorHex: ft.colorHex,
+  //       remaining: totalRemaining,
+  //       threshold,
+  //       spoolCount: ft.spools.length,
+  //       isDefault: ft.alertThreshold == null,
+  //       severity: totalRemaining < 100 ? "critical" : "warning",
+  //     };
+  //   })
+  //   .filter((x): x is NonNullable<typeof x> => x !== null);
 
-  const totalAlerts = productAlerts.length + spoolAlerts.length;
+  // const totalAlerts = productAlerts.length + spoolAlerts.length;
+  const totalAlerts = 0;
+  const productAlerts = [] as any[];
+  const spoolAlerts = [] as any[];
 
   return (
     <div className="space-y-6">

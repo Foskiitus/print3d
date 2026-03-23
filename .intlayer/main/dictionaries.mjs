@@ -18,6 +18,7 @@ import _ILKZs4Lb4Czy3slGbKqs from '../dictionary/settings.json' with { type: 'js
 import _CxgkDWwHRdJFzphWjspL from '../dictionary/sidebar.json' with { type: 'json' };
 import _ifGIGZsSCEceCNsYuBOh from '../dictionary/sign-in.json' with { type: 'json' };
 import _Y0fMSXnGwSCGlzNYeexB from '../dictionary/sign-up.json' with { type: 'json' };
+import _e94kJgpRnfJAFEPnHcLf from '../dictionary/spool.json' with { type: 'json' };
 import _bEXiddktbQj5aHyJbPjW from '../dictionary/stock.json' with { type: 'json' };
 import _UTAEqQKCZjlTIxCvtzW6 from '../dictionary/terms.json' with { type: 'json' };
 import _EUINc4ULDXGaE2taUrG3 from '../dictionary/users.json' with { type: 'json' };
@@ -43,6 +44,7 @@ const dictionaries = {
   "sidebar": _CxgkDWwHRdJFzphWjspL,
   "sign-in": _ifGIGZsSCEceCNsYuBOh,
   "sign-up": _Y0fMSXnGwSCGlzNYeexB,
+  "spool": _e94kJgpRnfJAFEPnHcLf,
   "stock": _bEXiddktbQj5aHyJbPjW,
   "terms": _UTAEqQKCZjlTIxCvtzW6,
   "users": _EUINc4ULDXGaE2taUrG3

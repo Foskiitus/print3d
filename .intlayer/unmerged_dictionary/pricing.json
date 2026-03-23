@@ -1,0 +1,185 @@
+[
+  {
+    "key": "pricing",
+    "content": {
+      "hobby_name": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Hobby",
+          "pt": "Hobby"
+        }
+      },
+      "hobby_desc": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "To get started and try the platform.",
+          "pt": "Para começar e experimentar a plataforma."
+        }
+      },
+      "hobby_cta": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Start for free",
+          "pt": "Começar grátis"
+        }
+      },
+      "pro_name": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Pro",
+          "pt": "Pro"
+        }
+      },
+      "pro_desc": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "For serious makers who need to grow without limits.",
+          "pt": "Para makers sérios que precisam de crescer sem limites."
+        }
+      },
+      "pro_cta": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Start Pro",
+          "pt": "Começar Pro"
+        }
+      },
+      "pro_badge": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Most popular",
+          "pt": "Mais popular"
+        }
+      },
+      "per_month": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "/ month",
+          "pt": "/ mês"
+        }
+      },
+      "stripe_note": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Secure payments via Stripe. Cancel anytime, no fees.",
+          "pt": "Pagamentos seguros via Stripe. Cancela a qualquer momento, sem taxas."
+        }
+      },
+      "hobby_f1": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Up to 2 printers",
+          "pt": "Até 2 impressoras"
+        }
+      },
+      "hobby_f2": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Up to 10 spools in inventory",
+          "pt": "Até 10 bobinas em inventário"
+        }
+      },
+      "hobby_f3": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Basic order management",
+          "pt": "Gestão básica de encomendas"
+        }
+      },
+      "hobby_f4": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Cost dashboard",
+          "pt": "Dashboard de custos"
+        }
+      },
+      "hobby_f5": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "QR Code scan",
+          "pt": "Scan QR Code"
+        }
+      },
+      "hobby_f6": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "PWA app (mobile)",
+          "pt": "Aplicação PWA (mobile)"
+        }
+      },
+      "hobby_f7": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Email support",
+          "pt": "Suporte por email"
+        }
+      },
+      "pro_f1": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Unlimited printers",
+          "pt": "Impressoras ilimitadas"
+        }
+      },
+      "pro_f2": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Unlimited spools & stock",
+          "pt": "Bobinas & stock ilimitado"
+        }
+      },
+      "pro_f3": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Unlimited orders",
+          "pt": "Encomendas ilimitadas"
+        }
+      },
+      "pro_f4": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Advanced analytics & reports",
+          "pt": "Analytics avançado & relatórios"
+        }
+      },
+      "pro_f5": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "CSV / PDF export",
+          "pt": "Exportação CSV / PDF"
+        }
+      },
+      "pro_f6": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Multi-language (PT, EN, ES)",
+          "pt": "Multi-idioma (PT, EN, ES)"
+        }
+      },
+      "pro_f7": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Stripe integration (invoicing)",
+          "pt": "Integração Stripe (faturação)"
+        }
+      },
+      "pro_f8": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Priority support",
+          "pt": "Suporte prioritário"
+        }
+      },
+      "pro_f9": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Automatic Supabase backups",
+          "pt": "Backups automáticos Supabase"
+        }
+      }
+    },
+    "location": "local",
+    "localId": "pricing::local::src/app/[locale]/pricing.content.ts",
+    "filePath": "src/app/[locale]/pricing.content.ts"
+  }
+]

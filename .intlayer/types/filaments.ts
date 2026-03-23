@@ -7,43 +7,19 @@ export default {
       "pt": {
         "page": {
           "title": "Filamentos",
-          "heading": "Filamentos",
-          "description": "Controla os tipos de material e o stock físico de bobines."
+          "description": "Gestão do inventário de filamentos"
         },
-        "spoolDetail": {
-          "subtitle": "Detalhe da bobine"
+        "components": {
+          "addButton": "Adicionar filamento",
+          "searchPlaceholder": "Pesquisar...",
+          "allMaterials": "Todos os materiais",
+          "emptyTitle": "Nenhum filamento no inventário",
+          "emptyDescription": "Adiciona o teu primeiro rolo para começar.",
+          "spools": "rolos",
+          "lowStock": "stock baixo"
         },
-        "catalogue": {
-          "heading": "Catálogo de Materiais",
-          "empty": "Nenhum material criado ainda.",
-          "spoolsInStock": "bobine(s) em stock",
-          "spoolCount": "rolo(s)"
-        },
-        "spoolHistory": {
-          "heading": "Histórico de Bobines"
-        },
-        "spool": {
-          "remaining": "restantes",
-          "of": "de",
-          "percentRemaining": "% restante",
-          "purchase": "Compra",
-          "alertLabel": "Alerta abaixo de",
-          "wasted": {
-            "label": "Desperdiçado",
-            "adjustments": "ajuste(s)"
-          },
-          "inProduction": {
-            "label": "Em Produção",
-            "productions": "produção(ões)"
-          },
-          "adjustmentHistory": {
-            "heading": "Histórico de Ajustes",
-            "empty": "Nenhum ajuste registado ainda."
-          },
-          "productionUsage": {
-            "heading": "Uso em Produção",
-            "empty": "Este tipo de filamento ainda não foi usado em nenhuma produção."
-          }
+        "functions": {
+          "remainingWeight": "g restantes"
         },
         "toast": {
           "alertSaved": "Alerta guardado!",
@@ -60,43 +36,19 @@ export default {
       "en": {
         "page": {
           "title": "Filaments",
-          "heading": "Filaments",
-          "description": "Manage material types and physical spool stock."
+          "description": "Filament inventory management"
         },
-        "spoolDetail": {
-          "subtitle": "Spool detail"
+        "components": {
+          "addButton": "Add filament",
+          "searchPlaceholder": "Search...",
+          "allMaterials": "All materials",
+          "emptyTitle": "No filaments in inventory",
+          "emptyDescription": "Add your first spool to get started.",
+          "spools": "spools",
+          "lowStock": "low stock"
         },
-        "catalogue": {
-          "heading": "Material Catalogue",
-          "empty": "No materials created yet.",
-          "spoolsInStock": "spool(s) in stock",
-          "spoolCount": "spool(s)"
-        },
-        "spoolHistory": {
-          "heading": "Spool History"
-        },
-        "spool": {
-          "remaining": "remaining",
-          "of": "of",
-          "percentRemaining": "% remaining",
-          "purchase": "Purchase",
-          "alertLabel": "Alert below",
-          "wasted": {
-            "label": "Wasted",
-            "adjustments": "adjustment(s)"
-          },
-          "inProduction": {
-            "label": "In Production",
-            "productions": "production(s)"
-          },
-          "adjustmentHistory": {
-            "heading": "Adjustment History",
-            "empty": "No adjustments recorded yet."
-          },
-          "productionUsage": {
-            "heading": "Production Usage",
-            "empty": "This filament type has not been used in any production yet."
-          }
+        "functions": {
+          "remainingWeight": "g remaining"
         },
         "toast": {
           "alertSaved": "Alert saved!",
@@ -113,6 +65,6 @@ export default {
     }
   },
   "localIds": [
-    "filaments::local::src/app/[locale]/(app)/filaments/filaments.content.ts"
+    "filaments::local::src/app/[locale]/(app)/filaments/inventory.content.ts"
   ]
 } as const;

@@ -19,6 +19,7 @@ import _herUqfKSOlOiZMTR3aZ5 from './settings.ts';
 import _CkHvRTaefkp9BFIKha5a from './sidebar.ts';
 import _jjRT7JCkdQh3Ub1iYVJ7 from './sign-in.ts';
 import _oiqNM2vfGqw5xhMWhLpV from './sign-up.ts';
+import _s0Cap7rcltTCgSKE636A from './spool.ts';
 import _s2cWw4kLMBZ88hwsk5A4 from './stock.ts';
 import _MPDyH1wsh2zuErDCqI9Q from './terms.ts';
 import _sFvPIK9NN2exznhGG7Wi from './users.ts';
@@ -45,6 +46,7 @@ declare module 'intlayer' {
     "sidebar": typeof _CkHvRTaefkp9BFIKha5a;
     "sign-in": typeof _jjRT7JCkdQh3Ub1iYVJ7;
     "sign-up": typeof _oiqNM2vfGqw5xhMWhLpV;
+    "spool": typeof _s0Cap7rcltTCgSKE636A;
     "stock": typeof _s2cWw4kLMBZ88hwsk5A4;
     "terms": typeof _MPDyH1wsh2zuErDCqI9Q;
     "users": typeof _sFvPIK9NN2exznhGG7Wi;

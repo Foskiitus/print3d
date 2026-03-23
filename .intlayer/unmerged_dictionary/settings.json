@@ -1,0 +1,531 @@
+[
+  {
+    "key": "settings",
+    "content": {
+      "page": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Settings",
+            "pt": "Configurações"
+          }
+        },
+        "heading": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Settings",
+            "pt": "Configurações"
+          }
+        },
+        "description": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Manage categories and extras for your products.",
+            "pt": "Gerencie categorias e extras para os seus produtos."
+          }
+        }
+      },
+      "messages": {
+        "deleteCategorySuccess": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Category deleted successfully",
+            "pt": "Categoria eliminada com sucesso"
+          }
+        },
+        "deleteCategoryError": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Error deleting category",
+            "pt": "Erro ao eliminar a categoria"
+          }
+        },
+        "deleteExtraSuccess": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Extra deleted successfully",
+            "pt": "Extra eliminado com sucesso"
+          }
+        },
+        "deleteExtraError": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Error deleting o extra",
+            "pt": "Erro ao eliminar o extra"
+          }
+        },
+        "confirmDelete": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Are you sure?",
+            "pt": "Tem a certeza?"
+          }
+        },
+        "presetAdded": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Preset added!",
+            "pt": "Preset adicionado!"
+          }
+        },
+        "presetDeleted": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Preset deleted!",
+            "pt": "Preset eliminado!"
+          }
+        },
+        "presetDeleteError": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Error deleting preset",
+            "pt": "Erro ao eliminar o preset"
+          }
+        }
+      },
+      "preferences": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Personal Preferences",
+            "pt": "Preferências Pessoais"
+          }
+        },
+        "description": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Individual settings — each user defines their own values.",
+            "pt": "Configurações individuais — cada utilizador define os seus próprios valores."
+          }
+        }
+      },
+      "theme": {
+        "label": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Interface theme",
+            "pt": "Tema da interface"
+          }
+        },
+        "description": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Choose between dark and light mode. The preference is saved in your browser.",
+            "pt": "Escolhe entre o modo escuro e claro. A preferência é guardada no browser."
+          }
+        },
+        "dark": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Dark",
+            "pt": "Escuro"
+          }
+        },
+        "light": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Light",
+            "pt": "Claro"
+          }
+        }
+      },
+      "locale": {
+        "label": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Language",
+            "pt": "Idioma"
+          }
+        },
+        "description": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Change the interface language. The change is immediate.",
+            "pt": "Altera o idioma da interface. A mudança é imediata."
+          }
+        },
+        "portuguese": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Portuguese",
+            "pt": "Português"
+          }
+        },
+        "english": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "English",
+            "pt": "English"
+          }
+        }
+      },
+      "electricity": {
+        "label": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Electricity price",
+            "pt": "Preço da eletricidade"
+          }
+        },
+        "description": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Used to calculate the energy cost for each production. The default value is 0.20€/kWh.",
+            "pt": "Usado para calcular o custo de energia em cada produção. O valor padrão é 0.20€/kWh."
+          }
+        },
+        "unit": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "€/kWh",
+            "pt": "€/kWh"
+          }
+        },
+        "save": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Save",
+            "pt": "Guardar"
+          }
+        },
+        "saving": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Saving...",
+            "pt": "A guardar..."
+          }
+        },
+        "saved": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Electricity price saved!",
+            "pt": "Preço de eletricidade guardado!"
+          }
+        },
+        "invalidValue": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Invalid value",
+            "pt": "Valor inválido"
+          }
+        }
+      },
+      "platform": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Platform Settings",
+            "pt": "Configurações da Plataforma"
+          }
+        },
+        "description": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Global settings that affect all users on the platform.",
+            "pt": "Configurações globais que afetam todos os utilizadores da plataforma."
+          }
+        },
+        "admin": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Admin",
+            "pt": "Admin"
+          }
+        }
+      },
+      "uploadLimit": {
+        "label": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "File upload limit",
+            "pt": "Limite de upload de ficheiros"
+          }
+        },
+        "description": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Maximum file size allowed for .3mf and .stl files. Absolute maximum: 500 MB.",
+            "pt": "Tamanho máximo permitido para ficheiros .3mf e .stl. Máximo absoluto: 500 MB."
+          }
+        },
+        "unit": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "MB",
+            "pt": "MB"
+          }
+        },
+        "save": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Save",
+            "pt": "Guardar"
+          }
+        },
+        "saving": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Saving...",
+            "pt": "A guardar..."
+          }
+        },
+        "saved": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Upload limit saved!",
+            "pt": "Limite de upload guardado!"
+          }
+        },
+        "invalidValue": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Invalid value. Must be between 1 and 500 MB.",
+            "pt": "Valor inválido. Deve estar entre 1 e 500 MB."
+          }
+        }
+      },
+      "filament": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Filament Presets",
+            "pt": "Presets de Filamentos"
+          }
+        },
+        "description": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Global list of brands, materials and colors available as suggestions when registering filaments.",
+            "pt": "Lista global de marcas, materiais e cores disponíveis como sugestões ao registar filamentos."
+          }
+        },
+        "admin": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Admin",
+            "pt": "Admin"
+          }
+        },
+        "add": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Add preset",
+            "pt": "Adicionar preset"
+          }
+        },
+        "addButton": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Add Preset",
+            "pt": "Adicionar Preset"
+          }
+        },
+        "adding": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Adding...",
+            "pt": "A adicionar..."
+          }
+        },
+        "added": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Preset added!",
+            "pt": "Preset adicionado!"
+          }
+        },
+        "deleted": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Preset deleted",
+            "pt": "Preset eliminado"
+          }
+        },
+        "deleteError": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Error deleting preset",
+            "pt": "Erro ao eliminar"
+          }
+        },
+        "deleteConfirm": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Delete this preset?",
+            "pt": "Eliminar este preset?"
+          }
+        },
+        "noPresets": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "No presets created yet.",
+            "pt": "Nenhum preset criado ainda."
+          }
+        },
+        "brand": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Brand",
+            "pt": "Marca"
+          }
+        },
+        "brandPlaceholder": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Ex: Bambu Lab",
+            "pt": "Ex: Bambu Lab"
+          }
+        },
+        "material": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Material",
+            "pt": "Material"
+          }
+        },
+        "materialPlaceholder": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Ex: PLA Basic",
+            "pt": "Ex: PLA Basic"
+          }
+        },
+        "colorName": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Color name",
+            "pt": "Nome da cor"
+          }
+        },
+        "colorNamePlaceholder": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Ex: Black",
+            "pt": "Ex: Preto"
+          }
+        },
+        "colorVisual": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Visual color",
+            "pt": "Cor visual"
+          }
+        }
+      },
+      "categories": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Categories",
+            "pt": "Categorias"
+          }
+        },
+        "empty": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "No categories created.",
+            "pt": "Nenhuma categoria criada."
+          }
+        },
+        "emptyDescription": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Create categories to organize your products.",
+            "pt": "Cria categorias para organizar os teus produtos."
+          }
+        },
+        "products": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "product(s)",
+            "pt": "produto(s)"
+          }
+        },
+        "deleteConfirm": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Delete this category? Associated products will have no category.",
+            "pt": "Eliminar esta categoria? Os produtos associados ficarão sem categoria."
+          }
+        },
+        "deleted": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Category deleted",
+            "pt": "Categoria eliminada"
+          }
+        },
+        "deleteError": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Error deleting category",
+            "pt": "Erro ao eliminar"
+          }
+        }
+      },
+      "extras": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Extras",
+            "pt": "Extras"
+          }
+        },
+        "empty": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "No extras created.",
+            "pt": "Nenhum extra criado."
+          }
+        },
+        "emptyDescription": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Add extra materials such as chains, screws, glue, etc.",
+            "pt": "Adiciona materiais extra como correntes, parafusos, cola, etc."
+          }
+        },
+        "products": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "product(s)",
+            "pt": "produto(s)"
+          }
+        },
+        "deleteConfirm": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Delete this extra?",
+            "pt": "Eliminar este extra?"
+          }
+        },
+        "deleted": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Extra deleted",
+            "pt": "Extra eliminado"
+          }
+        },
+        "deleteError": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Error deleting extra",
+            "pt": "Erro ao eliminar"
+          }
+        }
+      },
+      "common": {
+        "error": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Error",
+            "pt": "Erro"
+          }
+        }
+      }
+    },
+    "location": "local",
+    "localId": "settings::local::src/app/[locale]/(app)/settings/settings.content.ts",
+    "filePath": "src/app/[locale]/(app)/settings/settings.content.ts"
+  }
+]

@@ -1,0 +1,160 @@
+[
+  {
+    "key": "printers",
+    "content": {
+      "page": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Printers",
+            "pt": "Impressoras"
+          }
+        },
+        "heading": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Printers",
+            "pt": "Impressoras"
+          }
+        },
+        "description": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Manage your machine fleet for precise energy cost calculations.",
+            "pt": "Gere o parque de máquinas para cálculos de custo energético precisos."
+          }
+        },
+        "costsInfo": {
+          "heading": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "How do costs work?",
+              "pt": "Como funcionam os custos?"
+            }
+          },
+          "bodyPart1": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "The",
+              "pt": "O"
+            }
+          },
+          "hourlyCost": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "Hourly Cost",
+              "pt": "Custo Horário"
+            }
+          },
+          "bodyPart2": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "should include machine depreciation and preventive maintenance. The",
+              "pt": "deve incluir a amortização da máquina e manutenção preventiva. O"
+            }
+          },
+          "consumption": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "Consumption (W)",
+              "pt": "Consumo (W)"
+            }
+          },
+          "bodyPart3": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "is used to calculate electricity usage based on print time.",
+              "pt": "é usado para calcular o gasto elétrico com base no tempo de impressão."
+            }
+          }
+        }
+      },
+      "presets": {
+        "heading": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Global Presets",
+            "pt": "Presets Globais"
+          }
+        },
+        "adminBadge": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Admin",
+            "pt": "Admin"
+          }
+        },
+        "globalPreset": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Global preset",
+            "pt": "Preset global"
+          }
+        },
+        "empty": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "No presets created yet. Add global printers for users to choose from.",
+            "pt": "Nenhum preset criado ainda. Adiciona impressoras globais para os utilizadores escolherem."
+          }
+        }
+      },
+      "myMachines": {
+        "heading": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "My Machines",
+            "pt": "Minhas Máquinas"
+          }
+        },
+        "empty": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "No printers registered. Add your first machine.",
+            "pt": "Nenhuma impressora registada. Adiciona a tua primeira máquina."
+          }
+        }
+      },
+      "toast": {
+        "printerDeleted": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Printer deleted",
+            "pt": "Impressora eliminada"
+          }
+        },
+        "presetDeleted": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Preset deleted",
+            "pt": "Preset eliminado"
+          }
+        },
+        "error": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Error",
+            "pt": "Erro"
+          }
+        },
+        "confirmDeletePrinter": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Delete this printer? This action cannot be undone.",
+            "pt": "Eliminar esta impressora? Esta ação não pode ser desfeita."
+          }
+        },
+        "confirmDeletePreset": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Delete this preset? Existing printers will not be affected.",
+            "pt": "Eliminar este preset? As impressoras existentes não serão afetadas."
+          }
+        }
+      }
+    },
+    "location": "local",
+    "localId": "printers::local::src/app/[locale]/(app)/printers/printers.content.ts",
+    "filePath": "src/app/[locale]/(app)/printers/printers.content.ts"
+  }
+]

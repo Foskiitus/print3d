@@ -62,6 +62,7 @@ export function LandingFooter({ locale }: { locale: LocalesValues }) {
           {/* Locale select */}
           <div className="relative">
             <select
+              name="locale-select"
               value={locale}
               onChange={handleLocaleChange}
               className="appearance-none pl-8 pr-8 py-1.5 rounded-lg text-sm font-medium
@@ -71,13 +72,11 @@ export function LandingFooter({ locale }: { locale: LocalesValues }) {
             >
               {LOCALES.map((l) => (
                 <option key={l.value} value={l.value}>
-                  {l.label}
+                  {l.flag} {l.label}
                 </option>
               ))}
             </select>
-            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-base pointer-events-none">
-              {current.flag}
-            </span>
+
             <svg
               className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-dark-subtle pointer-events-none"
               viewBox="0 0 24 24"

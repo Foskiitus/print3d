@@ -14,19 +14,19 @@ model User {
   id       String  @id
   email    String  @unique
   name     String?
-  password String? // ← tornar opcional (Clerk gere a autenticação)
+  password String?
   role     String  @default("user")
   stripeCustomerId     String?
-  plan                 String  @default("hobby") // "hobby" | "pro"
+  plan                 String  @default("hobby")
   subscription         Subscription?
 
   createdAt DateTime @default(now())
 
-  // Dados pertencentes ao utilizador
-  customers Customer[]
+  customers      Customer[]
+  suppliers      Supplier[]
+  inventoryItems InventoryItem[]
+  purchases      InventoryPurchase[]
   printers       Printer[]
-  filamentTypes  FilamentType[]
-  filamentSpools FilamentSpool[]
   categories     Category[]
   extras         Extra[]
   products       Product[]
@@ -34,11 +34,82 @@ model User {
   sales          Sale[]
   printProfiles  PrintProfile[]
   settings       Settings[]
-  spoolAdjustments SpoolAdjustment[]
+  printerPresets PrinterPreset[]   // presets privados do utilizador
 }
 
 //////////////////////////////////////////////////////////
-// SUBSCRIPTIONS (para gerir planos pagos e funcionalidades associadas)
+// SUPPLIERS
+//////////////////////////////////////////////////////////
+
+model Supplier {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  url       String?
+  notes     String?
+  createdAt DateTime @default(now())
+
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purchases InventoryPurchase[]
+
+  @@index([userId])
+}
+
+//////////////////////////////////////////////////////////
+// INVENTORY ITEMS
+//////////////////////////////////////////////////////////
+
+model InventoryItem {
+  id               String   @id @default(cuid())
+  userId           String
+  brand            String
+  material         String
+  colorName        String
+  colorHex         String   @default("#3b82f6")
+  globalFilamentId String?
+  alertThreshold   Float?
+  createdAt        DateTime @default(now())
+
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purchases InventoryPurchase[]
+
+  @@index([userId])
+}
+
+//////////////////////////////////////////////////////////
+// INVENTORY PURCHASES (rolos físicos)
+//////////////////////////////////////////////////////////
+
+model InventoryPurchase {
+  id             String    @id @default(cuid())
+  userId         String
+  itemId         String
+  supplierId     String?
+  qrCodeId       String    @unique
+  initialWeight  Float
+  currentWeight  Float
+  tareWeight     Float     @default(0)
+  priceCents     Int
+  boughtAt       DateTime  @default(now())
+  openedAt       DateTime?
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  archivedAt     DateTime?
+
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item     InventoryItem  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  supplier Supplier?      @relation(fields: [supplierId], references: [id])
+
+  // Um rolo pode estar carregado em vários slots? Não — relação 1:1 via PrinterSlot
+  loadedInSlot  PrinterSlot?
+
+  @@index([userId])
+  @@index([itemId])
+}
+
+//////////////////////////////////////////////////////////
+// SUBSCRIPTIONS
 //////////////////////////////////////////////////////////
 
 model Subscription {
@@ -46,7 +117,7 @@ model Subscription {
   userId               String   @unique
   stripeSubscriptionId String   @unique
   stripePriceId        String
-  status               String   // "active" | "canceled" | "past_due" | "trialing"
+  status               String
   currentPeriodStart   DateTime
   currentPeriodEnd     DateTime
   cancelAtPeriodEnd    Boolean  @default(false)
@@ -57,75 +128,165 @@ model Subscription {
 }
 
 //////////////////////////////////////////////////////////
-// FILAMENT TYPES
-//////////////////////////////////////////////////////////
-
-model FilamentType {
-  id        String   @id @default(cuid())
-  userId    String
-  brand     String
-  material  String
-  colorName String
-  colorHex  String
-  alertThreshold  Float?  // ← mover da FilamentSpool para aqui
-  createdAt DateTime @default(now())
-
-  user   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  spools FilamentSpool[]
-  usages ProductFilamentUsage[]
-}
-
-//////////////////////////////////////////////////////////
-// FILAMENT SPOOLS
-//////////////////////////////////////////////////////////
-
-model FilamentSpool {
-  id             String   @id @default(cuid())
-  userId         String                          // ✅ adicionado para isolamento direto
-  filamentTypeId String
-  spoolWeight    Float
-  remaining      Float
-  price          Float
-  purchaseDate   DateTime
-  createdAt      DateTime @default(now())
-  alertThreshold  Float? // gramas mínimas antes de alertar (ex: 100g)
-
-  adjustments SpoolAdjustment[]
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  filamentType FilamentType @relation(fields: [filamentTypeId], references: [id], onDelete: Cascade)
-}
-
-//////////////////////////////////////////////////////////
-// AJUSTES DE FILAMENTO (para controlar desperdício e correções)
-//////////////////////////////////////////////////////////
-model SpoolAdjustment {
-  id        String   @id @default(cuid())
-  userId    String
-  spoolId   String
-  amount    Float    // negativo = desperdício, positivo = correção
-  reason    String?
-  createdAt DateTime @default(now())
-
-  user  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  spool FilamentSpool @relation(fields: [spoolId], references: [id], onDelete: Cascade)
-}
-
-//////////////////////////////////////////////////////////
 // PRINTERS
 //////////////////////////////////////////////////////////
 
 model Printer {
-  id         String  @id @default(cuid())
-  userId     String
-  presetId   String?                        // ← adicionar
-  name       String
-  hourlyCost Float
-  powerWatts Int
+  id                String    @id @default(cuid())
+  userId            String
+  presetId          String
+  name              String                      // ex: "Besta de Carga 01"
+  qrCodeId          String    @unique           // ID para check-in QR/NFC
 
-  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  preset  PrinterPreset? @relation(fields: [presetId], references: [id])  // ← adicionar
-  products    Product[]
-  productions ProductionLog[]
+  // Métricas de uso acumulado
+  totalPrintTime    Int       @default(0)       // minutos totais impressos
+  initialHours      Int       @default(0)       // horas já feitas ao registar
+  lastMaintenanceAt Int       @default(0)       // horas na última revisão geral
+
+  // Custos operacionais da instância
+  hourlyCost        Float
+  powerWatts        Int
+
+  // Metadados de aquisição
+  acquiredAt        DateTime?
+  status            String    @default("idle")  // "idle" | "printing" | "maintenance"
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preset           PrinterPreset      @relation(fields: [presetId], references: [id])
+  units            PrinterUnit[]      // unidades de expansão (AMS, MMU, ERCF…)
+  productions      ProductionLog[]
+  maintenanceLogs  MaintenanceLog[]
+
+  @@index([userId])
+  @@index([qrCodeId])
+}
+
+//////////////////////////////////////////////////////////
+// PRINTER UNITS
+// Cada registo é uma unidade física ligada à impressora.
+// ex: AMS 2 Pro (4 slots), AMS HT (1 slot), MMU3 (5 slots)
+//////////////////////////////////////////////////////////
+
+model PrinterUnit {
+  id          String   @id @default(cuid())
+  printerId   String
+  presetId    String?                       // referência ao UnitPreset (opcional)
+  name        String                        // ex: "AMS 2 Pro", "MMU3"
+  slotCount   Int                           // número de posições físicas
+
+  // Capacidades do hardware desta unidade
+  supportsHighTemp  Boolean @default(false) // aceita PA, PC, ABS acima de 300°C
+  supportsAbrasive  Boolean @default(false) // aceita CF, GF, etc.
+
+  createdAt   DateTime @default(now())
+
+  printer     Printer       @relation(fields: [printerId], references: [id], onDelete: Cascade)
+  unitPreset  UnitPreset?   @relation(fields: [presetId], references: [id])
+  slots       PrinterSlot[]
+
+  @@index([printerId])
+}
+
+//////////////////////////////////////////////////////////
+// PRINTER SLOTS
+// Gerados automaticamente ao criar uma PrinterUnit.
+// Cada slot é uma posição física (posição 1, 2, 3, 4…).
+//////////////////////////////////////////////////////////
+
+model PrinterSlot {
+  id             String   @id @default(cuid())
+  unitId         String
+  position       Int                           // 1-based (posição 1, 2, 3…)
+  currentSpoolId String?  @unique              // rolo carregado (nullable)
+  loadedAt       DateTime?                     // quando foi carregado
+
+  unit         PrinterUnit        @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  currentSpool InventoryPurchase? @relation(fields: [currentSpoolId], references: [id], onDelete: SetNull)
+
+  @@unique([unitId, position])
+  @@index([unitId])
+}
+
+//////////////////////////////////////////////////////////
+// UNIT PRESETS
+// Catálogo global de unidades de expansão.
+// ex: AMS 2 Pro, AMS HT, MMU3, ERCF 8T, ERCF 12T
+//////////////////////////////////////////////////////////
+
+model UnitPreset {
+  id                String   @id @default(cuid())
+  name              String                        // ex: "AMS 2 Pro"
+  brand             String                        // ex: "Bambu Lab"
+  slotCount         Int                           // posições físicas
+  supportsHighTemp  Boolean  @default(false)
+  supportsAbrasive  Boolean  @default(false)
+  notes             String?                       // info adicional opcional
+  isGlobal          Boolean  @default(true)       // false = privado do utilizador
+
+  createdAt         DateTime @default(now())
+
+  units             PrinterUnit[]
+
+  @@index([brand])
+}
+
+//////////////////////////////////////////////////////////
+// PRINTER PRESETS
+// isGlobal = true  → criado por admin, visível a todos
+// isGlobal = false → criado pelo utilizador, privado
+//////////////////////////////////////////////////////////
+
+model PrinterPreset {
+  id                 String   @id @default(cuid())
+  name               String
+  brand              String?
+  model              String?
+  extrusionType      String?                       // "Direct" | "Bowden"
+  multiMaterialSlots Int      @default(1)          // máximo suportado pelo fabricante
+  powerWatts         Int
+  hourlyCost         Float
+  imageUrl           String?
+  isGlobal           Boolean  @default(false)
+  userId             String?
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user              User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  printers          Printer[]
+  maintenanceTasks  MaintenanceTask[]
+}
+
+//////////////////////////////////////////////////////////
+// MAINTENANCE TASKS (definidas no PrinterPreset)
+//////////////////////////////////////////////////////////
+
+model MaintenanceTask {
+  id            String        @id @default(cuid())
+  presetId      String
+  taskName      String
+  intervalHours Int
+  description   String?
+
+  preset        PrinterPreset @relation(fields: [presetId], references: [id], onDelete: Cascade)
+}
+
+//////////////////////////////////////////////////////////
+// MAINTENANCE LOG (histórico de manutenções realizadas)
+//////////////////////////////////////////////////////////
+
+model MaintenanceLog {
+  id               String   @id @default(cuid())
+  printerId        String
+  taskName         String
+  performedAtHours Int
+  notes            String?
+  createdAt        DateTime @default(now())
+
+  printer          Printer  @relation(fields: [printerId], references: [id], onDelete: Cascade)
 }
 
 //////////////////////////////////////////////////////////
@@ -133,10 +294,10 @@ model Printer {
 //////////////////////////////////////////////////////////
 
 model Category {
-  id     String @id @default(cuid())
-  userId String
-  name   String
-  description String?  // ← adicionar
+  id          String @id @default(cuid())
+  userId      String
+  name        String
+  description String?
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   products Product[]
@@ -154,38 +315,21 @@ model Product {
   categoryId     String?
   productionTime Int?
   margin         Float    @default(0.3)
-  imageUrl       String?  // legacy — mantido para compatibilidade
-  fileUrl        String?  // legacy — mantido para compatibilidade
-  imageKey       String?  // R2 object key para imagem
-  fileKey        String?  // R2 object key para ficheiro .3mf/.stl
-  printerId      String?                         // ✅ opcional — impressora escolhida na produção
-  unitsPerPrint  Int  @default(1)   // ← adicionar
+  imageUrl       String?
+  fileUrl        String?
+  imageKey       String?
+  fileKey        String?
+  unitsPerPrint  Int      @default(1)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-  alertThreshold  Int?   // unidades mínimas em stock antes de alertar
+  alertThreshold Int?
 
   user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  printer        Printer?               @relation(fields: [printerId], references: [id])
   category       Category?              @relation(fields: [categoryId], references: [id])
-  filamentUsage  ProductFilamentUsage[]
   extras         ProductExtra[]
   printProfiles  PrintProfile[]
   productionLogs ProductionLog[]
   sales          Sale[]
-}
-
-//////////////////////////////////////////////////////////
-// FILAMENT USED BY PRODUCT
-//////////////////////////////////////////////////////////
-
-model ProductFilamentUsage {
-  id             String @id @default(cuid())
-  productId      String
-  filamentTypeId String
-  weight         Float
-
-  product      Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
-  filamentType FilamentType @relation(fields: [filamentTypeId], references: [id])
 }
 
 //////////////////////////////////////////////////////////
@@ -196,7 +340,7 @@ model Extra {
   id          String  @id @default(cuid())
   userId      String
   name        String
-  description String?   // ← adicionar
+  description String?
   price       Float
   unit        String?
 
@@ -224,7 +368,7 @@ model ProductExtra {
 
 model PrintProfile {
   id           String   @id @default(cuid())
-  userId       String                            // ✅ adicionado para isolamento direto
+  userId       String
   productId    String
   name         String
   filePath     String
@@ -238,37 +382,22 @@ model PrintProfile {
 }
 
 //////////////////////////////////////////////////////////
-// PRINTER PRESETS (para guardar configurações de impressoras sem criar uma impressora real)
+// GLOBAL FILAMENTS
 //////////////////////////////////////////////////////////
 
-model PrinterPreset {
-  id         String   @id @default(cuid())
-  name       String
-  powerWatts Int
-  hourlyCost Float
-  imageUrl   String?
-  createdAt  DateTime @default(now())
-
-  printers Printer[]
-}
-
-//////////////////////////////////////////////////////////
-// FILAMENT PRESETS (para guardar configurações de filamentos sem criar um filamento real)
-//////////////////////////////////////////////////////////
-
-model FilamentPreset {
-  id        String   @id @default(cuid())
-  brand     String
-  material  String
-  colorName String
-  colorHex  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model GlobalFilament {
+  id          String   @id @default(cuid())
+  brand       String
+  material    String
+  colorName   String
+  colorHex    String
+  spoolWeight Float
+  density     Float?
+  createdAt   DateTime @default(now())
 
   @@index([brand])
   @@index([material])
 }
-
 
 //////////////////////////////////////////////////////////
 // PRODUCTION LOG
@@ -286,8 +415,8 @@ model ProductionLog {
   printerCost     Float?
   extrasCost      Float?
   totalCost       Float?
-  printTime       Int?    // ← adicionar se não existir
-  filamentUsed    Float?  // ← adicionar se não existir
+  printTime       Int?
+  filamentUsed    Float?
   date            DateTime @default(now())
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -306,20 +435,18 @@ model Sale {
   customerName String?
   quantity     Int
   salePrice    Float
-  notes        String?   // ← adicionar
+  notes        String?
   date         DateTime @default(now())
-  customerId String?
-  customer   Customer? @relation(fields: [customerId], references: [id])
+  customerId   String?
 
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id])
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product  Product   @relation(fields: [productId], references: [id])
 }
 
-
 //////////////////////////////////////////////////////////
-// CUSTOMERS (para vendas, não necessariamente relacionados a produções)
+// CUSTOMERS
 //////////////////////////////////////////////////////////
-
 
 model Customer {
   id        String   @id @default(cuid())
@@ -337,7 +464,7 @@ model Customer {
 }
 
 //////////////////////////////////////////////////////////
-// SETTINGS (por utilizador)
+// SETTINGS
 //////////////////////////////////////////////////////////
 
 model Settings {
