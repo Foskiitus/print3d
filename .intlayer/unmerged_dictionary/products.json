@@ -20,8 +20,8 @@
         "description": {
           "nodeType": "translation",
           "translation": {
-            "en": "Product catalogue — define materials, times and production costs.",
-            "pt": "Catálogo de produtos — define materiais, tempos e custos de produção."
+            "en": "Product catalogue — define components (BOM) and production costs.",
+            "pt": "Catálogo de produtos — define componentes (BOM) e custos de produção."
           }
         }
       },
@@ -40,13 +40,6 @@
             "pt": "Nenhum produto encontrado."
           }
         },
-        "noPrinter": {
-          "nodeType": "translation",
-          "translation": {
-            "en": "No printer",
-            "pt": "Sem impressora"
-          }
-        },
         "productCount": {
           "nodeType": "translation",
           "translation": {
@@ -54,11 +47,25 @@
             "pt": "produto(s)"
           }
         },
-        "filamentCount": {
+        "bomEmpty": {
           "nodeType": "translation",
           "translation": {
-            "en": "filament(s)",
-            "pt": "filamento(s)"
+            "en": "BOM empty",
+            "pt": "BOM vazia"
+          }
+        },
+        "stockReady": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Components in stock",
+            "pt": "Componentes em stock"
+          }
+        },
+        "needsPrinting": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Needs printing",
+            "pt": "Necessita impressão"
           }
         }
       },
@@ -79,13 +86,6 @@
             "pt": "Editar produto"
           }
         },
-        "downloadModel": {
-          "nodeType": "translation",
-          "translation": {
-            "en": "Download Model",
-            "pt": "Descarregar Modelo"
-          }
-        },
         "margin": {
           "nodeType": "translation",
           "translation": {
@@ -93,33 +93,56 @@
             "pt": "margem"
           }
         },
-        "filaments": {
+        "components": {
           "nodeType": "translation",
           "translation": {
-            "en": "filament(s)",
-            "pt": "filamento(s)"
+            "en": "component(s)",
+            "pt": "componente(s)"
           }
         },
-        "unitsPerPrint": {
+        "pieces": {
           "nodeType": "translation",
           "translation": {
-            "en": "units/print",
-            "pt": "unidades/impressão"
+            "en": "piece(s)",
+            "pt": "peça(s)"
           }
         },
-        "noPrinterWarning": {
-          "nodeType": "translation",
-          "translation": {
-            "en": "⚠️ No printer defined — machine and energy costs not included.",
-            "pt": "⚠️ Sem impressora definida — custos de máquina e energia não incluídos."
+        "bom": {
+          "heading": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "Bill of Materials",
+              "pt": "Lista de Materiais"
+            }
+          },
+          "empty": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "No components defined yet.",
+              "pt": "Ainda não foram definidos componentes."
+            }
+          },
+          "addComponent": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "Add component to BOM",
+              "pt": "Adicionar componente à BOM"
+            }
+          },
+          "stockStatus": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "Stock status",
+              "pt": "Estado do stock"
+            }
           }
         },
         "costs": {
           "heading": {
             "nodeType": "translation",
             "translation": {
-              "en": "Cost Estimate (FIFO)",
-              "pt": "Estimativa de Custo (FIFO)"
+              "en": "Cost Estimate",
+              "pt": "Estimativa de Custo"
             }
           },
           "filaments": {
@@ -136,32 +159,11 @@
               "pt": "Extras"
             }
           },
-          "printer": {
+          "totalCost": {
             "nodeType": "translation",
             "translation": {
-              "en": "Printer",
-              "pt": "Impressora"
-            }
-          },
-          "energy": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "Energy",
-              "pt": "Energia"
-            }
-          },
-          "totalPrintCost": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "Total print cost",
-              "pt": "Custo total da impressão"
-            }
-          },
-          "costPerUnit": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "Cost per unit",
-              "pt": "Custo por unidade"
+              "en": "Total cost",
+              "pt": "Custo total"
             }
           },
           "suggestedPrice": {
@@ -171,20 +173,11 @@
               "pt": "Preço sugerido"
             }
           },
-          "suggestedPricePerUnit": {
+          "fallbackNote": {
             "nodeType": "translation",
             "translation": {
-              "en": "Suggested price/unit",
-              "pt": "Preço sugerido/unidade"
-            }
-          }
-        },
-        "productionHistory": {
-          "heading": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "Production History",
-              "pt": "Histórico de Produção"
+              "en": "Estimated at €0.025/g. Add spools with real prices for accurate values.",
+              "pt": "Estimado a €0.025/g. Adiciona bobines com preço real para valores precisos."
             }
           }
         },
@@ -194,13 +187,6 @@
             "translation": {
               "en": "Sales History",
               "pt": "Histórico de Vendas"
-            }
-          },
-          "loading": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "Loading...",
-              "pt": "A carregar..."
             }
           },
           "empty": {
@@ -241,84 +227,12 @@
             "pt": "A guardar..."
           }
         },
-        "uploading": {
-          "nodeType": "translation",
-          "translation": {
-            "en": "Uploading...",
-            "pt": "A fazer upload..."
-          }
-        },
         "image": {
           "clickToAdd": {
             "nodeType": "translation",
             "translation": {
               "en": "Click to add image",
               "pt": "Clica para adicionar imagem"
-            }
-          }
-        },
-        "file": {
-          "label": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "Print file",
-              "pt": "Ficheiro de impressão"
-            }
-          },
-          "optional": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "(optional)",
-              "pt": "(opcional)"
-            }
-          },
-          "existing": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "Existing file",
-              "pt": "Ficheiro existente"
-            }
-          },
-          "viewCurrent": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "View current file",
-              "pt": "Ver ficheiro atual"
-            }
-          },
-          "choose": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "Choose .3mf or .stl",
-              "pt": "Escolher .3mf ou .stl"
-            }
-          },
-          "sizeLimit": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "Maximum size",
-              "pt": "Limite máximo"
-            }
-          },
-          "formats": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "Accepted formats: .3mf, .stl",
-              "pt": "Formatos aceites: .3mf, .stl"
-            }
-          },
-          "tooLarge": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "File too large",
-              "pt": "Ficheiro demasiado grande"
-            }
-          },
-          "tooLargeDesc": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "The maximum size is undefined MB. This file is undefined MB.",
-              "pt": "O limite máximo é undefined MB. Este ficheiro tem undefined MB."
             }
           }
         },
@@ -344,39 +258,11 @@
               "pt": "Categoria"
             }
           },
-          "printer": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "Printer",
-              "pt": "Impressora"
-            }
-          },
-          "printTime": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "Print time",
-              "pt": "Tempo de impressão"
-            }
-          },
           "margin": {
             "nodeType": "translation",
             "translation": {
               "en": "Margin (%)",
               "pt": "Margem (%)"
-            }
-          },
-          "unitsPerPrint": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "Units per print",
-              "pt": "Unidades por impressão"
-            }
-          },
-          "unitsPerPrintHint": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "How many units come out of each print",
-              "pt": "Quantas unidades saem de cada impressão"
             }
           },
           "alertThreshold": {
@@ -389,8 +275,8 @@
           "alertThresholdHint": {
             "nodeType": "translation",
             "translation": {
-              "en": "Receive an alert when stock drops below this value",
-              "pt": "Recebe um alerta quando o stock baixar deste valor"
+              "en": "Alert when stock drops below this value",
+              "pt": "Alerta quando o stock baixar deste valor"
             }
           },
           "selectPlaceholder": {
@@ -405,71 +291,6 @@
             "translation": {
               "en": "Search category...",
               "pt": "Pesquisar categoria..."
-            }
-          },
-          "searchPrinter": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "Search printer...",
-              "pt": "Pesquisar impressora..."
-            }
-          }
-        },
-        "filaments": {
-          "heading": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "Filaments",
-              "pt": "Filamentos"
-            }
-          },
-          "add": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "Add",
-              "pt": "Adicionar"
-            }
-          },
-          "searchPlaceholder": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "Search filament...",
-              "pt": "Pesquisar filamento..."
-            }
-          },
-          "typePlaceholder": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "Filament type...",
-              "pt": "Tipo de filamento..."
-            }
-          },
-          "gramsPlaceholder": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "grams",
-              "pt": "gramas"
-            }
-          },
-          "addSpool": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "Register new spool",
-              "pt": "Registar nova bobine"
-            }
-          },
-          "noPrinterWarning": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "⚠️ Select a printer to include machine and energy costs.",
-              "pt": "⚠️ Seleciona uma impressora para incluir custos de máquina e energia."
-            }
-          },
-          "costHeading": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "Cost Estimate (FIFO)",
-              "pt": "Estimativa de Custo (FIFO)"
             }
           }
         },
@@ -494,27 +315,6 @@
               "en": "No extras added.",
               "pt": "Nenhum extra adicionado."
             }
-          },
-          "searchPlaceholder": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "Search extra...",
-              "pt": "Pesquisar extra..."
-            }
-          },
-          "placeholder": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "Extra...",
-              "pt": "Extra..."
-            }
-          },
-          "qtyPlaceholder": {
-            "nodeType": "translation",
-            "translation": {
-              "en": "qty",
-              "pt": "qtd"
-            }
           }
         }
       },
@@ -533,25 +333,18 @@
             "pt": "Produto eliminado"
           }
         },
-        "noFilament": {
+        "componentAdded": {
           "nodeType": "translation",
           "translation": {
-            "en": "Add at least one filament",
-            "pt": "Adiciona pelo menos um filamento"
+            "en": "Component added to BOM",
+            "pt": "Componente adicionado à BOM"
           }
         },
-        "uploadFailed": {
+        "componentRemoved": {
           "nodeType": "translation",
           "translation": {
-            "en": "Upload failed",
-            "pt": "Falha ao gerar link de upload"
-          }
-        },
-        "storageFailed": {
-          "nodeType": "translation",
-          "translation": {
-            "en": "Storage upload failed",
-            "pt": "Falha no upload para o storage"
+            "en": "Component removed from BOM",
+            "pt": "Componente removido da BOM"
           }
         },
         "error": {

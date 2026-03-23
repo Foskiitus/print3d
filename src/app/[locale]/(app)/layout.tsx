@@ -14,7 +14,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <header className="flex items-center gap-2 px-4 md:px-6 py-3 border-b border-border bg-card/80 backdrop-blur-sm h-14 flex-shrink-0">
           <MobileMenuButton />
           <div className="flex-1" />
-          <AlertsHeader />
+          {/* <AlertsHeader /> */}
         </header>
 
         <main className="flex-1 overflow-y-auto">

@@ -1,11 +1,10 @@
 import { getAuthUserId } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { ProductDetailClient } from "./ProductDetailClient";
-import { getIntlayer } from "intlayer";
 import type { LocalesValues } from "intlayer";
+
+const FALLBACK_PRICE_PER_G = 0.025; // €/g quando não há rolos com preço real
 
 export default async function ProductDetailPage({
   params,
@@ -17,102 +16,120 @@ export default async function ProductDetailPage({
   const userId = await getAuthUserId();
   if (!userId) redirect("/sign-in");
 
-  const [product, spools] = await Promise.all([
-    prisma.product.findUnique({
-      where: { id },
+  const [product, allComponents, categories] = await Promise.all([
+    prisma.product.findFirst({
+      where: { id, userId },
       include: {
         category: true,
-        printer: true,
-        filamentUsage: { include: { filamentType: true } },
-        extras: { include: { extra: true } },
-        printProfiles: { orderBy: { createdAt: "desc" } },
-        productionLogs: {
-          include: { printer: true },
-          orderBy: { date: "desc" },
+        bom: {
+          include: {
+            component: {
+              include: {
+                stock: true,
+                profiles: {
+                  include: { filaments: true },
+                },
+              },
+            },
+          },
+          orderBy: { component: { name: "asc" } },
         },
-        _count: { select: { productionLogs: true, sales: true } },
+        extras: { include: { extra: true } },
+        sales: {
+          orderBy: { date: "desc" },
+          take: 5,
+        },
       },
     }),
-    prisma.filamentSpool.findMany({
-      where: { userId, remaining: { gt: 0 } },
-      orderBy: { purchaseDate: "asc" },
-      include: { filamentType: true },
+
+    // Todos os componentes do utilizador (para o picker do BOM)
+    prisma.component.findMany({
+      where: { userId },
+      include: {
+        stock: true,
+        profiles: { include: { filaments: true } },
+      },
+      orderBy: { name: "asc" },
+    }),
+
+    prisma.category.findMany({
+      where: { userId },
+      orderBy: { name: "asc" },
     }),
   ]);
 
-  if (!product || product.userId !== userId) notFound();
+  if (!product) notFound();
 
-  // 1. Filament cost (FIFO)
-  let filamentCost = 0;
-  for (const usage of product.filamentUsage) {
-    const spool = spools.find((s) => s.filamentTypeId === usage.filamentTypeId);
-    if (spool) {
-      filamentCost += (spool.price / spool.spoolWeight) * usage.weight;
+  // ── Calcular custo estimado via BOM ──────────────────────────────────────────
+  // Para cada entrada da BOM:
+  //   custo = qty × (soma de filamentUsed de todos os perfis) × preço/g
+  // Tenta usar o preço real dos rolos em stock; fallback para FALLBACK_PRICE_PER_G
+
+  // Buscar rolos disponíveis para calcular preço médio por material
+  const spools = await prisma.inventoryPurchase.findMany({
+    where: { userId, archivedAt: null },
+    include: { item: true },
+    orderBy: { boughtAt: "asc" },
+  });
+
+  // Preço médio por material (€/g) a partir dos rolos em stock
+  const pricePerGByMaterial = new Map<string, number>();
+  for (const spool of spools) {
+    const material = spool.item.material;
+    if (!pricePerGByMaterial.has(material)) {
+      const price = spool.priceCents / 100 / spool.initialWeight;
+      pricePerGByMaterial.set(material, price);
     }
   }
 
-  // 2. Extras cost
+  const bomCost = product.bom.reduce((acc, entry) => {
+    // Para cada componente na BOM, soma o custo de todos os perfis
+    // Custo real por unidade = (filamentUsed × €/g) / batchSize
+    const componentCostPerUnit = entry.component.profiles.reduce(
+      (profileAcc, profile) => {
+        const g = profile.filamentUsed ?? 0;
+        const batch = (profile as any).batchSize ?? 1;
+        const primaryMaterial = profile.filaments[0]?.material;
+        const pricePerG = primaryMaterial
+          ? (pricePerGByMaterial.get(primaryMaterial) ?? FALLBACK_PRICE_PER_G)
+          : FALLBACK_PRICE_PER_G;
+        // Custo por unidade produzida neste perfil
+        return profileAcc + (g * pricePerG) / batch;
+      },
+      0,
+    );
+    // Usa o perfil mais barato se houver múltiplos (melhor receita disponível)
+    // Para o custo do produto, usa o custo médio entre todos os perfis
+    const profileCount = entry.component.profiles.length || 1;
+    return acc + entry.quantity * (componentCostPerUnit / profileCount);
+  }, 0);
+
   const extrasCost = product.extras.reduce(
     (sum, e) => sum + e.extra.price * e.quantity,
     0,
   );
 
-  // 3. Printer + energy cost
-  let printerCost: number | null = null;
-  let electricityCost: number | null = null;
+  const estimatedCost = bomCost + extrasCost;
+  const suggestedPrice = estimatedCost * (1 + product.margin);
 
-  if (product.printer && product.productionTime) {
-    const printHours = product.productionTime / 60;
-    printerCost = printHours * product.printer.hourlyCost;
-
-    const electricitySetting = await prisma.settings.findUnique({
-      where: { userId_key: { userId, key: "electricityPrice" } },
-    });
-    const electricityPrice = electricitySetting
-      ? Number(electricitySetting.value)
-      : 0.2;
-
-    electricityCost =
-      (product.printer.powerWatts / 1000) * printHours * electricityPrice;
-  }
-
-  const totalCost =
-    filamentCost + extrasCost + (printerCost ?? 0) + (electricityCost ?? 0);
-
-  const suggestedPrice = totalCost * (1 + product.margin);
+  // Tempo total estimado (soma dos printTime dos perfis × quantidade)
+  const estimatedMinutes = product.bom.reduce((acc, entry) => {
+    const t = entry.component.profiles.reduce(
+      (s, p) => s + (p.printTime ?? 0),
+      0,
+    );
+    return acc + t * entry.quantity;
+  }, 0);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link
-          href={`/${locale}/products`}
-          className="text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft size={18} />
-        </Link>
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">
-            {product.name}
-          </h1>
-          {product.category && (
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {product.category.name}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <ProductDetailClient
-        product={product as any}
-        costs={{
-          filamentCost,
-          extrasCost,
-          printerCost,
-          electricityCost,
-          totalCost,
-          suggestedPrice,
-        }}
-      />
-    </div>
+    <ProductDetailClient
+      product={product as any}
+      allComponents={allComponents as any}
+      categories={categories}
+      estimatedCost={estimatedCost}
+      suggestedPrice={suggestedPrice}
+      estimatedMinutes={estimatedMinutes}
+      backHref={`/${locale}/products`}
+    />
   );
 }

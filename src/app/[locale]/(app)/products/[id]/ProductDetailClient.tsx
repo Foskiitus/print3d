@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useIntlayer } from "next-intlayer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -17,1177 +15,881 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Clock,
-  Layers,
   Package,
-  Download,
-  TrendingUp,
+  Layers,
   Euro,
   Pencil,
-  X,
   Check,
-  Trash2,
+  X,
   Plus,
-  Upload,
-  Printer,
-  FileBox,
-  ShoppingCart,
+  Trash2,
+  Search,
+  ChevronLeft,
+  Tag,
+  AlertCircle,
+  CheckCircle2,
+  TrendingUp,
+  Wrench,
+  ArrowLeft,
+  PenLine,
+  AlertTriangle,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
-import { AddSpoolDialog } from "@/components/forms/AddSpoolDialog";
-import { SearchableSelect } from "@/components/ui/searchableSelect";
+import { format } from "date-fns";
 import { toast } from "@/components/ui/toaster";
-import { useSignedUrl } from "@/hooks/useSignedUrl";
-import { useUploadLimit } from "@/hooks/useUploadLimit";
+import { NewComponentModal } from "@/components/forms/NewComponentModal";
 
-async function executeDirectUpload(file: File, bucket: "images" | "models") {
-  const signRes = await fetch("/api/upload", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      fileName: file.name,
-      contentType: file.type,
-      fileSize: file.size,
-      bucket: bucket,
-    }),
-  });
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-  if (!signRes.ok) throw new Error("upload_sign_failed");
-
-  const { url, key } = await signRes.json();
-
-  const uploadRes = await fetch(url, {
-    method: "PUT",
-    body: file,
-    headers: { "Content-Type": file.type },
-  });
-
-  if (!uploadRes.ok) throw new Error("upload_storage_failed");
-
-  return key;
+interface Category {
+  id: string;
+  name: string;
 }
 
-function formatDate(date: string | Date) {
-  return new Date(date).toLocaleDateString(undefined, {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+interface FilamentReq {
+  material: string;
+  colorHex: string | null;
+  colorName: string | null;
+  estimatedG: number;
 }
+
+interface ComponentProfile {
+  id: string;
+  name: string;
+  printTime: number | null;
+  filamentUsed: number | null;
+  filaments: FilamentReq[];
+}
+
+interface Component {
+  id: string;
+  name: string;
+  description: string | null;
+  stock: { quantity: number } | null;
+  profiles: ComponentProfile[];
+}
+
+interface BOMEntry {
+  id: string;
+  componentId: string;
+  quantity: number;
+  component: Component;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  description: string | null;
+  margin: number;
+  categoryId: string | null;
+  category: Category | null;
+  alertThreshold: number | null;
+  bom: BOMEntry[];
+  extras: {
+    id: string;
+    quantity: number;
+    extra: { id: string; name: string; price: number; unit: string | null };
+  }[];
+  sales: { id: string; date: string; quantity: number; salePrice: number }[];
+}
+
+// ─── BOM Entry Row ────────────────────────────────────────────────────────────
+
+function BOMRow({
+  entry,
+  onUpdateQty,
+  onRemove,
+}: {
+  entry: BOMEntry;
+  onUpdateQty: (id: string, qty: number) => void;
+  onRemove: (id: string) => void;
+}) {
+  const [editingQty, setEditingQty] = useState(false);
+  const [qtyValue, setQtyValue] = useState(String(entry.quantity));
+  const inStock = entry.component.stock?.quantity ?? 0;
+  const totalNeeded = entry.quantity;
+  const hasStock = inStock >= totalNeeded;
+
+  const totalFilamentG = entry.component.profiles.reduce(
+    (acc, p) => acc + (p.filamentUsed ?? 0),
+    0,
+  );
+
+  const primaryProfile = entry.component.profiles[0];
+  const primaryFilament = primaryProfile?.filaments[0];
+  const batchSize = (primaryProfile as any)?.batchSize ?? 1;
+  const unitG = primaryProfile?.filamentUsed
+    ? Math.round((primaryProfile.filamentUsed / batchSize) * 10) / 10
+    : null;
+
+  return (
+    <div className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/20 transition-colors group">
+      {/* Cor do material */}
+      <div
+        className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center"
+        style={{
+          backgroundColor: primaryFilament?.colorHex
+            ? `${primaryFilament.colorHex}20`
+            : "var(--color-background-secondary)",
+        }}
+      >
+        <Layers size={14} className="text-muted-foreground" />
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm font-medium text-foreground truncate">
+            {entry.component.name}
+          </p>
+          {(entry.component as any).requiresAdapter && (
+            <Badge className="text-[9px] bg-amber-500/10 text-amber-600 border-amber-500/20 flex-shrink-0">
+              <Wrench size={8} className="mr-0.5" />
+              adaptador
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+          {primaryFilament && (
+            <span className="text-[10px] text-muted-foreground">
+              {primaryFilament.material}
+              {primaryFilament.colorName ? ` ${primaryFilament.colorName}` : ""}
+            </span>
+          )}
+          {unitG !== null && (
+            <span className="text-[10px] text-muted-foreground">
+              · {unitG}g/un
+              {batchSize > 1 && (
+                <span className="ml-1 text-emerald-600 font-medium">
+                  (lote {batchSize})
+                </span>
+              )}
+            </span>
+          )}
+          {entry.component.profiles.length > 0 && (
+            <span className="text-[10px] text-muted-foreground">
+              · {entry.component.profiles.length} receita
+              {entry.component.profiles.length !== 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
+        {(entry.component as any).specialHandling && (
+          <p className="text-[10px] text-amber-500 flex items-center gap-1 mt-0.5">
+            <AlertTriangle size={9} />
+            {(entry.component as any).specialHandling}
+          </p>
+        )}
+      </div>
+
+      {/* Stock */}
+      <div className="flex items-center gap-1 flex-shrink-0">
+        {hasStock ? (
+          <span className="text-[10px] text-emerald-500 flex items-center gap-0.5">
+            <CheckCircle2 size={9} />
+            {inStock} em stock
+          </span>
+        ) : (
+          <span className="text-[10px] text-amber-500 flex items-center gap-0.5">
+            <AlertCircle size={9} />
+            {inStock}/{totalNeeded}
+          </span>
+        )}
+      </div>
+
+      {/* Quantidade */}
+      <div className="flex items-center gap-1 flex-shrink-0">
+        {editingQty ? (
+          <>
+            <Input
+              type="number"
+              min="1"
+              value={qtyValue}
+              onChange={(e) => setQtyValue(e.target.value)}
+              className="w-14 h-7 text-xs text-center"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const n = Math.max(1, parseInt(qtyValue) || 1);
+                  onUpdateQty(entry.id, n);
+                  setEditingQty(false);
+                }
+                if (e.key === "Escape") setEditingQty(false);
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const n = Math.max(1, parseInt(qtyValue) || 1);
+                onUpdateQty(entry.id, n);
+                setEditingQty(false);
+              }}
+              className="text-primary"
+            >
+              <Check size={13} />
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setQtyValue(String(entry.quantity));
+              setEditingQty(true);
+            }}
+            className="flex items-center gap-1 px-2 py-1 rounded hover:bg-muted/60 transition-colors"
+          >
+            <span className="text-sm font-medium text-foreground">
+              ×{entry.quantity}
+            </span>
+            <Pencil
+              size={10}
+              className="text-muted-foreground opacity-0 group-hover:opacity-100"
+            />
+          </button>
+        )}
+      </div>
+
+      {/* Remover */}
+      <button
+        type="button"
+        onClick={() => onRemove(entry.id)}
+        className="opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-destructive transition-all p-1 flex-shrink-0"
+      >
+        <Trash2 size={12} />
+      </button>
+    </div>
+  );
+}
+
+// ─── Add Component Picker ─────────────────────────────────────────────────────
+
+function AddComponentPicker({
+  allComponents,
+  existingIds,
+  productId,
+  onAdded,
+}: {
+  allComponents: Component[];
+  existingIds: string[];
+  productId: string;
+  onAdded: (entry: BOMEntry) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  const available = allComponents.filter(
+    (c) =>
+      !existingIds.includes(c.id) &&
+      (c.name.toLowerCase().includes(search.toLowerCase()) ||
+        c.profiles[0]?.filaments[0]?.material
+          .toLowerCase()
+          .includes(search.toLowerCase())),
+  );
+
+  async function handleAdd(component: Component) {
+    setLoadingId(component.id);
+    try {
+      const res = await fetch(`/api/products/${productId}/bom`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ componentId: component.id, quantity: 1 }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      onAdded(data);
+      setOpen(false);
+      setSearch("");
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setLoadingId(null);
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-2 w-full p-2.5 rounded-lg border border-dashed border-border hover:border-primary/40 hover:bg-muted/40 transition-colors text-sm text-muted-foreground"
+      >
+        <Plus size={13} />
+        Adicionar componente à BOM
+      </button>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-foreground">
+          Escolher componente
+        </span>
+        <button type="button" onClick={() => setOpen(false)}>
+          <X
+            size={13}
+            className="text-muted-foreground hover:text-foreground"
+          />
+        </button>
+      </div>
+      <div className="relative">
+        <Search
+          size={12}
+          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          placeholder="Pesquisar componentes…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-7 h-7 text-xs"
+          autoFocus
+        />
+      </div>
+      <div className="max-h-48 overflow-y-auto space-y-1">
+        {available.length === 0 && (
+          <div className="py-3 space-y-2">
+            <p className="text-xs text-muted-foreground text-center">
+              {search
+                ? `Sem resultados para "${search}"`
+                : "Todos os componentes já estão na BOM."}
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center justify-center gap-1.5 w-full p-2 rounded-lg border border-dashed border-primary/40 hover:bg-primary/5 transition-colors text-xs text-primary font-medium"
+            >
+              <PenLine size={12} />
+              {search
+                ? `Criar "${search}" como novo componente`
+                : "Criar novo componente"}
+            </button>
+          </div>
+        )}
+        {available.map((c) => {
+          const pf = c.profiles[0]?.filaments[0];
+          return (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => handleAdd(c)}
+              disabled={loadingId === c.id}
+              className="flex items-center justify-between w-full p-2 rounded-md hover:bg-muted/60 transition-colors text-left"
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs font-medium text-foreground truncate">
+                    {c.name}
+                  </p>
+                  {(c as any).requiresAdapter && (
+                    <AlertTriangle
+                      size={10}
+                      className="text-amber-500 flex-shrink-0"
+                    />
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  {pf
+                    ? `${pf.material}${pf.colorName ? ` ${pf.colorName}` : ""}`
+                    : "Sem perfil"}
+                  {c.stock && ` · ${c.stock.quantity} em stock`}
+                </p>
+              </div>
+              <Plus
+                size={12}
+                className="text-muted-foreground flex-shrink-0 ml-2"
+              />
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Botão criar novo — sempre visível no fundo */}
+      {available.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowCreateModal(true)}
+          className="flex items-center justify-center gap-1.5 w-full p-1.5 text-[10px] text-muted-foreground hover:text-primary transition-colors"
+        >
+          <PenLine size={10} />
+          Criar novo componente
+        </button>
+      )}
+
+      {showCreateModal && (
+        <NewComponentModal
+          initialName={search}
+          productId={productId}
+          onCreated={(entry) => {
+            onAdded(entry);
+            setOpen(false);
+            setSearch("");
+          }}
+          onClose={() => setShowCreateModal(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export function ProductDetailClient({
   product: initialProduct,
-  costs: initialCosts,
+  allComponents,
+  categories,
+  estimatedCost,
+  suggestedPrice,
+  estimatedMinutes,
+  backHref,
 }: {
-  product: any;
-  costs: {
-    filamentCost: number;
-    extrasCost: number;
-    printerCost?: number | null;
-    electricityCost?: number | null;
-    totalCost: number;
-    suggestedPrice: number;
-  };
+  product: Product;
+  allComponents: Component[];
+  categories: Category[];
+  estimatedCost: number;
+  suggestedPrice: number;
+  estimatedMinutes?: number;
+  backHref?: string;
 }) {
   const router = useRouter();
-  const c = useIntlayer("products");
   const [product, setProduct] = useState(initialProduct);
-  const [costs, setCosts] = useState(initialCosts);
-  const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [sales, setSales] = useState<any[]>([]);
-  const [salesLoading, setSalesLoading] = useState(true);
-  const [isChildDialogOpen, setIsChildDialogOpen] = useState(false);
-  const [editKey, setEditKey] = useState(0);
+  const [bom, setBom] = useState<BOMEntry[]>(initialProduct.bom);
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState(initialProduct.name);
+  const [savingName, setSavingName] = useState(false);
 
-  const { signedUrl: signedImageUrl } = useSignedUrl(
-    product.imageUrl,
-    "images",
+  // Custo calculado localmente
+  const FALLBACK_PRICE_PER_G = 0.025;
+  const currentBomCost = bom.reduce((acc, entry) => {
+    const g = entry.component.profiles.reduce(
+      (s, p) => s + (p.filamentUsed ?? 0),
+      0,
+    );
+    return acc + entry.quantity * g * FALLBACK_PRICE_PER_G;
+  }, 0);
+  const extrasCost = product.extras.reduce(
+    (acc, e) => acc + e.quantity * e.extra.price,
+    0,
   );
-  const { signedUrl: modelUrl } = useSignedUrl(product.fileUrl, "models");
-  const { limitMb, limitBytes } = useUploadLimit();
+  const currentEstimatedCost = currentBomCost + extrasCost;
+  const currentSuggestedPrice = currentEstimatedCost * (1 + product.margin);
 
-  useEffect(() => {
-    fetch(`/api/products/${initialProduct.id}/sales`)
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => {
-        setSales(data);
-        setSalesLoading(false);
-      })
-      .catch(() => setSalesLoading(false));
-  }, [initialProduct.id]);
+  const allInStock = bom.every(
+    (e) => (e.component.stock?.quantity ?? 0) >= e.quantity,
+  );
 
-  const [categories, setCategories] = useState<any[]>([]);
-  const [filamentTypes, setFilamentTypes] = useState<any[]>([]);
-  const [extras, setExtras] = useState<any[]>([]);
-  const [printers, setPrinters] = useState<any[]>([]);
-  const [form, setForm] = useState<any>(null);
-
-  useEffect(() => {
-    if (!editing) return;
-    Promise.all([
-      fetch("/api/categories").then((r) => r.json()),
-      fetch("/api/filaments/types").then((r) => r.json()),
-      fetch("/api/extras").then((r) => r.json()),
-      fetch("/api/printers").then((r) => r.json()),
-    ]).then(([cats, fils, exts, prints]) => {
-      setCategories(cats);
-      setFilamentTypes(fils);
-      setExtras(exts);
-      setPrinters(prints);
-    });
-  }, [editing]);
-
-  useEffect(() => {
-    if (!editing || !form) return;
-    const validFilaments = form.filamentUsages.filter(
-      (f: any) => f.filamentTypeId && f.weight && Number(f.weight) > 0,
-    );
-    if (validFilaments.length === 0) return;
-    fetch("/api/products/estimate-cost", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        filamentUsages: validFilaments.map((f: any) => ({
-          filamentTypeId: f.filamentTypeId,
-          weight: Number(f.weight),
-        })),
-        extraUsages: form.extraUsages
-          .filter((e: any) => e.extraId && e.quantity)
-          .map((e: any) => ({
-            extraId: e.extraId,
-            quantity: Number(e.quantity),
-          })),
-        margin: Number(form.margin) / 100,
-        unitsPerPrint: Number(form.unitsPerPrint) || 1,
-        printerId: form.printerId || null,
-        productionTime: (() => {
-          const h = parseInt(form.productionHours || "0", 10) || 0;
-          const m = parseInt(form.productionMinutes || "0", 10) || 0;
-          const t = h * 60 + m;
-          return t > 0 ? t : null;
-        })(),
-      }),
-    })
-      .then((r) => r.json())
-      .then((data) => setCosts((prev: any) => ({ ...prev, ...data })))
-      .catch(() => {});
-  }, [
-    form?.filamentUsages,
-    form?.extraUsages,
-    form?.margin,
-    form?.unitsPerPrint,
-    form?.printerId,
-    form?.productionHours,
-    form?.productionMinutes,
-    editing,
-    editKey,
-  ]);
-
-  const startEditing = () => {
-    const totalMinutes = product.productionTime ?? 0;
-    setForm({
-      name: product.name,
-      description: product.description ?? "",
-      categoryId: product.categoryId ?? "",
-      printerId: product.printerId ?? "",
-      productionHours: String(Math.floor(totalMinutes / 60)),
-      productionMinutes: String(totalMinutes % 60),
-      margin: String(Math.round(product.margin * 100)),
-      unitsPerPrint: String(product.unitsPerPrint ?? 1),
-      alertThreshold:
-        product.alertThreshold != null ? String(product.alertThreshold) : "",
-      imageFile: null,
-      imagePreview: product.imageUrl ?? null,
-      imageUrl: product.imageUrl ?? null,
-      threemfFile: null,
-      threemfUploading: false,
-      fileUrl: product.fileUrl ?? null,
-      filamentUsages: product.filamentUsage.map((fu: any) => ({
-        filamentTypeId: fu.filamentTypeId,
-        weight: String(fu.weight),
-      })),
-      extraUsages: product.extras.map((pe: any) => ({
-        extraId: pe.extraId,
-        quantity: String(pe.quantity),
-      })),
-    });
-    setEditing(true);
-    setEditKey((k) => k + 1);
-  };
-
-  const cancelEditing = () => {
-    setEditing(false);
-    setForm(null);
-    setCosts(initialCosts);
-  };
-
-  const refreshFilamentTypes = async () => {
-    const res = await fetch("/api/filaments/types");
-    if (res.ok) setFilamentTypes(await res.json());
-  };
-
-  const addFilament = () =>
-    setForm({
-      ...form,
-      filamentUsages: [
-        ...form.filamentUsages,
-        { filamentTypeId: "", weight: "" },
-      ],
-    });
-
-  const removeFilament = (i: number) =>
-    setForm({
-      ...form,
-      filamentUsages: form.filamentUsages.filter(
-        (_: any, idx: number) => idx !== i,
-      ),
-    });
-
-  const updateFilament = (i: number, field: string, value: string) =>
-    setForm({
-      ...form,
-      filamentUsages: form.filamentUsages.map((f: any, idx: number) =>
-        idx === i ? { ...f, [field]: value } : f,
-      ),
-    });
-
-  const addExtra = () =>
-    setForm({
-      ...form,
-      extraUsages: [...form.extraUsages, { extraId: "", quantity: "1" }],
-    });
-
-  const removeExtra = (i: number) =>
-    setForm({
-      ...form,
-      extraUsages: form.extraUsages.filter((_: any, idx: number) => idx !== i),
-    });
-
-  const updateExtra = (i: number, field: string, value: string) =>
-    setForm({
-      ...form,
-      extraUsages: form.extraUsages.map((e: any, idx: number) =>
-        idx === i ? { ...e, [field]: value } : e,
-      ),
-    });
-
-  const handleSave = async () => {
-    if (!form.name.trim()) return;
-    const validFilaments = form.filamentUsages.filter(
-      (f: any) => f.filamentTypeId && f.weight && Number(f.weight) > 0,
-    );
-    if (validFilaments.length === 0) {
-      toast({ title: c.toast.noFilament.value, variant: "destructive" });
+  // ── Editar nome ────────────────────────────────────────────────────────────
+  async function handleSaveName() {
+    if (!nameValue.trim() || nameValue === product.name) {
+      setEditingName(false);
       return;
     }
-    setSaving(true);
+    setSavingName(true);
     try {
-      let imageUrl = form.imageUrl;
-      if (form.imageFile) {
-        imageUrl = await executeDirectUpload(form.imageFile, "images");
-      }
-
-      let fileUrl = form.fileUrl;
-      if (form.threemfFile) {
-        setForm((f: any) => ({ ...f, threemfUploading: true }));
-        try {
-          fileUrl = await executeDirectUpload(form.threemfFile, "models");
-        } finally {
-          setForm((f: any) => ({ ...f, threemfUploading: false }));
-        }
-      }
-
       const res = await fetch(`/api/products/${product.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name.trim(),
-          description: form.description.trim() || null,
-          categoryId: form.categoryId || null,
-          printerId: form.printerId || null,
-          productionTime: (() => {
-            const h = parseInt(form.productionHours || "0", 10) || 0;
-            const m = parseInt(form.productionMinutes || "0", 10) || 0;
-            const total = h * 60 + m;
-            return total > 0 ? total : null;
-          })(),
-          margin: Number(form.margin) / 100,
-          unitsPerPrint: Number(form.unitsPerPrint) || 1,
-          alertThreshold:
-            form.alertThreshold !== "" ? Number(form.alertThreshold) : null,
-          imageUrl,
-          fileUrl,
-          filamentUsages: validFilaments.map((f: any) => ({
-            filamentTypeId: f.filamentTypeId,
-            weight: Number(f.weight),
-          })),
-          extraUsages: form.extraUsages
-            .filter((e: any) => e.extraId && e.quantity)
-            .map((e: any) => ({
-              extraId: e.extraId,
-              quantity: Number(e.quantity),
-            })),
-        }),
+        body: JSON.stringify({ name: nameValue.trim() }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-
-      toast({ title: c.toast.productUpdated.value });
-      setProduct(data);
-      setEditing(false);
-      setForm(null);
-      router.refresh();
-    } catch (error: any) {
-      toast({
-        title: c.toast.error.value,
-        description: error.message,
-        variant: "destructive",
-      });
+      setProduct((p) => ({ ...p, name: data.name }));
+      setEditingName(false);
+      toast({ title: "Nome atualizado" });
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
     } finally {
-      setSaving(false);
+      setSavingName(false);
     }
-  };
+  }
 
-  // ── View mode ─────────────────────────────────────────────────
-  if (!editing) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-end">
-          <Button variant="outline" size="sm" onClick={startEditing}>
-            <Pencil size={13} className="mr-1.5" />
-            {c.view.editButton.value}
-          </Button>
+  // ── BOM: atualizar quantidade ─────────────────────────────────────────────
+  async function handleUpdateBOMQty(bomId: string, quantity: number) {
+    try {
+      const res = await fetch(`/api/products/${product.id}/bom/${bomId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quantity }),
+      });
+      if (!res.ok) throw new Error("Erro ao atualizar");
+      setBom((prev) =>
+        prev.map((e) => (e.id === bomId ? { ...e, quantity } : e)),
+      );
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    }
+  }
+
+  // ── BOM: remover componente ───────────────────────────────────────────────
+  async function handleRemoveBOM(bomId: string) {
+    try {
+      const res = await fetch(`/api/products/${product.id}/bom/${bomId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Erro ao remover");
+      setBom((prev) => prev.filter((e) => e.id !== bomId));
+      toast({ title: "Componente removido da BOM" });
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => (backHref ? router.push(backHref) : router.back())}
+          className="text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft size={18} />
+        </button>
+        <div className="flex-1 min-w-0">
+          {editingName ? (
+            <div className="flex items-center gap-2">
+              <Input
+                value={nameValue}
+                onChange={(e) => setNameValue(e.target.value)}
+                className="h-8 text-lg font-bold w-72"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSaveName();
+                  if (e.key === "Escape") {
+                    setEditingName(false);
+                    setNameValue(product.name);
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleSaveName}
+                disabled={savingName}
+                className="text-primary"
+              >
+                <Check size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingName(false);
+                  setNameValue(product.name);
+                }}
+                className="text-muted-foreground"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 group">
+              <h1 className="text-xl font-bold text-foreground truncate">
+                {product.name}
+              </h1>
+              <button
+                type="button"
+                onClick={() => setEditingName(true)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+              >
+                <Pencil size={13} />
+              </button>
+            </div>
+          )}
+          {product.category && (
+            <p className="text-sm text-muted-foreground mt-0.5 flex items-center gap-1">
+              <Tag size={11} />
+              {product.category.name}
+            </p>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="space-y-4">
-            {product.imageUrl ? (
-              <div className="aspect-square rounded-xl overflow-hidden border bg-muted">
-                {signedImageUrl ? (
-                  <img
-                    src={signedImageUrl}
-                    alt={product.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-muted animate-pulse" />
-                )}
-              </div>
-            ) : (
-              <div className="aspect-square rounded-xl border bg-muted/40 flex items-center justify-center">
-                <Package size={48} className="text-muted-foreground/30" />
-              </div>
-            )}
-            {product.fileUrl && (
-              <Button
-                variant="secondary"
-                className="gap-2"
-                asChild
-                disabled={!modelUrl}
-              >
-                <a
-                  href={modelUrl || "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  download
-                >
-                  <Download size={16} />
-                  {c.view.downloadModel.value}
-                </a>
-              </Button>
-            )}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {allInStock && bom.length > 0 ? (
+            <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-xs">
+              <CheckCircle2 size={10} className="mr-1" />
+              Pronto para montar
+            </Badge>
+          ) : bom.length === 0 ? (
+            <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-xs">
+              <AlertCircle size={10} className="mr-1" />
+              BOM vazia
+            </Badge>
+          ) : null}
+        </div>
+      </div>
 
+      {/* Layout 2 colunas */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Coluna principal — BOM */}
+        <div className="lg:col-span-2 space-y-4">
+          <Card>
+            <CardContent className="p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground">
+                    Lista de Materiais (BOM)
+                  </h2>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {bom.length === 0
+                      ? "Adiciona os componentes que constituem este produto."
+                      : `${bom.length} componente${bom.length !== 1 ? "s" : ""} · ${bom.reduce((a, e) => a + e.quantity, 0)} peças no total`}
+                  </p>
+                </div>
+                <Layers size={14} className="text-muted-foreground" />
+              </div>
+
+              {bom.length === 0 ? (
+                <div className="py-6 text-center">
+                  <Layers
+                    size={28}
+                    className="text-muted-foreground mx-auto mb-2"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Este produto ainda não tem componentes definidos.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {bom.map((entry) => (
+                    <BOMRow
+                      key={entry.id}
+                      entry={entry}
+                      onUpdateQty={handleUpdateBOMQty}
+                      onRemove={handleRemoveBOM}
+                    />
+                  ))}
+                </div>
+              )}
+
+              <AddComponentPicker
+                allComponents={allComponents}
+                existingIds={bom.map((e) => e.componentId)}
+                productId={product.id}
+                onAdded={(entry) => setBom((prev) => [...prev, entry])}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Extras */}
+          {product.extras.length > 0 && (
             <Card>
               <CardContent className="p-5 space-y-3">
-                {product.description && (
-                  <p className="text-sm text-muted-foreground">
-                    {product.description}
-                  </p>
-                )}
-                <div className="flex flex-wrap gap-2">
-                  {product.productionTime && (
-                    <Badge variant="secondary" className="text-[10px] gap-1">
-                      <Clock size={9} />
-                      {Math.floor(product.productionTime / 60) > 0 &&
-                        `${Math.floor(product.productionTime / 60)}h `}
-                      {product.productionTime % 60 > 0 &&
-                        `${product.productionTime % 60}min`}
-                    </Badge>
-                  )}
-                  <Badge variant="secondary" className="text-[10px] gap-1">
-                    <TrendingUp size={9} />
-                    {(product.margin * 100).toFixed(0)}% {c.view.margin.value}
-                  </Badge>
-                  {product.printer && (
-                    <Badge variant="secondary" className="text-[10px] gap-1">
-                      <Printer size={9} />
-                      {product.printer.name}
-                    </Badge>
-                  )}
-                  <Badge variant="secondary" className="text-[10px] gap-1">
-                    <Layers size={9} />
-                    {product.filamentUsage.length} {c.view.filaments.value}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="lg:col-span-2 space-y-4">
-            {/* Cost estimate */}
-            <Card>
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                    {c.view.costs.heading.value}
-                  </p>
-                  {product.unitsPerPrint > 1 && (
-                    <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
-                      {product.unitsPerPrint} {c.view.unitsPerPrint.value}
-                    </span>
-                  )}
-                </div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">
-                      {c.view.costs.filaments.value}
-                    </span>
-                    <span>{formatCurrency(costs.filamentCost)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">
-                      {c.view.costs.extras.value}
-                    </span>
-                    <span>{formatCurrency(costs.extrasCost)}</span>
-                  </div>
-                  {costs.printerCost != null && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">
-                        {c.view.costs.printer.value}
-                      </span>
-                      <span>{formatCurrency(costs.printerCost)}</span>
-                    </div>
-                  )}
-                  {costs.electricityCost != null && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">
-                        {c.view.costs.energy.value}
-                      </span>
-                      <span>{formatCurrency(costs.electricityCost)}</span>
-                    </div>
-                  )}
-                  {!product.printerId && (
-                    <p className="text-[10px] text-warning">
-                      {c.view.noPrinterWarning.value}
-                    </p>
-                  )}
-                  <div className="flex justify-between font-medium border-t border-border pt-2 mt-2">
-                    <span>{c.view.costs.totalPrintCost.value}</span>
-                    <span>{formatCurrency(costs.totalCost)}</span>
-                  </div>
-                  {product.unitsPerPrint > 1 && (
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>{c.view.costs.costPerUnit.value}</span>
-                      <span>
-                        {formatCurrency(
-                          costs.totalCost / product.unitsPerPrint,
-                        )}
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-primary font-bold text-base pt-1 border-t border-border mt-1">
-                    <span>
-                      {product.unitsPerPrint > 1
-                        ? c.view.costs.suggestedPricePerUnit.value
-                        : c.view.costs.suggestedPrice.value}
-                    </span>
-                    <span>
-                      {formatCurrency(
-                        costs.suggestedPrice / product.unitsPerPrint,
-                      )}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Filaments */}
-            <Card>
-              <CardContent className="p-5">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 mb-3">
-                  {c.view.costs.filaments.value}
-                </p>
+                <h2 className="text-sm font-semibold text-foreground">
+                  Extras
+                </h2>
                 <div className="space-y-2">
-                  {product.filamentUsage.map((fu: any) => (
+                  {product.extras.map((e) => (
                     <div
-                      key={fu.id}
-                      className="flex items-center justify-between text-sm"
+                      key={e.id}
+                      className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40"
                     >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: fu.filamentType.colorHex }}
-                        />
-                        <span>
-                          {fu.filamentType.brand} {fu.filamentType.material} —{" "}
-                          {fu.filamentType.colorName}
-                        </span>
+                      <div>
+                        <p className="text-xs font-medium text-foreground">
+                          {e.extra.name}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {e.quantity} {e.extra.unit ?? "un"} ×{" "}
+                          {formatCurrency(e.extra.price)}
+                        </p>
                       </div>
-                      <span className="font-medium text-muted-foreground">
-                        {fu.weight}g
+                      <span className="text-xs font-semibold text-foreground">
+                        {formatCurrency(e.quantity * e.extra.price)}
                       </span>
                     </div>
                   ))}
                 </div>
               </CardContent>
             </Card>
+          )}
 
-            {product.extras.length > 0 && (
-              <Card>
-                <CardContent className="p-5">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 mb-3">
-                    {c.view.costs.extras.value}
-                  </p>
-                  <div className="space-y-2">
-                    {product.extras.map((pe: any) => (
-                      <div
-                        key={pe.id}
-                        className="flex items-center justify-between text-sm"
-                      >
-                        <span>{pe.extra.name}</span>
-                        <div className="flex items-center gap-3 text-muted-foreground">
-                          <span>×{pe.quantity}</span>
-                          <span>
-                            {formatCurrency(pe.extra.price * pe.quantity)}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
-
-        {/* Production history */}
-        {product.productionLogs.length > 0 && (
-          <div className="space-y-3">
-            <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-              {c.view.productionHistory.heading.value}
-            </h2>
-            <div className="space-y-2">
-              {product.productionLogs.map((log: any) => (
-                <Card key={log.id} className="bg-card border shadow-sm">
-                  <CardContent className="p-3">
-                    <div className="flex items-center justify-between gap-4 text-sm">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Badge
-                          variant="secondary"
-                          className="text-[10px] flex-shrink-0"
-                        >
-                          ×{log.quantity}
-                        </Badge>
-                        <span className="text-muted-foreground text-xs truncate">
-                          {log.printer.name} · {formatDate(log.date)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <Euro size={12} className="text-muted-foreground" />
-                        <span className="font-medium text-xs">
-                          {formatCurrency(log.totalCost || 0)}
-                        </span>
-                      </div>
-                    </div>
-                    {log.notes && (
-                      <p className="text-[10px] text-muted-foreground mt-1.5 ml-8">
-                        {log.notes}
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Sales history */}
-        <div className="space-y-3">
-          <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-            {c.view.salesHistory.heading.value}
-          </h2>
-          {salesLoading ? (
-            <p className="text-xs text-muted-foreground">
-              {c.view.salesHistory.loading.value}
-            </p>
-          ) : sales.length === 0 ? (
+          {/* Vendas recentes */}
+          {product.sales.length > 0 && (
             <Card>
-              <CardContent className="py-6 text-center text-sm text-muted-foreground">
-                {c.view.salesHistory.empty.value}
+              <CardContent className="p-5 space-y-3">
+                <h2 className="text-sm font-semibold text-foreground">
+                  Vendas Recentes
+                </h2>
+                <div className="space-y-2">
+                  {product.sales.map((s) => (
+                    <div
+                      key={s.id}
+                      className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40"
+                    >
+                      <div>
+                        <p className="text-xs text-foreground">
+                          {format(new Date(s.date), "dd MMM yyyy")}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {s.quantity} unid.
+                        </p>
+                      </div>
+                      <span className="text-xs font-semibold text-foreground">
+                        {formatCurrency(s.salePrice)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
-          ) : (
-            <div className="space-y-2">
-              {sales.map((sale: any) => (
-                <Card key={sale.id} className="bg-card border shadow-sm">
-                  <CardContent className="p-3">
-                    <div className="flex items-center justify-between gap-4 text-sm">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Badge
-                          variant="secondary"
-                          className="text-[10px] flex-shrink-0"
-                        >
-                          ×{sale.quantity}
-                        </Badge>
-                        <div className="min-w-0">
-                          <span className="text-muted-foreground text-xs truncate block">
-                            {formatDate(sale.date)}
-                            {sale.customer?.name && (
-                              <> · {sale.customer.name}</>
-                            )}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <ShoppingCart
-                          size={12}
-                          className="text-muted-foreground"
-                        />
-                        <span className="font-medium text-xs tabular-nums">
-                          {formatCurrency(sale.salePrice * sale.quantity)}
-                        </span>
-                      </div>
-                    </div>
-                    {sale.notes && (
-                      <p className="text-[10px] text-muted-foreground mt-1.5 ml-8">
-                        {sale.notes}
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
           )}
         </div>
-      </div>
-    );
-  }
 
-  // ── Edit mode ─────────────────────────────────────────────────
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/20">
-        <p className="text-sm font-medium text-primary">
-          {c.edit.modeLabel.value}
-        </p>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={cancelEditing}
-            disabled={saving}
-          >
-            <X size={13} className="mr-1.5" />
-            {c.edit.cancel.value}
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleSave}
-            disabled={saving || form?.threemfUploading}
-          >
-            <Check size={13} className="mr-1.5" />
-            {form?.threemfUploading
-              ? c.edit.uploading.value
-              : saving
-                ? c.edit.saving.value
-                : c.edit.save.value}
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Coluna lateral — Custos e Configuração */}
         <div className="space-y-4">
-          {/* Image */}
-          {form.imagePreview ? (
-            <div className="relative aspect-square rounded-xl overflow-hidden border">
-              <img
-                src={
-                  form.imageFile
-                    ? form.imagePreview
-                    : (signedImageUrl ?? undefined)
-                }
-                alt="preview"
-                className="w-full h-full object-cover"
-              />
-              <button
-                type="button"
-                onClick={() =>
-                  setForm({
-                    ...form,
-                    imageFile: null,
-                    imagePreview: null,
-                    imageUrl: null,
-                  })
-                }
-                className="absolute top-2 right-2 w-7 h-7 bg-destructive text-white rounded-lg flex items-center justify-center"
-              >
-                <X size={12} />
-              </button>
-            </div>
-          ) : (
-            <label className="aspect-square rounded-xl border border-dashed bg-muted/20 flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 transition-colors">
-              <Upload size={24} className="text-muted-foreground/40 mb-2" />
-              <span className="text-xs text-muted-foreground">
-                {c.edit.image.clickToAdd.value}
-              </span>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file)
-                    setForm({
-                      ...form,
-                      imageFile: file,
-                      imagePreview: URL.createObjectURL(file),
-                    });
-                }}
-              />
-            </label>
-          )}
-
-          {/* Print file (.3mf / .stl) */}
-          <div className="space-y-2">
-            <Label>
-              {c.edit.file.label.value}{" "}
-              <span className="text-muted-foreground font-normal">
-                {c.edit.file.optional.value}
-              </span>
-            </Label>
-            {form.threemfFile ? (
-              <div className="flex items-center gap-3 border rounded-lg px-3 py-2 bg-muted/30">
-                <FileBox size={16} className="text-primary flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate">
-                    {form.threemfFile.name}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {(form.threemfFile.size / 1024 / 1024).toFixed(1)} MB
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setForm({ ...form, threemfFile: null })}
-                  className="text-muted-foreground hover:text-destructive transition-colors"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            ) : form.fileUrl ? (
-              <div className="flex items-center gap-3 border rounded-lg px-3 py-2 bg-muted/30">
-                <FileBox size={16} className="text-primary flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate">
-                    {c.edit.file.existing.value}
-                  </p>
-                  <a
-                    href={form.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[10px] text-primary hover:underline"
-                  >
-                    {c.edit.file.viewCurrent.value}
-                  </a>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setForm({ ...form, fileUrl: null })}
-                  className="text-muted-foreground hover:text-destructive transition-colors"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            ) : (
-              <label className="flex items-center gap-2 w-fit cursor-pointer border border-dashed rounded-lg px-4 py-2 text-xs text-muted-foreground hover:border-primary/40 transition-colors">
-                <FileBox size={14} />
-                {c.edit.file.choose.value}
-                <input
-                  type="file"
-                  accept=".3mf,.stl"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    if (file.size > limitBytes) {
-                      toast({
-                        title: c.toast.error.value,
-                        description: `${c.edit.file.sizeLimit.value}: ${limitMb} MB. ${(file.size / 1024 / 1024).toFixed(1)} MB.`,
-                        variant: "destructive",
-                      });
-                      e.target.value = "";
-                      return;
-                    }
-                    setForm({ ...form, threemfFile: file });
-                  }}
-                />
-              </label>
-            )}
-            <p className="text-[10px] text-muted-foreground">
-              {c.edit.file.sizeLimit.value}: {limitMb} MB ·{" "}
-              {c.edit.file.formats.value}
-            </p>
-          </div>
-
-          {/* Basic info */}
+          {/* Custo estimado */}
           <Card>
-            <CardContent className="p-5 space-y-3">
-              <div className="space-y-1.5">
-                <Label>{c.edit.fields.name.value}</Label>
-                <Input
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>{c.edit.fields.description.value}</Label>
-                <Textarea
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm({ ...form, description: e.target.value })
-                  }
-                  rows={2}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>{c.edit.fields.category.value}</Label>
-                <SearchableSelect
-                  options={categories.map((cat) => ({
-                    value: cat.id,
-                    label: cat.name,
-                  }))}
-                  value={form.categoryId}
-                  onValueChange={(v) => setForm({ ...form, categoryId: v })}
-                  placeholder={c.edit.fields.selectPlaceholder.value}
-                  searchPlaceholder={c.edit.fields.searchCategory.value}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>{c.edit.fields.printer.value}</Label>
-                <SearchableSelect
-                  options={printers.map((p) => ({
-                    value: p.id,
-                    label: p.name,
-                  }))}
-                  value={form.printerId}
-                  onValueChange={(v) => setForm({ ...form, printerId: v })}
-                  placeholder={c.edit.fields.selectPlaceholder.value}
-                  searchPlaceholder={c.edit.fields.searchPrinter.value}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>{c.edit.fields.printTime.value}</Label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Input
-                      type="number"
-                      min="0"
-                      placeholder="0"
-                      value={form.productionHours}
-                      onChange={(e) =>
-                        setForm({ ...form, productionHours: e.target.value })
-                      }
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
-                      h
-                    </span>
-                  </div>
-                  <div className="relative flex-1">
-                    <Input
-                      type="number"
-                      min="0"
-                      max="59"
-                      placeholder="0"
-                      value={form.productionMinutes}
-                      onChange={(e) =>
-                        setForm({ ...form, productionMinutes: e.target.value })
-                      }
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
-                      min
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label>{c.edit.fields.margin.value}</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={form.margin}
-                  onChange={(e) => setForm({ ...form, margin: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>{c.edit.fields.unitsPerPrint.value}</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  placeholder="ex: 31"
-                  value={form.unitsPerPrint}
-                  onChange={(e) =>
-                    setForm({ ...form, unitsPerPrint: e.target.value })
-                  }
-                />
-                <p className="text-[10px] text-muted-foreground">
-                  {c.edit.fields.unitsPerPrintHint.value}
-                </p>
-              </div>
-              <div className="space-y-1.5">
-                <Label>
-                  {c.edit.fields.alertThreshold.value}{" "}
-                  <span className="text-muted-foreground font-normal">
-                    {c.edit.file.optional.value}
-                  </span>
-                </Label>
-                <Input
-                  type="number"
-                  min="0"
-                  placeholder="ex: 5"
-                  value={form.alertThreshold}
-                  onChange={(e) =>
-                    setForm({ ...form, alertThreshold: e.target.value })
-                  }
-                />
-                <p className="text-[10px] text-muted-foreground">
-                  {c.edit.fields.alertThresholdHint.value}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="lg:col-span-2 space-y-4">
-          {/* Cost estimate (edit mode) */}
-          <Card>
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                  {c.edit.filaments.costHeading.value}
-                </p>
-                {Number(form.unitsPerPrint) > 1 && (
-                  <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
-                    {form.unitsPerPrint} {c.view.unitsPerPrint.value}
-                  </span>
-                )}
-              </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    {c.view.costs.filaments.value}
-                  </span>
-                  <span>{formatCurrency(costs.filamentCost)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    {c.view.costs.extras.value}
-                  </span>
-                  <span>{formatCurrency(costs.extrasCost)}</span>
-                </div>
-                {costs.printerCost != null && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">
-                      {c.view.costs.printer.value}
-                    </span>
-                    <span>{formatCurrency(costs.printerCost)}</span>
-                  </div>
-                )}
-                {costs.electricityCost != null && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">
-                      {c.view.costs.energy.value}
-                    </span>
-                    <span>{formatCurrency(costs.electricityCost)}</span>
-                  </div>
-                )}
-                {!form.printerId && (
-                  <p className="text-[10px] text-warning">
-                    {c.edit.filaments.noPrinterWarning.value}
-                  </p>
-                )}
-                <div className="flex justify-between font-medium border-t border-border pt-2 mt-2">
-                  <span>{c.view.costs.totalPrintCost.value}</span>
-                  <span>{formatCurrency(costs.totalCost)}</span>
-                </div>
-                {Number(form.unitsPerPrint) > 1 && (
-                  <div className="flex justify-between text-muted-foreground">
-                    <span>{c.view.costs.costPerUnit.value}</span>
-                    <span>
-                      {formatCurrency(
-                        costs.totalCost / (Number(form.unitsPerPrint) || 1),
-                      )}
-                    </span>
-                  </div>
-                )}
-                <div className="flex justify-between text-primary font-bold text-base pt-1 border-t border-border mt-1">
-                  <span>
-                    {Number(form.unitsPerPrint) > 1
-                      ? `${c.view.costs.suggestedPricePerUnit.value} (${form.margin}% ${c.view.margin.value})`
-                      : `${c.view.costs.suggestedPrice.value} (${form.margin}% ${c.view.margin.value})`}
-                  </span>
-                  <span>
-                    {formatCurrency(
-                      costs.suggestedPrice / (Number(form.unitsPerPrint) || 1),
-                    )}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Editable filaments */}
-          <Card>
-            <CardContent className="p-5 space-y-3">
+            <CardContent className="p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                  {c.edit.filaments.heading.value}
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addFilament}
-                >
-                  <Plus size={12} className="mr-1" />{" "}
-                  {c.edit.filaments.add.value}
-                </Button>
+                <h2 className="text-sm font-semibold text-foreground">
+                  Estimativa de Custo
+                </h2>
+                <Euro size={14} className="text-muted-foreground" />
               </div>
-              {form.filamentUsages.map((f: any, i: number) => (
-                <div key={i} className="flex items-center gap-2">
-                  <div className="flex-1 space-y-1">
-                    <SearchableSelect
-                      options={filamentTypes.map((ft) => ({
-                        value: ft.id,
-                        label: `${ft.brand} ${ft.material} — ${ft.colorName}`,
-                        render: (
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: ft.colorHex }}
-                            />
-                            {ft.brand} {ft.material} — {ft.colorName}
-                          </div>
-                        ),
-                      }))}
-                      value={f.filamentTypeId}
-                      onValueChange={(v) =>
-                        updateFilament(i, "filamentTypeId", v)
-                      }
-                      placeholder={c.edit.filaments.typePlaceholder.value}
-                      searchPlaceholder={
-                        c.edit.filaments.searchPlaceholder.value
-                      }
-                    />
-                    <AddSpoolDialog
-                      types={filamentTypes}
-                      onAdded={refreshFilamentTypes}
-                      onOpenChange={setIsChildDialogOpen}
-                      trigger={
-                        <button
-                          type="button"
-                          className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors py-0.5"
-                        >
-                          <Plus size={11} /> {c.edit.filaments.addSpool.value}
-                        </button>
-                      }
-                    />
-                  </div>
-                  <div className="w-28">
-                    <Input
-                      type="number"
-                      step="0.1"
-                      placeholder={c.edit.filaments.gramsPlaceholder.value}
-                      value={f.weight}
-                      onChange={(e) =>
-                        updateFilament(i, "weight", e.target.value)
-                      }
-                    />
-                  </div>
-                  {form.filamentUsages.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9 text-destructive/50 hover:text-destructive"
-                      onClick={() => removeFilament(i)}
-                    >
-                      <Trash2 size={13} />
-                    </Button>
-                  )}
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Filamento</span>
+                  <span className="text-foreground">
+                    {formatCurrency(currentBomCost)}
+                  </span>
                 </div>
-              ))}
+                {extrasCost > 0 && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Extras</span>
+                    <span className="text-foreground">
+                      {formatCurrency(extrasCost)}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between text-xs border-t border-border pt-2">
+                  <span className="text-muted-foreground font-medium">
+                    Custo total
+                  </span>
+                  <span className="font-semibold text-foreground">
+                    {formatCurrency(currentEstimatedCost)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg bg-primary/5 border border-primary/10 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <TrendingUp size={11} />
+                    Preço sugerido ({Math.round(product.margin * 100)}% margem)
+                  </span>
+                </div>
+                <p className="text-lg font-bold text-primary">
+                  {formatCurrency(currentSuggestedPrice)}
+                </p>
+              </div>
+
+              <p className="text-[10px] text-muted-foreground">
+                Custo de filamento calculado com €0.025/g estimado. Configura
+                rolos com preço real para valores precisos.
+              </p>
             </CardContent>
           </Card>
 
-          {/* Editable extras */}
+          {/* Configuração */}
           <Card>
-            <CardContent className="p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                  {c.edit.extras.heading.value}
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addExtra}
-                >
-                  <Plus size={12} className="mr-1" /> {c.edit.extras.add.value}
-                </Button>
-              </div>
-              {form.extraUsages.length === 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {c.edit.extras.empty.value}
-                </p>
-              )}
-              {form.extraUsages.map((e: any, i: number) => (
-                <div key={i} className="flex items-center gap-2">
-                  <div className="flex-1">
-                    <SearchableSelect
-                      options={extras.map((ex) => ({
-                        value: ex.id,
-                        label: `${ex.name} — ${formatCurrency(ex.price)}/${ex.unit || "un"}`,
-                      }))}
-                      value={e.extraId}
-                      onValueChange={(v) => updateExtra(i, "extraId", v)}
-                      placeholder={c.edit.extras.placeholder.value}
-                      searchPlaceholder={c.edit.extras.searchPlaceholder.value}
-                    />
-                  </div>
-                  <div className="w-28">
+            <CardContent className="p-5 space-y-4">
+              <h2 className="text-sm font-semibold text-foreground">
+                Configuração
+              </h2>
+
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">
+                    Margem (%)
+                  </Label>
+                  <div className="flex items-center gap-2">
                     <Input
                       type="number"
-                      step="0.1"
-                      placeholder={c.edit.extras.qtyPlaceholder.value}
-                      value={e.quantity}
-                      onChange={(ev) =>
-                        updateExtra(i, "quantity", ev.target.value)
-                      }
+                      step="0.01"
+                      min="0"
+                      defaultValue={product.margin}
+                      className="h-8 text-sm"
+                      onBlur={async (e) => {
+                        const val = parseFloat(e.target.value);
+                        if (isNaN(val) || val === product.margin) return;
+                        try {
+                          await fetch(`/api/products/${product.id}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ margin: val }),
+                          });
+                          setProduct((p) => ({ ...p, margin: val }));
+                        } catch {
+                          /* silent */
+                        }
+                      }}
                     />
+                    <span className="text-xs text-muted-foreground">
+                      = {Math.round(product.margin * 100)}%
+                    </span>
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 text-destructive/50 hover:text-destructive"
-                    onClick={() => removeExtra(i)}
-                  >
-                    <Trash2 size={13} />
-                  </Button>
                 </div>
-              ))}
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">
+                    Alerta de stock (unidades)
+                  </Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    defaultValue={product.alertThreshold ?? ""}
+                    placeholder="Sem alerta"
+                    className="h-8 text-sm"
+                    onBlur={async (e) => {
+                      const val = e.target.value
+                        ? parseInt(e.target.value)
+                        : null;
+                      try {
+                        await fetch(`/api/products/${product.id}`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ alertThreshold: val }),
+                        });
+                      } catch {
+                        /* silent */
+                      }
+                    }}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">
+                    Categoria
+                  </Label>
+                  <Select
+                    defaultValue={product.categoryId ?? "none"}
+                    onValueChange={async (val) => {
+                      const categoryId = val === "none" ? null : val;
+                      try {
+                        await fetch(`/api/products/${product.id}`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ categoryId }),
+                        });
+                        setProduct((p) => ({ ...p, categoryId }));
+                      } catch {
+                        /* silent */
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Sem categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sem categoria</SelectItem>
+                      {categories.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>

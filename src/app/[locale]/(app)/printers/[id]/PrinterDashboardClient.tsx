@@ -30,11 +30,11 @@ import {
   ScanLine,
   ChevronRight,
   PackageX,
-  Info,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { toast } from "@/components/ui/toaster";
+import { PreFlightModal } from "@/components/forms/PreFlightModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -124,12 +124,13 @@ interface EnrichedPrinter {
     performedAtHours: number;
     createdAt: string;
   }[];
-  productions: {
+  printJobs: {
     id: string;
-    date: string;
+    createdAt: string;
     quantity: number;
     totalCost: number | null;
-    product: { name: string };
+    status: string;
+    items: { component: { name: string } }[];
   }[];
 }
 
@@ -150,7 +151,7 @@ const STATUS_CONFIG = {
   },
 };
 
-// ─── QR Code image ────────────────────────────────────────────────────────────
+// ─── QR Code ──────────────────────────────────────────────────────────────────
 
 function QrCodeImage({
   value,
@@ -175,8 +176,6 @@ function QrCodeImage({
   }, [value, canvasRef]);
   return <canvas ref={canvasRef} className="rounded-lg" />;
 }
-
-// ─── Export QR PDF ────────────────────────────────────────────────────────────
 
 async function exportQrPdf(qrCodeId: string, printerName: string) {
   const QRCode = await import("qrcode");
@@ -290,7 +289,6 @@ function SlotAssignModal({
       s.qrCodeId.toLowerCase().includes(search.toLowerCase()),
   );
 
-  // Aviso de incompatibilidade: rolo abrasivo em unidade sem suporte
   function getWarning(spool: StockSpool): string | null {
     const isAbrasive = /CF|GF|carbon|fiber/i.test(spool.item.material);
     const isHighTemp = /PA|PC|PEI|Nylon/i.test(spool.item.material);
@@ -311,7 +309,6 @@ function SlotAssignModal({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro ao associar");
-
       onAssigned(slot.id, data.currentSpool);
       toast({
         title: spoolId ? "Filamento associado ao slot" : "Slot esvaziado",
@@ -326,7 +323,6 @@ function SlotAssignModal({
 
   async function handleScan() {
     if (!scanValue.trim()) return;
-    // Encontrar rolo pelo qrCodeId
     const found = stock.find(
       (s) => s.qrCodeId === scanValue.trim().toUpperCase(),
     );
@@ -344,7 +340,6 @@ function SlotAssignModal({
   }
 
   return (
-    // Overlay
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40"
       onClick={onClose}
@@ -353,7 +348,6 @@ function SlotAssignModal({
         className="bg-background border border-border rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
           <div>
             <p className="text-xs text-muted-foreground">
@@ -371,8 +365,6 @@ function SlotAssignModal({
             <X size={16} />
           </button>
         </div>
-
-        {/* Rolo atual */}
         {slot.currentSpool && (
           <div className="px-4 py-3 bg-muted/30 border-b border-border flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -402,19 +394,13 @@ function SlotAssignModal({
             </button>
           </div>
         )}
-
-        {/* Tabs */}
         <div className="flex border-b border-border">
           {(["picker", "scan"] as const).map((t) => (
             <button
               key={t}
               type="button"
               onClick={() => setTab(t)}
-              className={`flex-1 py-2.5 text-xs font-medium transition-colors flex items-center justify-center gap-1.5 ${
-                tab === t
-                  ? "border-b-2 border-primary text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={`flex-1 py-2.5 text-xs font-medium transition-colors flex items-center justify-center gap-1.5 ${tab === t ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"}`}
             >
               {t === "picker" ? (
                 <>
@@ -430,8 +416,6 @@ function SlotAssignModal({
             </button>
           ))}
         </div>
-
-        {/* Conteúdo */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {tab === "picker" && (
             <>
@@ -448,13 +432,11 @@ function SlotAssignModal({
                   autoFocus
                 />
               </div>
-
               {loadingStock && (
                 <p className="text-xs text-muted-foreground text-center py-6">
                   A carregar inventário…
                 </p>
               )}
-
               {!loadingStock && filtered.length === 0 && (
                 <p className="text-xs text-muted-foreground text-center py-6">
                   {search
@@ -462,7 +444,6 @@ function SlotAssignModal({
                     : "Sem rolos disponíveis em stock."}
                 </p>
               )}
-
               {filtered.map((spool) => {
                 const warning = getWarning(spool);
                 const pct = Math.round(
@@ -513,7 +494,6 @@ function SlotAssignModal({
               })}
             </>
           )}
-
           {tab === "scan" && (
             <div className="space-y-4">
               <div className="p-4 rounded-lg border border-dashed border-border flex flex-col items-center gap-3">
@@ -540,10 +520,6 @@ function SlotAssignModal({
                   Confirmar
                 </Button>
               </div>
-              <p className="text-[10px] text-muted-foreground">
-                O ID do rolo está impresso na etiqueta ou podes usar um leitor
-                de código de barras/QR.
-              </p>
             </div>
           )}
         </div>
@@ -623,7 +599,7 @@ function UnitManager({
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Erro ao remover");
-      toast({ title: `${unitName} removido — rolos devolvidos ao stock` });
+      toast({ title: `${unitName} removido` });
       onChange(units.filter((u) => u.id !== unitId));
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
@@ -772,6 +748,7 @@ export function PrinterDashboardClient({
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(printer.name);
   const [savingName, setSavingName] = useState(false);
+  const [status, setStatus] = useState(printer.status);
   const [units, setUnits] = useState<PrinterUnit[]>(printer.units);
   const [maintenanceStatus, setMaintenanceStatus] = useState(
     printer.maintenanceStatus,
@@ -779,16 +756,14 @@ export function PrinterDashboardClient({
   const [maintenanceLogs, setMaintenanceLogs] = useState(
     printer.maintenanceLogs,
   );
-
-  // Modal de associação de slot
+  const [showPreFlight, setShowPreFlight] = useState(false);
   const [activeSlot, setActiveSlot] = useState<{
     slot: PrinterSlot;
     unit: PrinterUnit;
   } | null>(null);
 
   const statusConfig =
-    STATUS_CONFIG[printer.status as keyof typeof STATUS_CONFIG] ??
-    STATUS_CONFIG.idle;
+    STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.idle;
   const anyMaintenanceDue = maintenanceStatus.some((t) => t.isDue);
   const totalSlots =
     units.reduce((acc, u) => acc + u.slotCount, 0) || printer.totalSlots;
@@ -799,7 +774,6 @@ export function PrinterDashboardClient({
     units.flatMap((u) => u.slots).find((s) => s.currentSpool !== null)
       ?.currentSpool ?? null;
 
-  // ── Callback quando slot é atualizado ────────────────────────────────────
   const handleSlotAssigned = useCallback(
     (slotId: string, spool: SpoolInSlot | null) => {
       setUnits((prev) =>
@@ -814,7 +788,6 @@ export function PrinterDashboardClient({
     [],
   );
 
-  // ── Editar nome ───────────────────────────────────────────────────────────
   async function handleSaveName() {
     if (!nameValue.trim() || nameValue === name) {
       setEditingName(false);
@@ -840,7 +813,6 @@ export function PrinterDashboardClient({
     }
   }
 
-  // ── Marcar manutenção ──────────────────────────────────────────────────────
   async function handleMarkMaintenance(taskId: string, taskName: string) {
     try {
       const res = await fetch(`/api/printers/${printer.id}/maintenance`, {
@@ -850,19 +822,14 @@ export function PrinterDashboardClient({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro ao registar manutenção");
-
       toast({ title: `"${taskName}" marcada como feita` });
-
-      // Atualizar APENAS a tarefa que foi marcada — as outras mantêm o seu estado
       setMaintenanceStatus((prev) =>
-        prev.map(
-          (t) =>
-            t.id === taskId
-              ? { ...t, progress: 0, hoursSinceLast: 0, isDue: false }
-              : t, // ← outras tarefas ficam intactas
+        prev.map((t) =>
+          t.id === taskId
+            ? { ...t, progress: 0, hoursSinceLast: 0, isDue: false }
+            : t,
         ),
       );
-
       setMaintenanceLogs((prev) => [
         {
           id: data.id,
@@ -879,7 +846,14 @@ export function PrinterDashboardClient({
 
   return (
     <>
-      {/* Modal de associação de filamento */}
+      {showPreFlight && (
+        <PreFlightModal
+          printerId={printer.id}
+          printerName={name}
+          onClose={() => setShowPreFlight(false)}
+          onDispatched={() => setStatus("printing")}
+        />
+      )}
       {activeSlot && (
         <SlotAssignModal
           printerId={printer.id}
@@ -966,35 +940,20 @@ export function PrinterDashboardClient({
             <Badge className={`text-xs border ${statusConfig.color}`}>
               {statusConfig.label}
             </Badge>
-
-            {/* Botão Iniciar Impressão com tooltip explicativo */}
-            <div className="relative group/btn">
-              <Button
-                size="sm"
-                className="gap-1.5 opacity-50 cursor-not-allowed"
-                disabled
-              >
-                <PlayCircle size={14} />
-                Iniciar Impressão
-              </Button>
-              <div className="absolute top-full right-0 mt-2 w-64 p-3 rounded-lg bg-popover border border-border shadow-lg text-xs text-muted-foreground opacity-0 group-hover/btn:opacity-100 transition-opacity pointer-events-none z-50">
-                <div className="flex items-start gap-2">
-                  <Info
-                    size={12}
-                    className="text-primary flex-shrink-0 mt-0.5"
-                  />
-                  <div>
-                    <p className="font-medium text-foreground mb-1">
-                      Pre-Flight Checklist
-                    </p>
-                    <p>
-                      Em desenvolvimento. Irá validar filamentos nos slots,
-                      estimar consumo e registar a produção automaticamente.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <Button
+              size="sm"
+              className="gap-1.5"
+              disabled={status === "printing"}
+              onClick={() => setShowPreFlight(true)}
+              title={
+                status === "printing"
+                  ? "Impressora já está a imprimir"
+                  : undefined
+              }
+            >
+              <PlayCircle size={14} />
+              {status === "printing" ? "A Imprimir…" : "Iniciar Impressão"}
+            </Button>
           </div>
         </div>
 
@@ -1064,9 +1023,8 @@ export function PrinterDashboardClient({
 
         {/* ── Layout principal ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Coluna esquerda */}
           <div className="space-y-4">
-            {/* Filamento / slots — clicáveis */}
+            {/* Filamento / slots */}
             <Card>
               <CardContent className="p-5 space-y-3">
                 <div className="flex items-center justify-between">
@@ -1075,7 +1033,6 @@ export function PrinterDashboardClient({
                   </h3>
                   <PackageCheck size={14} className="text-muted-foreground" />
                 </div>
-
                 {units.length > 0 ? (
                   <div className="space-y-4">
                     {units.map((unit) => (
@@ -1221,7 +1178,6 @@ export function PrinterDashboardClient({
               </CardContent>
             </Card>
 
-            {/* Aquisição */}
             {printer.acquiredAt && (
               <Card>
                 <CardContent className="p-5 space-y-2">
@@ -1250,7 +1206,6 @@ export function PrinterDashboardClient({
             />
           </div>
 
-          {/* Coluna direita */}
           <div className="lg:col-span-2 space-y-4">
             {/* Manutenção */}
             <Card>
@@ -1309,42 +1264,56 @@ export function PrinterDashboardClient({
               </CardContent>
             </Card>
 
-            {/* Produções recentes */}
+            {/* Jobs recentes */}
             <Card>
               <CardContent className="p-5 space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Produções Recentes
+                    Jobs Recentes
                   </h3>
                   <Layers size={14} className="text-muted-foreground" />
                 </div>
-                {printer.productions.length === 0 ? (
+                {printer.printJobs.length === 0 ? (
                   <p className="text-xs text-muted-foreground text-center py-4">
-                    Sem registos de produção ainda.
+                    Sem jobs de impressão ainda.
                   </p>
                 ) : (
                   <div className="space-y-2">
-                    {printer.productions.map((log) => (
-                      <div
-                        key={log.id}
-                        className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors"
-                      >
-                        <div>
-                          <p className="text-sm font-medium text-foreground">
-                            {log.product.name}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground">
-                            {format(new Date(log.date), "dd/MM/yy")} ·{" "}
-                            {log.quantity} unid.
-                          </p>
+                    {printer.printJobs.map((job) => {
+                      const componentNames = job.items
+                        .map((i) => i.component.name)
+                        .join(", ");
+                      const statusColor =
+                        job.status === "done"
+                          ? "text-emerald-500"
+                          : job.status === "failed"
+                            ? "text-destructive"
+                            : job.status === "printing"
+                              ? "text-blue-500"
+                              : "text-muted-foreground";
+                      return (
+                        <div
+                          key={job.id}
+                          className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors"
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-foreground truncate max-w-[180px]">
+                              {componentNames || "Job sem componentes"}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {format(new Date(job.createdAt), "dd/MM/yy")} ·{" "}
+                              {job.quantity} unid. ·{" "}
+                              <span className={statusColor}>{job.status}</span>
+                            </p>
+                          </div>
+                          {job.totalCost != null && (
+                            <span className="text-xs font-semibold text-foreground">
+                              {formatCurrency(job.totalCost)}
+                            </span>
+                          )}
                         </div>
-                        {log.totalCost != null && (
-                          <span className="text-xs font-semibold text-foreground">
-                            {formatCurrency(log.totalCost)}
-                          </span>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>

@@ -1,9 +1,9 @@
 generator client {
-  provider        = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider  = "postgresql"
+  provider = "postgresql"
 }
 
 //////////////////////////////////////////////////////////
@@ -11,30 +11,32 @@ datasource db {
 //////////////////////////////////////////////////////////
 
 model User {
-  id       String  @id
-  email    String  @unique
-  name     String?
-  password String?
-  role     String  @default("user")
-  stripeCustomerId     String?
-  plan                 String  @default("hobby")
-  subscription         Subscription?
+  id               String  @id
+  email            String  @unique
+  name             String?
+  password         String?
+  role             String  @default("user")
+  stripeCustomerId String?
+  plan             String  @default("hobby")
 
-  createdAt DateTime @default(now())
+  subscription     Subscription?
+  createdAt        DateTime @default(now())
 
-  customers      Customer[]
-  suppliers      Supplier[]
-  inventoryItems InventoryItem[]
-  purchases      InventoryPurchase[]
-  printers       Printer[]
-  categories     Category[]
-  extras         Extra[]
-  products       Product[]
-  productionLogs ProductionLog[]
-  sales          Sale[]
-  printProfiles  PrintProfile[]
-  settings       Settings[]
-  printerPresets PrinterPreset[]   // presets privados do utilizador
+  customers         Customer[]
+  suppliers         Supplier[]
+  inventoryItems    InventoryItem[]
+  purchases         InventoryPurchase[]
+  printers          Printer[]
+  printerPresets    PrinterPreset[]
+  categories        Category[]
+  extras            Extra[]
+  products          Product[]
+  components        Component[]         // peças reutilizáveis
+  productionOrders  ProductionOrder[]   // ordens de produção
+  printJobs         PrintJob[]
+  sales             Sale[]
+  printProfiles     PrintProfile[]
+  settings          Settings[]
 }
 
 //////////////////////////////////////////////////////////
@@ -97,12 +99,11 @@ model InventoryPurchase {
   updatedAt      DateTime  @updatedAt
   archivedAt     DateTime?
 
-  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  item     InventoryItem  @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  supplier Supplier?      @relation(fields: [supplierId], references: [id])
-
-  // Um rolo pode estar carregado em vários slots? Não — relação 1:1 via PrinterSlot
-  loadedInSlot  PrinterSlot?
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item              InventoryItem     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  supplier          Supplier?         @relation(fields: [supplierId], references: [id])
+  loadedInSlot      PrinterSlot?
+  printJobMaterials PrintJobMaterial[]
 
   @@index([userId])
   @@index([itemId])
@@ -135,29 +136,30 @@ model Printer {
   id                String    @id @default(cuid())
   userId            String
   presetId          String
-  name              String                      // ex: "Besta de Carga 01"
-  qrCodeId          String    @unique           // ID para check-in QR/NFC
+  name              String
+  qrCodeId          String    @unique
 
-  // Métricas de uso acumulado
-  totalPrintTime    Int       @default(0)       // minutos totais impressos
-  initialHours      Int       @default(0)       // horas já feitas ao registar
-  lastMaintenanceAt Int       @default(0)       // horas na última revisão geral
+  totalPrintTime    Int       @default(0)
+  initialHours      Int       @default(0)
+  lastMaintenanceAt Int       @default(0)
 
-  // Custos operacionais da instância
   hourlyCost        Float
   powerWatts        Int
 
-  // Metadados de aquisição
   acquiredAt        DateTime?
-  status            String    @default("idle")  // "idle" | "printing" | "maintenance"
+  status            String    @default("idle")
+
+  apiType           String?   // "octoprint" | "moonraker" | "bambu"
+  apiUrl            String?
+  apiKey            String?
 
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  preset           PrinterPreset      @relation(fields: [presetId], references: [id])
-  units            PrinterUnit[]      // unidades de expansão (AMS, MMU, ERCF…)
-  productions      ProductionLog[]
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preset           PrinterPreset   @relation(fields: [presetId], references: [id])
+  units            PrinterUnit[]
+  printJobs        PrintJob[]
   maintenanceLogs  MaintenanceLog[]
 
   @@index([userId])
@@ -166,42 +168,35 @@ model Printer {
 
 //////////////////////////////////////////////////////////
 // PRINTER UNITS
-// Cada registo é uma unidade física ligada à impressora.
-// ex: AMS 2 Pro (4 slots), AMS HT (1 slot), MMU3 (5 slots)
 //////////////////////////////////////////////////////////
 
 model PrinterUnit {
-  id          String   @id @default(cuid())
-  printerId   String
-  presetId    String?                       // referência ao UnitPreset (opcional)
-  name        String                        // ex: "AMS 2 Pro", "MMU3"
-  slotCount   Int                           // número de posições físicas
+  id               String   @id @default(cuid())
+  printerId        String
+  presetId         String?
+  name             String
+  slotCount        Int
+  supportsHighTemp Boolean  @default(false)
+  supportsAbrasive Boolean  @default(false)
+  createdAt        DateTime @default(now())
 
-  // Capacidades do hardware desta unidade
-  supportsHighTemp  Boolean @default(false) // aceita PA, PC, ABS acima de 300°C
-  supportsAbrasive  Boolean @default(false) // aceita CF, GF, etc.
-
-  createdAt   DateTime @default(now())
-
-  printer     Printer       @relation(fields: [printerId], references: [id], onDelete: Cascade)
-  unitPreset  UnitPreset?   @relation(fields: [presetId], references: [id])
-  slots       PrinterSlot[]
+  printer    Printer       @relation(fields: [printerId], references: [id], onDelete: Cascade)
+  unitPreset UnitPreset?   @relation(fields: [presetId], references: [id])
+  slots      PrinterSlot[]
 
   @@index([printerId])
 }
 
 //////////////////////////////////////////////////////////
 // PRINTER SLOTS
-// Gerados automaticamente ao criar uma PrinterUnit.
-// Cada slot é uma posição física (posição 1, 2, 3, 4…).
 //////////////////////////////////////////////////////////
 
 model PrinterSlot {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   unitId         String
-  position       Int                           // 1-based (posição 1, 2, 3…)
-  currentSpoolId String?  @unique              // rolo carregado (nullable)
-  loadedAt       DateTime?                     // quando foi carregado
+  position       Int
+  currentSpoolId String?   @unique
+  loadedAt       DateTime?
 
   unit         PrinterUnit        @relation(fields: [unitId], references: [id], onDelete: Cascade)
   currentSpool InventoryPurchase? @relation(fields: [currentSpoolId], references: [id], onDelete: SetNull)
@@ -212,31 +207,26 @@ model PrinterSlot {
 
 //////////////////////////////////////////////////////////
 // UNIT PRESETS
-// Catálogo global de unidades de expansão.
-// ex: AMS 2 Pro, AMS HT, MMU3, ERCF 8T, ERCF 12T
 //////////////////////////////////////////////////////////
 
 model UnitPreset {
-  id                String   @id @default(cuid())
-  name              String                        // ex: "AMS 2 Pro"
-  brand             String                        // ex: "Bambu Lab"
-  slotCount         Int                           // posições físicas
-  supportsHighTemp  Boolean  @default(false)
-  supportsAbrasive  Boolean  @default(false)
-  notes             String?                       // info adicional opcional
-  isGlobal          Boolean  @default(true)       // false = privado do utilizador
+  id               String   @id @default(cuid())
+  name             String
+  brand            String
+  slotCount        Int
+  supportsHighTemp Boolean  @default(false)
+  supportsAbrasive Boolean  @default(false)
+  notes            String?
+  isGlobal         Boolean  @default(true)
+  createdAt        DateTime @default(now())
 
-  createdAt         DateTime @default(now())
-
-  units             PrinterUnit[]
+  units PrinterUnit[]
 
   @@index([brand])
 }
 
 //////////////////////////////////////////////////////////
 // PRINTER PRESETS
-// isGlobal = true  → criado por admin, visível a todos
-// isGlobal = false → criado pelo utilizador, privado
 //////////////////////////////////////////////////////////
 
 model PrinterPreset {
@@ -244,24 +234,23 @@ model PrinterPreset {
   name               String
   brand              String?
   model              String?
-  extrusionType      String?                       // "Direct" | "Bowden"
-  multiMaterialSlots Int      @default(1)          // máximo suportado pelo fabricante
+  extrusionType      String?
+  multiMaterialSlots Int      @default(1)
   powerWatts         Int
   hourlyCost         Float
   imageUrl           String?
   isGlobal           Boolean  @default(false)
   userId             String?
-
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  user              User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  printers          Printer[]
-  maintenanceTasks  MaintenanceTask[]
+  user             User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  printers         Printer[]
+  maintenanceTasks MaintenanceTask[]
 }
 
 //////////////////////////////////////////////////////////
-// MAINTENANCE TASKS (definidas no PrinterPreset)
+// MAINTENANCE TASKS / LOGS
 //////////////////////////////////////////////////////////
 
 model MaintenanceTask {
@@ -271,12 +260,8 @@ model MaintenanceTask {
   intervalHours Int
   description   String?
 
-  preset        PrinterPreset @relation(fields: [presetId], references: [id], onDelete: Cascade)
+  preset PrinterPreset @relation(fields: [presetId], references: [id], onDelete: Cascade)
 }
-
-//////////////////////////////////////////////////////////
-// MAINTENANCE LOG (histórico de manutenções realizadas)
-//////////////////////////////////////////////////////////
 
 model MaintenanceLog {
   id               String   @id @default(cuid())
@@ -286,7 +271,7 @@ model MaintenanceLog {
   notes            String?
   createdAt        DateTime @default(now())
 
-  printer          Printer  @relation(fields: [printerId], references: [id], onDelete: Cascade)
+  printer Printer @relation(fields: [printerId], references: [id], onDelete: Cascade)
 }
 
 //////////////////////////////////////////////////////////
@@ -304,7 +289,7 @@ model Category {
 }
 
 //////////////////////////////////////////////////////////
-// PRODUCTS
+// PRODUCTS (o que vendes — produto final)
 //////////////////////////////////////////////////////////
 
 model Product {
@@ -313,23 +298,143 @@ model Product {
   name           String
   description    String?
   categoryId     String?
-  productionTime Int?
   margin         Float    @default(0.3)
   imageUrl       String?
-  fileUrl        String?
   imageKey       String?
-  fileKey        String?
-  unitsPerPrint  Int      @default(1)
+  alertThreshold Int?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-  alertThreshold Int?
 
-  user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category       Category?              @relation(fields: [categoryId], references: [id])
-  extras         ProductExtra[]
-  printProfiles  PrintProfile[]
-  productionLogs ProductionLog[]
-  sales          Sale[]
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category   Category?      @relation(fields: [categoryId], references: [id])
+  extras     ProductExtra[]
+  bom        ProductBOM[]   // lista de materiais (componentes)
+  orderItems OrderItem[]
+  sales      Sale[]
+}
+
+//////////////////////////////////////////////////////////
+// COMPONENTS (peças reutilizáveis — semiacabados)
+//
+// Uma Component é uma peça física que pode ser usada em vários produtos.
+// Ex: "Base Redonda 10cm" usada em "Candeeiro A" e "Candeeiro B".
+//////////////////////////////////////////////////////////
+
+model Component {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  imageUrl    String?
+  imageKey    String?
+
+  // Flags de risco — lidas pelo Planeador para gerar avisos
+  requiresAdapter   Boolean  @default(false) // bobine não-standard, precisa de adaptador físico
+  specialHandling   String?  // nota livre: ex: "TPU — desligar o AMS retractor"
+  defaultMaterial   String?  // ex: "PLA", "PETG" — para sugestão no planeador
+  defaultColorHex   String?  // ex: "#000000"
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bom          ProductBOM[]
+  profiles     ComponentPrintProfile[]
+  stock        ComponentStock?         // stock de unidades impressas (1:1)
+  jobItems     PrintJobItem[]
+
+  @@index([userId])
+}
+
+//////////////////////////////////////////////////////////
+// PRODUCT BOM (Bill of Materials — tabela many-to-many)
+//
+// Liga Produtos a Componentes com quantidade.
+// Ex: "Estátua XPTO" = 1x Cabeça + 1x Corpo + 1x Base
+//////////////////////////////////////////////////////////
+
+model ProductBOM {
+  id          String @id @default(cuid())
+  productId   String
+  componentId String
+  quantity    Int    @default(1)   // quantas unidades deste componente por produto
+
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  component Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, componentId])
+  @@index([productId])
+  @@index([componentId])
+}
+
+//////////////////////////////////////////////////////////
+// COMPONENT PRINT PROFILES
+//
+// Cada componente pode ter um ou mais perfis de impressão (.3mf).
+// Ex: "Base Redonda 10cm" tem perfis para PLA Preto e PLA Branco.
+//////////////////////////////////////////////////////////
+
+model ComponentPrintProfile {
+  id           String   @id @default(cuid())
+  componentId  String
+  name         String                          // ex: "Vaso Single", "Vaso Multi-9"
+  filePath     String
+  slicer       String?
+  printTime    Int?                            // minutos para imprimir este lote
+  filamentUsed Float?                          // gramas totais para este lote
+
+  // Receita de produção — quantas unidades saem desta impressão
+  // batchSize=1 → individual; batchSize=9 → lote de 9
+  // Custo unitário real = filamentUsed / batchSize
+  batchSize    Int      @default(1)
+
+  createdAt    DateTime @default(now())
+
+  component    Component              @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  filaments    ProfileFilamentReq[]
+  jobItems     PrintJobItem[]
+
+  @@index([componentId])
+}
+
+//////////////////////////////////////////////////////////
+// PROFILE FILAMENT REQUIREMENTS
+//
+// Os filamentos exigidos por um perfil de impressão.
+// Extraídos do .3mf ou inseridos manualmente.
+// Ex: "Base v2 - PLA Preto" precisa de 30g de PLA #000000
+//////////////////////////////////////////////////////////
+
+model ProfileFilamentReq {
+  id          String  @id @default(cuid())
+  profileId   String
+  material    String                  // ex: "PLA"
+  colorHex    String?                 // ex: "#000000"
+  colorName   String?                 // ex: "Black"
+  estimatedG  Float                   // gramas estimadas
+
+  profile ComponentPrintProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+}
+
+//////////////////////////////////////////////////////////
+// COMPONENT STOCK
+//
+// Stock de unidades de componente já impressas (semiacabados).
+// Ex: 20 unidades de "Base Redonda 10cm" em prateleira.
+//////////////////////////////////////////////////////////
+
+model ComponentStock {
+  id          String   @id @default(cuid())
+  componentId String
+  quantity    Int      @default(0)
+  notes       String?
+  updatedAt   DateTime @updatedAt
+
+  component Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+
+  @@unique([componentId])  // um registo por componente
 }
 
 //////////////////////////////////////////////////////////
@@ -348,10 +453,6 @@ model Extra {
   usages ProductExtra[]
 }
 
-//////////////////////////////////////////////////////////
-// EXTRAS USED IN PRODUCT
-//////////////////////////////////////////////////////////
-
 model ProductExtra {
   id        String @id @default(cuid())
   productId String
@@ -363,22 +464,166 @@ model ProductExtra {
 }
 
 //////////////////////////////////////////////////////////
-// PRINT PROFILES
+// PRODUCTION ORDER (Ordem de Produção)
+//
+// Contentor de necessidades que agrega vários produtos.
+// A OP "explode" nos PrintJobs necessários para cada componente.
 //////////////////////////////////////////////////////////
 
-model PrintProfile {
-  id           String   @id @default(cuid())
-  userId       String
-  productId    String
-  name         String
-  filePath     String
-  slicer       String?
-  printTime    Int?
-  filamentUsed Float?
-  createdAt    DateTime @default(now())
+model ProductionOrder {
+  id         String   @id @default(cuid())
+  userId     String
+  reference  String                    // ex: "OP-2026-001" (gerado auto ou manual)
+  notes      String?
+  status     String   @default("draft")
+  // "draft"      → em criação
+  // "pending"    → aguarda impressão
+  // "in_progress"→ impressão a decorrer
+  // "assembly"   → peças prontas, a aguardar montagem
+  // "done"       → produto final pronto para stock
+  // "cancelled"
 
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     OrderItem[] // produtos e quantidades nesta ordem
+  printJobs PrintJob[]  // trabalhos de impressão gerados
+
+  @@index([userId])
+  @@index([status])
+}
+
+//////////////////////////////////////////////////////////
+// ORDER ITEM
+//
+// Um produto (e quantidade) dentro de uma Ordem de Produção.
+// Ex: 3x "Estátua XPTO" + 2x "Porta-chaves"
+//////////////////////////////////////////////////////////
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+
+  // Estado de conclusão (quantas unidades deste produto já estão prontas)
+  completed Int    @default(0)
+
+  order   ProductionOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+}
+
+//////////////////////////////////////////////////////////
+// PRINT JOB (Trabalho de Impressão)
+//
+// Um único trabalho de impressão para um componente específico.
+// Gerado pela explosão da Ordem de Produção.
+// Pode ser para qualquer impressora disponível.
+//////////////////////////////////////////////////////////
+
+model PrintJob {
+  id        String   @id @default(cuid())
+  userId    String
+  orderId   String?                     // OP de origem (null = job avulso)
+  printerId String
+  status    String   @default("pending")
+  // "pending"   → na fila
+  // "printing"  → a imprimir agora
+  // "done"      → concluído com sucesso
+  // "failed"    → falhou (vai para re-fila)
+  // "cancelled"
+
+  // Metadados
+  notes            String?
+  estimatedMinutes Int?
+  quantity         Int      @default(1)   // quantas unidades deste job
+
+  // Custos calculados no dispatch
+  filamentCost     Float?
+  electricityCost  Float?
+  printerCost      Float?
+  totalCost        Float?
+
+  // Integração externa
+  externalJobId    String?
+  apiDispatched    Boolean  @default(false)
+
+  startedAt        DateTime?
+  finishedAt       DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order     ProductionOrder? @relation(fields: [orderId], references: [id])
+  printer   Printer          @relation(fields: [printerId], references: [id])
+  items     PrintJobItem[]   // componentes a imprimir neste job
+  materials PrintJobMaterial[] // rolos e slots usados
+
+  @@index([userId])
+  @@index([orderId])
+  @@index([printerId])
+  @@index([status])
+}
+
+//////////////////////////////////////////////////////////
+// PRINT JOB ITEM
+//
+// Um componente dentro de um PrintJob.
+// Um job pode imprimir vários componentes na mesma bandeja.
+// Ex: "Mesa 1 (Corpo)" + "Mesa 1 (Base)" na mesma impressão.
+//////////////////////////////////////////////////////////
+
+model PrintJobItem {
+  id          String  @id @default(cuid())
+  jobId       String
+  componentId String
+  profileId   String?  // perfil .3mf específico usado
+  quantity    Int      @default(1)
+
+  // Resultado
+  status      String   @default("pending")
+  // "pending" | "done" | "failed"
+  failedUnits Int      @default(0)     // quantas falharam neste item
+
+  // Para rateio de custos entre componentes do mesmo job
+  costShare   Float?   // % do custo total imputado a este componente
+
+  job       PrintJob               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  component Component              @relation(fields: [componentId], references: [id])
+  profile   ComponentPrintProfile? @relation(fields: [profileId], references: [id])
+
+  @@index([jobId])
+  @@index([componentId])
+}
+
+//////////////////////////////////////////////////////////
+// PRINT JOB MATERIAL
+//
+// Liga cada requisito de filamento ao slot e rolo usados.
+// Permite rateio: se 2 componentes partilham a mesma impressão,
+// o custo do filamento é dividido proporcionalmente.
+//////////////////////////////////////////////////////////
+
+model PrintJobMaterial {
+  id         String  @id @default(cuid())
+  jobId      String
+  slotId     String?
+  spoolId    String?
+
+  material   String          // ex: "PLA"
+  colorHex   String?
+  colorName  String?
+  estimatedG Float
+  actualG    Float?          // preenchido no fim da impressão
+  matchScore Int    @default(100)
+
+  job   PrintJob           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  spool InventoryPurchase? @relation(fields: [spoolId], references: [id])
+
+  @@index([jobId])
 }
 
 //////////////////////////////////////////////////////////
@@ -397,31 +642,6 @@ model GlobalFilament {
 
   @@index([brand])
   @@index([material])
-}
-
-//////////////////////////////////////////////////////////
-// PRODUCTION LOG
-//////////////////////////////////////////////////////////
-
-model ProductionLog {
-  id              String   @id @default(cuid())
-  userId          String
-  productId       String
-  printerId       String
-  quantity        Int
-  notes           String?
-  filamentCost    Float?
-  electricityCost Float?
-  printerCost     Float?
-  extrasCost      Float?
-  totalCost       Float?
-  printTime       Int?
-  filamentUsed    Float?
-  date            DateTime @default(now())
-
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
-  printer Printer @relation(fields: [printerId], references: [id])
 }
 
 //////////////////////////////////////////////////////////
@@ -476,4 +696,22 @@ model Settings {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, key])
+}
+
+//////////////////////////////////////////////////////////
+// PRINT PROFILES (legado — mantido para compatibilidade)
+// Para novos componentes usa ComponentPrintProfile
+//////////////////////////////////////////////////////////
+
+model PrintProfile {
+  id           String   @id @default(cuid())
+  userId       String
+  name         String
+  filePath     String
+  slicer       String?
+  printTime    Int?
+  filamentUsed Float?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

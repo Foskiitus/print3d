@@ -31,10 +31,14 @@ export default async function PrinterDashboardPage({ params }: Props) {
         orderBy: { createdAt: "desc" },
         // Buscar todos os logs para poder calcular o último por tarefa
       },
-      productions: {
-        orderBy: { date: "desc" },
+      printJobs: {
+        orderBy: { createdAt: "desc" },
         take: 5,
-        include: { product: true },
+        include: {
+          items: {
+            include: { component: true },
+          },
+        },
       },
     },
   });

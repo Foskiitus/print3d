@@ -9,17 +9,63 @@ export async function GET() {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
   const products = await prisma.product.findMany({
-    where: { userId: userId },
+    where: { userId },
     include: {
       category: true,
-      filamentUsage: { include: { filamentType: true } },
+      bom: {
+        include: {
+          component: {
+            include: {
+              stock: true,
+              profiles: {
+                include: { filaments: true },
+                take: 1,
+              },
+            },
+          },
+        },
+      },
       extras: { include: { extra: true } },
-      _count: { select: { productionLogs: true, sales: true } },
+      _count: { select: { sales: true } },
     },
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json(products);
+  // Enriquecer com campos calculados (igual ao page.tsx)
+  const enriched = products.map((p) => {
+    const componentCount = p.bom.length;
+    const estimatedMinutes = p.bom.reduce((acc, entry) => {
+      const t = entry.component.profiles[0]?.printTime ?? 0;
+      return acc + t * entry.quantity;
+    }, 0);
+    const totalFilamentG = p.bom.reduce((acc, entry) => {
+      const g = entry.component.profiles[0]?.filamentUsed ?? 0;
+      return acc + g * entry.quantity;
+    }, 0);
+    const stockReady =
+      componentCount > 0 &&
+      p.bom.every(
+        (entry) => (entry.component.stock?.quantity ?? 0) >= entry.quantity,
+      );
+    const materials = [
+      ...new Set(
+        p.bom.flatMap(
+          (entry) =>
+            entry.component.profiles[0]?.filaments.map((f) => f.material) ?? [],
+        ),
+      ),
+    ];
+    return {
+      ...p,
+      componentCount,
+      estimatedMinutes,
+      totalFilamentG,
+      stockReady,
+      materials,
+    };
+  });
+
+  return NextResponse.json(enriched);
 }
 
 // POST /api/products
@@ -33,62 +79,33 @@ export async function POST(req: Request) {
       name,
       description,
       categoryId,
-      printerId,
-      productionTime,
       margin,
-      imageUrl,
-      fileUrl,
-      filamentUsages,
-      extraUsages,
-      unitsPerPrint,
       alertThreshold,
+      imageUrl,
+      imageKey,
     } = await req.json();
 
-    if (!name?.trim()) {
+    if (!name?.trim())
       return NextResponse.json(
         { error: "Nome é obrigatório" },
         { status: 400 },
       );
-    }
-
-    if (!filamentUsages || filamentUsages.length === 0) {
-      return NextResponse.json(
-        { error: "Pelo menos um filamento é obrigatório" },
-        { status: 400 },
-      );
-    }
 
     const product = await prisma.product.create({
       data: {
-        userId: userId,
+        userId,
         name: name.trim(),
         description: description || null,
         categoryId: categoryId || null,
-        printerId: printerId || null,
-        productionTime: productionTime || null,
         margin: margin ?? 0.3,
-        unitsPerPrint: unitsPerPrint ?? 1,
         alertThreshold: alertThreshold != null ? Number(alertThreshold) : null,
         imageUrl: imageUrl || null,
-        fileUrl: fileUrl || null,
-        filamentUsage: {
-          create: filamentUsages.map((f: any) => ({
-            filamentTypeId: f.filamentTypeId,
-            weight: f.weight,
-          })),
-        },
-        extras: {
-          create: (extraUsages || []).map((e: any) => ({
-            extraId: e.extraId,
-            quantity: e.quantity,
-          })),
-        },
+        imageKey: imageKey || null,
       },
       include: {
         category: true,
-        filamentUsage: { include: { filamentType: true } },
-        extras: { include: { extra: true } },
-        _count: { select: { productionLogs: true, sales: true } },
+        bom: true,
+        _count: { select: { sales: true } },
       },
     });
 
