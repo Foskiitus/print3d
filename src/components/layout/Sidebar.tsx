@@ -16,6 +16,7 @@ import {
   AlertTriangle,
   Boxes,
   CreditCard,
+  Layers,
 } from "lucide-react";
 import { useSidebar } from "@/components/layout/SidebarContext";
 import { useState, useEffect } from "react";
@@ -174,6 +175,7 @@ export function Sidebar() {
       items: [
         { label: c.nav.filaments.value, icon: Droplets, href: "/filaments" },
         { label: c.nav.products.value, icon: Package, href: "/products" },
+        { label: c.nav.components.value, icon: Layers, href: "/components" },
         { label: c.nav.stock.value, icon: Boxes, href: "/stock" },
         { label: c.nav.production.value, icon: Factory, href: "/production" },
         { label: c.nav.sales.value, icon: ShoppingCart, href: "/sales-ledger" },

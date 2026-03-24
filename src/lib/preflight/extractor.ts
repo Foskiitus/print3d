@@ -28,19 +28,20 @@ export interface ExtractedMaterial {
 }
 
 export async function extractFrom3mf(
-  filePath: string,
+  input: Buffer | string,
 ): Promise<ExtractedMaterial[]> {
-  // Ler o ficheiro do sistema de ficheiros (Vercel Blob URL ou path local)
+  // Aceita Buffer directo (vindo do R2) ou path/URL (compatibilidade)
   let buffer: Buffer;
 
-  if (filePath.startsWith("http")) {
-    // Ficheiro remoto (Vercel Blob / R2)
-    const res = await fetch(filePath);
+  if (Buffer.isBuffer(input)) {
+    buffer = input;
+  } else if (input.startsWith("http")) {
+    const res = await fetch(input);
     if (!res.ok)
       throw new Error(`Não foi possível descarregar o ficheiro: ${res.status}`);
     buffer = Buffer.from(await res.arrayBuffer());
   } else {
-    buffer = await fs.readFile(filePath);
+    buffer = await fs.readFile(input);
   }
 
   const zip = await JSZip.loadAsync(buffer);
@@ -63,32 +64,68 @@ export async function extractFrom3mf(
 // ─── Bambu Studio (.3mf com metadados Bambu) ─────────────────────────────────
 
 async function tryExtractBambu(zip: JSZip): Promise<ExtractedMaterial[]> {
-  // Bambu guarda configuração em Metadata/slice_info.config ou project_settings.config
-  const configFile =
-    zip.file("Metadata/slice_info.config") ??
-    zip.file("Metadata/project_settings.config");
+  // Prioridade 1: slice_info.config (ficheiro já fatiado — tem filament_used_g)
+  // Prioridade 2: project_settings.config (ficheiro de projecto — tem cores mas não tem gramas)
 
-  if (!configFile) return [];
+  // Tentar primeiro slice_info.config como XML
+  const sliceFile = zip.file("Metadata/slice_info.config");
+  if (sliceFile) {
+    try {
+      const content = await sliceFile.async("text");
+      // slice_info é XML no Bambu Studio moderno
+      const parsed: any = await parseXml(content);
+      const plates = parsed?.config?.plate ?? [];
+      const results: ExtractedMaterial[] = [];
+      for (const plate of plates) {
+        const filaments = plate.filament ?? [];
+        for (const fil of filaments) {
+          const attr = fil.$ ?? {};
+          if (attr.id && attr.type) {
+            results.push({
+              material: normalizeBambuMaterial(attr.type),
+              colorHex: attr.color ? normalizeHex(attr.color) : null,
+              colorName: null,
+              estimatedG: parseFloat(attr.used_g ?? "0"),
+            });
+          }
+        }
+      }
+      if (results.length > 0) return results;
+    } catch {
+      // slice_info não é XML ou está vazio — continuar
+    }
+  }
+
+  // Tentar project_settings.config (JSON) — tem cores mas normalmente não tem gramas
+  const projectFile = zip.file("Metadata/project_settings.config");
+  if (!projectFile) return [];
 
   try {
-    const content = await configFile.async("text");
+    const content = await projectFile.async("text");
     const config = JSON.parse(content);
 
-    // Estrutura Bambu: filament_settings_id, filament_type, filament_colour, filament_used_g
     const types: string[] = config.filament_type ?? [];
     const colors: string[] = config.filament_colour ?? [];
+    // filament_used_g só existe em ficheiros fatiados
     const usedG: number[] = (config.filament_used_g ?? []).map(Number);
 
     if (types.length === 0) return [];
 
-    return types
-      .map((type, i) => ({
-        material: normalizeBambuMaterial(type),
-        colorHex: colors[i] ? normalizeHex(colors[i]) : null,
-        colorName: null,
-        estimatedG: usedG[i] ?? 0,
-      }))
-      .filter((m) => m.estimatedG > 0 || types.length === 1);
+    const results = types.map((type, i) => ({
+      material: normalizeBambuMaterial(type),
+      colorHex: colors[i] ? normalizeHex(colors[i]) : null,
+      colorName: null,
+      estimatedG: usedG[i] ?? 0,
+    }));
+
+    // Se tem gramas (ficheiro fatiado), filtrar os que têm gramas > 0
+    const hasGrams = results.some((r) => r.estimatedG > 0);
+    if (hasGrams) return results.filter((r) => r.estimatedG > 0);
+
+    // Ficheiro não fatiado — devolver as cores/materiais sem gramas
+    // O utilizador vai preencher as gramas manualmente, mas pelo menos
+    // já temos as cores e materiais correctos
+    return results;
   } catch {
     return [];
   }

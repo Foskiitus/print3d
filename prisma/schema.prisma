@@ -635,6 +635,7 @@ model GlobalFilament {
   brand       String
   material    String
   colorName   String
+  colorCode   String?  // ex: "11101" — código numérico/alfanumérico da cor
   colorHex    String
   spoolWeight Float
   density     Float?
@@ -642,6 +643,7 @@ model GlobalFilament {
 
   @@index([brand])
   @@index([material])
+  @@index([colorCode])
 }
 
 //////////////////////////////////////////////////////////

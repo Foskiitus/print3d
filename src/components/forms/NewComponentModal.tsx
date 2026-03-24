@@ -1,12 +1,6 @@
 "use client";
 
 // src/components/forms/NewComponentModal.tsx
-//
-// Modal para criar um novo componente diretamente do editor de produto.
-// Ao fazer upload de um .3mf, tenta extrair automaticamente:
-//   - Peso estimado de filamento
-//   - Tempo de impressão
-//   - Materiais e cores necessários
 
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -22,10 +16,10 @@ import {
   Layers,
   Clock,
   FileType,
-  Wrench,
-  Info,
+  Plus,
 } from "lucide-react";
 import { toast } from "@/components/ui/toaster";
+import { ColorPicker } from "@/components/ui/colorPicker";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -36,39 +30,27 @@ interface ExtractedProfile {
   estimatedG: number;
 }
 
+// Entrada manual de filamento (multicor)
+interface ManualFilament {
+  material: string;
+  colorHex: string;
+  colorName: string;
+  estimatedG: string;
+}
+
 interface NewComponentModalProps {
-  initialName?: string; // pré-preencher com o texto da pesquisa
+  initialName?: string;
   productId: string;
   onCreated: (bomEntry: any) => void;
   onClose: () => void;
 }
 
-// ─── Upload helper (Copiado do NewProductDialog) ──────────────────────────────
-async function executeDirectUpload(file: File, bucket: "images" | "models") {
-  const signRes = await fetch("/api/upload", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      fileName: file.name,
-      contentType: file.type,
-      fileSize: file.size,
-      bucket,
-    }),
-  });
-
-  if (!signRes.ok) throw new Error("Falha ao gerar link de upload");
-
-  const { url, key } = await signRes.json();
-  const uploadRes = await fetch(url, {
-    method: "PUT",
-    body: file,
-    headers: { "Content-Type": file.type },
-  });
-
-  if (!uploadRes.ok) throw new Error("Falha no upload para o bucket");
-
-  return key;
-}
+const emptyFilament = (): ManualFilament => ({
+  material: "",
+  colorHex: "#000000",
+  colorName: "",
+  estimatedG: "",
+});
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -81,15 +63,13 @@ export function NewComponentModal({
   const fileRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [extracting, setExtracting] = useState(false);
-  const [file, setFile] = useState<File | null>(null); // Estado para o ficheiro 3MF/STL
+  const [file, setFile] = useState<File | null>(null);
 
   const [form, setForm] = useState({
     name: initialName,
     description: "",
     defaultMaterial: "",
     defaultColorHex: "#000000",
-    requiresAdapter: false,
-    specialHandling: "",
   });
 
   const [profile, setProfile] = useState<{
@@ -101,43 +81,100 @@ export function NewComponentModal({
   } | null>(null);
 
   const [extractionFailed, setExtractionFailed] = useState(false);
+
+  // Campos escalares do modo manual
   const [manualProfile, setManualProfile] = useState({
-    printTime: "",
-    filamentUsed: "",
+    printTimeH: "",
+    printTimeM: "",
     batchSize: "1",
-    material: "",
-    colorHex: "#000000",
-    colorName: "",
   });
+
+  // Converte horas + minutos para minutos totais (ou null se ambos vazios)
+  function toMinutes(h: string, m: string): number | null {
+    const hours = Number(h) || 0;
+    const mins = Number(m) || 0;
+    if (hours === 0 && mins === 0) return null;
+    return hours * 60 + mins;
+  }
+
+  // Lista de filamentos no modo manual (suporta multicor)
+  const [manualFilaments, setManualFilaments] = useState<ManualFilament[]>([
+    emptyFilament(),
+  ]);
+
+  // ── Helpers para lista de filamentos manuais ──────────────────────────────
+  function updateFilament(index: number, patch: Partial<ManualFilament>) {
+    setManualFilaments((prev) =>
+      prev.map((f, i) => (i === index ? { ...f, ...patch } : f)),
+    );
+  }
+
+  function addFilament() {
+    setManualFilaments((prev) => [...prev, emptyFilament()]);
+  }
+
+  function removeFilament(index: number) {
+    setManualFilaments((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  // totalG calculado a partir da lista
+  const totalManualG = manualFilaments.reduce(
+    (acc, f) => acc + (Number(f.estimatedG) || 0),
+    0,
+  );
 
   // ── Upload e extração do .3mf ─────────────────────────────────────────────
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
 
+    setFile(selectedFile);
     setExtracting(true);
     setExtractionFailed(false);
     setProfile(null);
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      // 1. Obter presigned URL do R2
+      const signRes = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: selectedFile.name,
+          contentType: selectedFile.type || "application/octet-stream",
+          fileSize: selectedFile.size,
+          bucket: "models",
+        }),
+      });
+      if (!signRes.ok) throw new Error("Falha ao gerar link de upload");
+      const { url, key } = await signRes.json();
 
+      // 2. Upload directo para o R2 (sem passar pelo Next.js)
+      const uploadRes = await fetch(url, {
+        method: "PUT",
+        body: selectedFile,
+        headers: {
+          "Content-Type": selectedFile.type || "application/octet-stream",
+        },
+      });
+      if (!uploadRes.ok) throw new Error("Falha no upload para o R2");
+
+      // 3. Pedir extracção de metadados com a key (sem enviar o ficheiro)
       const res = await fetch("/api/components/extract", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileKey: key }),
       });
       const data = await res.json();
 
       if (!res.ok || data.source === "manual_required") {
+        // Extração completamente falhada — modo totalmente manual
         setExtractionFailed(true);
         toast({
           title: "Não foi possível extrair metadados",
-          description: "Preenche manualmente o peso e o tempo de impressão.",
+          description: "Preenche manualmente o peso, tempo e materiais.",
         });
-        // Ainda guardar o caminho do ficheiro
         setProfile({
-          fileName: file.name,
+          fileName: selectedFile.name,
           printTime: 0,
           filamentUsed: 0,
           filaments: [],
@@ -146,15 +183,46 @@ export function NewComponentModal({
         return;
       }
 
+      if (data.source === "3mf_no_weight") {
+        // Cores extraídas mas sem gramas — pré-preencher filamentos, pedir gramas/tempo
+        setExtractionFailed(true);
+        const preFilled = (data.filaments ?? []).map((f: any) => ({
+          material: f.material ?? "",
+          colorHex: f.colorHex ?? "#000000",
+          colorName: f.colorName ?? "",
+          estimatedG: "",
+        }));
+        if (preFilled.length > 0) setManualFilaments(preFilled);
+        setProfile({
+          fileName: selectedFile.name,
+          printTime: 0,
+          filamentUsed: 0,
+          filaments: data.filaments ?? [],
+          filePath: data.filePath ?? "",
+        });
+        if (data.filaments?.[0]) {
+          setForm((f) => ({
+            ...f,
+            defaultMaterial: data.filaments[0].material ?? f.defaultMaterial,
+            defaultColorHex: data.filaments[0].colorHex ?? f.defaultColorHex,
+          }));
+        }
+        toast({
+          title: `${data.filaments?.length ?? 0} cor(es) extraída(s)`,
+          description: data.message,
+        });
+        return;
+      }
+
+      // Extração completa — tudo preenchido automaticamente
       setProfile({
-        fileName: file.name,
+        fileName: selectedFile.name,
         printTime: data.printTime ?? 0,
         filamentUsed: data.filamentUsed ?? 0,
         filaments: data.filaments ?? [],
         filePath: data.filePath ?? "",
       });
 
-      // Pré-preencher material principal
       if (data.filaments?.[0]) {
         setForm((f) => ({
           ...f,
@@ -163,7 +231,7 @@ export function NewComponentModal({
         }));
       }
 
-      toast({ title: `Metadados extraídos de "${file.name}"` });
+      toast({ title: `Metadados extraídos de "${selectedFile.name}"` });
     } catch (err) {
       setExtractionFailed(true);
       toast({ title: "Erro ao processar o ficheiro", variant: "destructive" });
@@ -178,11 +246,8 @@ export function NewComponentModal({
     setSaving(true);
 
     try {
-      let fileKey = null;
-      if (file) {
-        // Como é um componente 3D, usamos o bucket "models"
-        fileKey = await executeDirectUpload(file, "models");
-      }
+      // O ficheiro .3mf já foi enviado para o R2 durante a extração
+      // em /api/components/extract, que devolveu profile.filePath.
 
       // 1. Criar o componente
       const compRes = await fetch("/api/components", {
@@ -193,47 +258,49 @@ export function NewComponentModal({
           description: form.description.trim() || null,
           defaultMaterial: form.defaultMaterial || null,
           defaultColorHex: form.defaultColorHex || null,
-          requiresAdapter: form.requiresAdapter,
-          specialHandling: form.specialHandling.trim() || null,
         }),
       });
       const comp = await compRes.json();
       if (!compRes.ok) throw new Error(comp.error);
 
       // 2. Se há perfil, criar o ComponentPrintProfile
-      if (profile && (profile.filePath || profile.filamentUsed > 0)) {
-        const hasManualData = extractionFailed && manualProfile.filamentUsed;
-        const filaments = extractionFailed
-          ? manualProfile.material
-            ? [
-                {
-                  material: manualProfile.material,
-                  colorHex: manualProfile.colorHex,
-                  colorName: manualProfile.colorName || null,
-                  estimatedG: Number(manualProfile.filamentUsed) || 0,
-                },
-              ]
-            : []
+      // Cria sempre que haja um ficheiro carregado (profile != null),
+      // mesmo que a extração tenha falhado e os dados sejam manuais.
+      if (profile) {
+        const filaments: ExtractedProfile[] = extractionFailed
+          ? manualFilaments
+              .filter((f) => f.material.trim() && Number(f.estimatedG) > 0)
+              .map((f) => ({
+                material: f.material.trim(),
+                colorHex: f.colorHex || null,
+                colorName: f.colorName.trim() || null,
+                estimatedG: Number(f.estimatedG),
+              }))
           : profile.filaments;
 
-        await fetch(`/api/components/${comp.id}/profiles`, {
+        const profileRes = await fetch(`/api/components/${comp.id}/profiles`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             name: profile.fileName.replace(/\.[^.]+$/, ""),
-            filePath: profile.filePath,
+            filePath: profile.filePath ?? "",
             batchSize: extractionFailed
               ? Number(manualProfile.batchSize) || 1
               : ((profile as any).batchSize ?? 1),
             printTime: extractionFailed
-              ? Number(manualProfile.printTime) || null
+              ? toMinutes(manualProfile.printTimeH, manualProfile.printTimeM)
               : profile.printTime || null,
             filamentUsed: extractionFailed
-              ? Number(manualProfile.filamentUsed) || null
+              ? totalManualG > 0
+                ? totalManualG
+                : null
               : profile.filamentUsed || null,
             filaments,
           }),
         });
+        const profileData = await profileRes.json();
+        if (!profileRes.ok)
+          throw new Error(profileData.error ?? "Erro ao criar perfil");
       }
 
       // 3. Adicionar à BOM do produto
@@ -351,6 +418,12 @@ export function NewComponentModal({
                     onClick={() => {
                       setProfile(null);
                       setExtractionFailed(false);
+                      setManualFilaments([emptyFilament()]);
+                      setManualProfile({
+                        printTimeH: "",
+                        printTimeM: "",
+                        batchSize: "1",
+                      });
                       if (fileRef.current) fileRef.current.value = "";
                     }}
                     className="text-muted-foreground hover:text-foreground flex-shrink-0 ml-2"
@@ -360,7 +433,8 @@ export function NewComponentModal({
                 </div>
 
                 {!extractionFailed && profile.filamentUsed > 0 ? (
-                  <div className="flex items-center gap-3">
+                  // Extração automática bem-sucedida
+                  <div className="flex items-center gap-3 flex-wrap">
                     <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                       <Layers size={9} />
                       {profile.filamentUsed}g
@@ -394,29 +468,70 @@ export function NewComponentModal({
                     </Badge>
                   </div>
                 ) : (
-                  // Extração falhou — input manual
-                  <div className="space-y-2 pt-1">
+                  // Extração falhou — input manual multicor
+                  <div className="space-y-3 pt-1">
                     <p className="text-[10px] text-amber-500 flex items-center gap-1">
                       <AlertTriangle size={9} />
                       Preenche manualmente:
                     </p>
+
+                    {/* Campos escalares: tempo + lote */}
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
                         <Label className="text-[10px] text-muted-foreground">
-                          Gramas de filamento
+                          Tempo de impressão
                         </Label>
-                        <Input
-                          type="number"
-                          placeholder="ex: 225"
-                          value={manualProfile.filamentUsed}
-                          onChange={(e) =>
-                            setManualProfile({
-                              ...manualProfile,
-                              filamentUsed: e.target.value,
-                            })
-                          }
-                          className="h-7 text-xs"
-                        />
+                        <div className="flex items-center gap-1">
+                          <div className="relative flex-1">
+                            <Input
+                              type="number"
+                              min="0"
+                              placeholder="0"
+                              value={manualProfile.printTimeH}
+                              onChange={(e) =>
+                                setManualProfile({
+                                  ...manualProfile,
+                                  printTimeH: e.target.value,
+                                })
+                              }
+                              className="h-7 text-xs pr-6"
+                            />
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">
+                              h
+                            </span>
+                          </div>
+                          <div className="relative flex-1">
+                            <Input
+                              type="number"
+                              min="0"
+                              max="59"
+                              placeholder="0"
+                              value={manualProfile.printTimeM}
+                              onChange={(e) =>
+                                setManualProfile({
+                                  ...manualProfile,
+                                  printTimeM: e.target.value,
+                                })
+                              }
+                              className="h-7 text-xs pr-6"
+                            />
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">
+                              m
+                            </span>
+                          </div>
+                        </div>
+                        {/* Preview em minutos */}
+                        {(manualProfile.printTimeH ||
+                          manualProfile.printTimeM) && (
+                          <p className="text-[10px] text-muted-foreground">
+                            ={" "}
+                            {toMinutes(
+                              manualProfile.printTimeH,
+                              manualProfile.printTimeM,
+                            )}{" "}
+                            min
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-1">
                         <Label className="text-[10px] text-muted-foreground">
@@ -436,131 +551,79 @@ export function NewComponentModal({
                           className="h-7 text-xs"
                         />
                       </div>
-                      <div className="space-y-1">
+                    </div>
+
+                    {/* Lista de filamentos (multicor) */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
                         <Label className="text-[10px] text-muted-foreground">
-                          Tempo (minutos)
+                          Filamentos{" "}
+                          {totalManualG > 0 && (
+                            <span className="text-foreground font-medium">
+                              ({totalManualG}g total)
+                            </span>
+                          )}
                         </Label>
-                        <Input
-                          type="number"
-                          placeholder="ex: 812"
-                          value={manualProfile.printTime}
-                          onChange={(e) =>
-                            setManualProfile({
-                              ...manualProfile,
-                              printTime: e.target.value,
-                            })
-                          }
-                          className="h-7 text-xs"
-                        />
+                        <button
+                          type="button"
+                          onClick={addFilament}
+                          className="text-[10px] text-primary flex items-center gap-0.5 hover:underline"
+                        >
+                          <Plus size={9} />
+                          Adicionar cor
+                        </button>
                       </div>
-                      <div className="space-y-1">
-                        <Label className="text-[10px] text-muted-foreground">
-                          Material
-                        </Label>
-                        <Input
-                          placeholder="ex: PLA"
-                          value={manualProfile.material}
-                          onChange={(e) =>
-                            setManualProfile({
-                              ...manualProfile,
-                              material: e.target.value,
-                            })
-                          }
-                          className="h-7 text-xs"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-[10px] text-muted-foreground">
-                          Cor
-                        </Label>
-                        <div className="flex gap-1">
-                          <input
-                            type="color"
-                            value={manualProfile.colorHex}
-                            onChange={(e) =>
-                              setManualProfile({
-                                ...manualProfile,
-                                colorHex: e.target.value,
-                              })
+
+                      {manualFilaments.map((fil, i) => (
+                        <div
+                          key={i}
+                          className="grid grid-cols-[auto_1fr_1fr_auto] gap-1.5 items-center"
+                        >
+                          {/* Color Picker */}
+                          <ColorPicker
+                            value={fil.colorHex}
+                            onChange={(color) =>
+                              updateFilament(i, { colorHex: color })
                             }
-                            className="w-7 h-7 rounded border border-border cursor-pointer"
                           />
+                          {/* Material */}
                           <Input
-                            placeholder="Nome da cor"
-                            value={manualProfile.colorName}
+                            placeholder="Material (ex: PLA)"
+                            value={fil.material}
                             onChange={(e) =>
-                              setManualProfile({
-                                ...manualProfile,
-                                colorName: e.target.value,
-                              })
+                              updateFilament(i, { material: e.target.value })
                             }
-                            className="h-7 text-xs flex-1"
+                            className="h-7 text-xs"
                           />
+                          {/* Gramas */}
+                          <Input
+                            type="number"
+                            placeholder="Gramas"
+                            value={fil.estimatedG}
+                            onChange={(e) =>
+                              updateFilament(i, { estimatedG: e.target.value })
+                            }
+                            className="h-7 text-xs"
+                          />
+                          {/* Remover (só se houver mais de 1) */}
+                          {manualFilaments.length > 1 ? (
+                            <button
+                              type="button"
+                              onClick={() => removeFilament(i)}
+                              className="text-muted-foreground hover:text-destructive"
+                            >
+                              <X size={12} />
+                            </button>
+                          ) : (
+                            <span className="w-3" />
+                          )}
                         </div>
-                      </div>
+                      ))}
                     </div>
                   </div>
                 )}
               </div>
             )}
-          </div>
-
-          {/* Flags de risco */}
-          <div className="space-y-3 pt-1">
-            <Label className="flex items-center gap-1.5 text-xs text-muted-foreground uppercase tracking-wider">
-              <Wrench size={10} />
-              Flags de risco (para o Planeador)
-            </Label>
-
-            {/* Requer adaptador */}
-            <label className="flex items-start gap-3 cursor-pointer group">
-              <div className="relative mt-0.5">
-                <input
-                  type="checkbox"
-                  checked={form.requiresAdapter}
-                  onChange={(e) =>
-                    setForm({ ...form, requiresAdapter: e.target.checked })
-                  }
-                  className="sr-only"
-                />
-                <div
-                  className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${form.requiresAdapter ? "bg-amber-500 border-amber-500" : "border-border group-hover:border-amber-400"}`}
-                >
-                  {form.requiresAdapter && (
-                    <Check size={10} className="text-white" />
-                  )}
-                </div>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-foreground">
-                  Requer adaptador físico
-                </p>
-                <p className="text-[10px] text-muted-foreground">
-                  Bobine não-standard ou de papel — o planeador vai avisar ao
-                  adicionar à impressora.
-                </p>
-              </div>
-            </label>
-
-            {/* Handling especial */}
-            <div className="space-y-1.5">
-              <Label
-                htmlFor="special-handling"
-                className="text-xs text-muted-foreground flex items-center gap-1"
-              >
-                <Info size={10} />
-                Nota de manuseamento (opcional)
-              </Label>
-              <Input
-                id="special-handling"
-                placeholder='ex: "TPU — desligar o AMS retractor"'
-                value={form.specialHandling}
-                onChange={(e) =>
-                  setForm({ ...form, specialHandling: e.target.value })
-                }
-                className="h-8 text-xs"
-              />
-            </div>
           </div>
         </div>
 

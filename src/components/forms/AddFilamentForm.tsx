@@ -15,6 +15,7 @@ interface GlobalFilament {
   brand: string;
   material: string;
   colorName: string;
+  colorCode: string | null; // ex: "11101"
   colorHex: string;
   spoolWeight: number;
 }
@@ -194,6 +195,7 @@ export function AddFilamentForm({
   const [brand, setBrand] = useState("");
   const [material, setMaterial] = useState("PLA");
   const [colorName, setColorName] = useState("");
+  const [colorCode, setColorCode] = useState<string | null>(null);
   const [colorHex, setColorHex] = useState("#3b82f6");
 
   // Step 2 — Compra
@@ -239,9 +241,12 @@ export function AddFilamentForm({
     setBrand(item.brand);
     setMaterial(item.material);
     setColorName(item.colorName);
+    setColorCode(item.colorCode ?? null);
     setColorHex(item.colorHex);
     setInitialWeight(String(item.spoolWeight));
-    setQuery(`${item.brand} ${item.material} ${item.colorName}`);
+    setQuery(
+      `${item.brand} ${item.material}${item.colorCode ? ` ${item.colorCode}` : ""} ${item.colorName}`,
+    );
     setCatalogResults([]);
   };
 
@@ -251,6 +256,7 @@ export function AddFilamentForm({
     setBrand("");
     setMaterial("PLA");
     setColorName("");
+    setColorCode(null);
     setColorHex("#3b82f6");
   };
 
@@ -295,7 +301,8 @@ export function AddFilamentForm({
       step1: "Identificação",
       step2: "Compra",
       step3: "Etiqueta",
-      searchPlaceholder: "Pesquisa no catálogo (ex: Bambu PLA Branco)...",
+      searchPlaceholder:
+        "Pesquisa no catálogo (ex: Bambu PLA 11101 ou matte black)...",
       manualMode: "Introdução manual",
       brand: "Marca",
       material: "Material",
@@ -323,7 +330,8 @@ export function AddFilamentForm({
       step1: "Identification",
       step2: "Purchase",
       step3: "Label",
-      searchPlaceholder: "Search catalog (e.g. Bambu PLA White)...",
+      searchPlaceholder:
+        "Search catalog (e.g. Bambu PLA 11101 or matte black)...",
       manualMode: "Manual entry",
       brand: "Brand",
       material: "Material",
@@ -437,6 +445,11 @@ export function AddFilamentForm({
                         {item.brand} {item.material}
                       </p>
                       <p className="text-xs text-navy-400">
+                        {item.colorCode && (
+                          <span className="font-mono mr-1">
+                            {item.colorCode}
+                          </span>
+                        )}
                         {item.colorName} · {item.spoolWeight}g
                       </p>
                     </div>
@@ -508,6 +521,19 @@ export function AddFilamentForm({
                 placeholder="White"
                 required
                 className="w-full px-3 py-2 rounded-lg border border-theme/40 bg-dark-surface text-sm text-theme placeholder:text-dark-subtle focus:outline-none focus:border-brand-500/60 disabled:opacity-50 transition-colors"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-navy-300">
+                Código da cor{" "}
+                <span className="text-dark-subtle font-normal">(opcional)</span>
+              </label>
+              <input
+                value={colorCode ?? ""}
+                onChange={(e) => setColorCode(e.target.value || null)}
+                disabled={!!selectedGlobal}
+                placeholder="ex: 11101"
+                className="w-full px-3 py-2 rounded-lg border border-theme/40 bg-dark-surface text-sm text-theme placeholder:text-dark-subtle focus:outline-none focus:border-brand-500/60 disabled:opacity-50 transition-colors font-mono"
               />
             </div>
             <div className="space-y-1.5">

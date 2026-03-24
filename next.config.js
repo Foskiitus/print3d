@@ -13,6 +13,11 @@ const nextConfig = {
     };
     return config;
   },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "50mb", // aumenta o limite para uploads
+    },
+  },
 };
 
 export default withIntlayer(nextConfig);

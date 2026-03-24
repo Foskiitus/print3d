@@ -1,118 +1,118 @@
 // src/app/api/components/[id]/profiles/route.ts
 
 import { getAuthUserId } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
-// POST /api/components/[id]/profiles
-// Cria um perfil de impressão (receita) para um componente.
-// batchSize define quantas unidades saem desta impressão.
-// Custo unitário = (filamentUsed × €/g) / batchSize
-
-export async function POST(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const userId = await getAuthUserId();
-  if (!userId)
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-
-  const { id: componentId } = await params;
-
-  const component = await prisma.component.findFirst({
-    where: { id: componentId, userId },
-  });
-  if (!component)
-    return NextResponse.json(
-      { error: "Componente não encontrado" },
-      { status: 404 },
-    );
-
-  const {
-    name,
-    filePath,
-    slicer,
-    printTime,
-    filamentUsed,
-    batchSize = 1,
-    filaments = [],
-  } = await req.json();
-
-  if (!name?.trim())
-    return NextResponse.json({ error: "Nome é obrigatório" }, { status: 400 });
-  if (!filePath?.trim())
-    return NextResponse.json(
-      { error: "filePath é obrigatório" },
-      { status: 400 },
-    );
-  if (batchSize < 1)
-    return NextResponse.json(
-      { error: "batchSize deve ser >= 1" },
-      { status: 400 },
-    );
-
-  const profile = await prisma.componentPrintProfile.create({
-    data: {
-      componentId,
-      name: name.trim(),
-      filePath,
-      slicer: slicer ?? null,
-      printTime: printTime ?? null,
-      filamentUsed: filamentUsed ?? null,
-      batchSize,
-      filaments: {
-        create: filaments.map(
-          (f: {
-            material: string;
-            colorHex?: string;
-            colorName?: string;
-            estimatedG: number;
-          }) => ({
-            material: f.material,
-            colorHex: f.colorHex ?? null,
-            colorName: f.colorName ?? null,
-            estimatedG: f.estimatedG,
-          }),
-        ),
-      },
-    },
-    include: { filaments: true },
-  });
-
-  return NextResponse.json(profile, { status: 201 });
+interface Params {
+  params: Promise<{ id: string }>;
 }
 
-// GET /api/components/[id]/profiles
-export async function GET(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+// ── POST /api/components/[id]/profiles ────────────────────────────────────────
+export async function POST(req: Request, { params }: Params) {
   const userId = await getAuthUserId();
   if (!userId)
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
   const { id: componentId } = await params;
 
-  const component = await prisma.component.findFirst({
-    where: { id: componentId, userId },
-  });
-  if (!component)
+  try {
+    // Verificar que o componente pertence ao utilizador
+    const component = await prisma.component.findFirst({
+      where: { id: componentId, userId },
+    });
+    if (!component)
+      return NextResponse.json(
+        { error: "Componente não encontrado" },
+        { status: 404 },
+      );
+
+    const {
+      name,
+      filePath,
+      batchSize = 1,
+      printTime = null,
+      filamentUsed = null,
+      filaments = [],
+    } = await req.json();
+
+    if (!name?.trim())
+      return NextResponse.json(
+        { error: "Nome do perfil é obrigatório" },
+        { status: 400 },
+      );
+
+    // filePath pode ser vazio se o upload falhou ou não foi feito
+    // (perfil criado apenas com dados manuais)
+
+    const profile = await prisma.componentPrintProfile.create({
+      data: {
+        componentId,
+        name: name.trim(),
+        filePath: filePath?.trim() || "",
+        batchSize: Number(batchSize) || 1,
+        printTime: printTime ? Number(printTime) : null,
+        filamentUsed: filamentUsed ? Number(filamentUsed) : null,
+        // Criar os requisitos de filamento em nested write
+        filaments: {
+          create: filaments.map(
+            (f: {
+              material: string;
+              colorHex?: string | null;
+              colorName?: string | null;
+              estimatedG: number;
+            }) => ({
+              material: f.material,
+              colorHex: f.colorHex ?? null,
+              colorName: f.colorName ?? null,
+              estimatedG: Number(f.estimatedG),
+            }),
+          ),
+        },
+      },
+      include: { filaments: true },
+    });
+
+    return NextResponse.json(profile, { status: 201 });
+  } catch (error: any) {
+    console.error("[POST /api/components/[id]/profiles]", error);
     return NextResponse.json(
-      { error: "Componente não encontrado" },
-      { status: 404 },
+      { error: "Erro ao criar perfil", details: error.message },
+      { status: 500 },
     );
+  }
+}
 
-  const profiles = await prisma.componentPrintProfile.findMany({
-    where: { componentId },
-    include: { filaments: true },
-    orderBy: { createdAt: "asc" },
-  });
+// ── GET /api/components/[id]/profiles ─────────────────────────────────────────
+export async function GET(_req: Request, { params }: Params) {
+  const userId = await getAuthUserId();
+  if (!userId)
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-  // Enriquecer com custo unitário calculado
-  const enriched = profiles.map((p) => ({
-    ...p,
-    unitG: p.filamentUsed != null ? p.filamentUsed / p.batchSize : null,
-  }));
+  const { id: componentId } = await params;
 
-  return NextResponse.json(enriched);
+  try {
+    const component = await prisma.component.findFirst({
+      where: { id: componentId, userId },
+    });
+    if (!component)
+      return NextResponse.json(
+        { error: "Componente não encontrado" },
+        { status: 404 },
+      );
+
+    const profiles = await prisma.componentPrintProfile.findMany({
+      where: { componentId },
+      include: { filaments: true },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json(profiles);
+  } catch (error: any) {
+    console.error("[GET /api/components/[id]/profiles]", error);
+    return NextResponse.json(
+      { error: "Erro ao obter perfis" },
+      { status: 500 },
+    );
+  }
 }

@@ -47,6 +47,13 @@
             "en": "Products"
           }
         },
+        "components": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Componentes",
+            "en": "Components"
+          }
+        },
         "stock": {
           "nodeType": "translation",
           "translation": {

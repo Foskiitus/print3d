@@ -17,7 +17,6 @@ import {
 import {
   Package,
   Layers,
-  Euro,
   Pencil,
   Check,
   X,
@@ -28,7 +27,6 @@ import {
   Tag,
   AlertCircle,
   CheckCircle2,
-  TrendingUp,
   Wrench,
   ArrowLeft,
   PenLine,
@@ -38,6 +36,7 @@ import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { toast } from "@/components/ui/toaster";
 import { NewComponentModal } from "@/components/forms/NewComponentModal";
+import { ProductionSummaryCard } from "@/components/products/ProductionSummaryCard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -58,6 +57,7 @@ interface ComponentProfile {
   name: string;
   printTime: number | null;
   filamentUsed: number | null;
+  batchSize: number;
   filaments: FilamentReq[];
 }
 
@@ -458,21 +458,11 @@ export function ProductDetailClient({
   const [nameValue, setNameValue] = useState(initialProduct.name);
   const [savingName, setSavingName] = useState(false);
 
-  // Custo calculado localmente
-  const FALLBACK_PRICE_PER_G = 0.025;
-  const currentBomCost = bom.reduce((acc, entry) => {
-    const g = entry.component.profiles.reduce(
-      (s, p) => s + (p.filamentUsed ?? 0),
-      0,
-    );
-    return acc + entry.quantity * g * FALLBACK_PRICE_PER_G;
-  }, 0);
-  const extrasCost = product.extras.reduce(
+  // Custo de extras por unidade (para passar ao ProductionSummaryCard)
+  const extrasCostPerUnit = product.extras.reduce(
     (acc, e) => acc + e.quantity * e.extra.price,
     0,
   );
-  const currentEstimatedCost = currentBomCost + extrasCost;
-  const currentSuggestedPrice = currentEstimatedCost * (1 + product.margin);
 
   const allInStock = bom.every(
     (e) => (e.component.stock?.quantity ?? 0) >= e.quantity,
@@ -735,59 +725,12 @@ export function ProductDetailClient({
 
         {/* Coluna lateral — Custos e Configuração */}
         <div className="space-y-4">
-          {/* Custo estimado */}
-          <Card>
-            <CardContent className="p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-foreground">
-                  Estimativa de Custo
-                </h2>
-                <Euro size={14} className="text-muted-foreground" />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Filamento</span>
-                  <span className="text-foreground">
-                    {formatCurrency(currentBomCost)}
-                  </span>
-                </div>
-                {extrasCost > 0 && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Extras</span>
-                    <span className="text-foreground">
-                      {formatCurrency(extrasCost)}
-                    </span>
-                  </div>
-                )}
-                <div className="flex justify-between text-xs border-t border-border pt-2">
-                  <span className="text-muted-foreground font-medium">
-                    Custo total
-                  </span>
-                  <span className="font-semibold text-foreground">
-                    {formatCurrency(currentEstimatedCost)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-3 rounded-lg bg-primary/5 border border-primary/10 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <TrendingUp size={11} />
-                    Preço sugerido ({Math.round(product.margin * 100)}% margem)
-                  </span>
-                </div>
-                <p className="text-lg font-bold text-primary">
-                  {formatCurrency(currentSuggestedPrice)}
-                </p>
-              </div>
-
-              <p className="text-[10px] text-muted-foreground">
-                Custo de filamento calculado com €0.025/g estimado. Configura
-                rolos com preço real para valores precisos.
-              </p>
-            </CardContent>
-          </Card>
+          {/* Resumo de Produção */}
+          <ProductionSummaryCard
+            bom={bom}
+            margin={product.margin}
+            extrasCostPerUnit={extrasCostPerUnit}
+          />
 
           {/* Configuração */}
           <Card>

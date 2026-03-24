@@ -12,6 +12,7 @@ const sidebarContent = {
       dashboard: t({ pt: "Dashboard", en: "Dashboard" }),
       filaments: t({ pt: "Filamentos", en: "Filaments" }),
       products: t({ pt: "Produtos", en: "Products" }),
+      components: t({ pt: "Componentes", en: "Components" }),
       stock: t({ pt: "Stock", en: "Stock" }),
       production: t({ pt: "Produção", en: "Production" }),
       sales: t({ pt: "Vendas", en: "Sales" }),

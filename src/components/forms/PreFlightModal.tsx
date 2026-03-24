@@ -35,15 +35,31 @@ import type {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+interface PrintProfile {
+  id: string;
+  name: string;
+  printTime: number | null;
+  filamentUsed: number | null;
+}
+
 interface Product {
   id: string;
   name: string;
-  printProfiles: {
-    id: string;
-    name: string;
-    printTime: number | null;
-    filamentUsed: number | null;
+  // A API pode devolver "printProfiles" (legado) ou perfis via BOM
+  printProfiles?: PrintProfile[];
+  // Perfis agregados de todos os componentes da BOM
+  bom?: {
+    component: {
+      profiles: PrintProfile[];
+    };
   }[];
+}
+
+// Helper: obter todos os perfis de um produto (seja qual for a estrutura da API)
+function getProductProfiles(p: Product): PrintProfile[] {
+  if (p.printProfiles && p.printProfiles.length > 0) return p.printProfiles;
+  // Agregar perfis de todos os componentes da BOM
+  return p.bom?.flatMap((entry) => entry.component?.profiles ?? []) ?? [];
 }
 
 interface PreFlightModalProps {
@@ -467,9 +483,9 @@ export function PreFlightModal({
                         className={`flex items-center justify-between w-full px-3 py-2 rounded-md text-sm transition-colors ${selectedProduct?.id === p.id ? "bg-primary/10 text-primary" : "hover:bg-muted/40 text-foreground"}`}
                       >
                         <span>{p.name}</span>
-                        {p.printProfiles.length > 0 && (
+                        {getProductProfiles(p).length > 0 && (
                           <Badge variant="outline" className="text-[10px]">
-                            {p.printProfiles.length} perfis
+                            {getProductProfiles(p).length} perfis
                           </Badge>
                         )}
                       </button>
@@ -480,14 +496,14 @@ export function PreFlightModal({
 
               {/* Perfil de impressão */}
               {selectedProduct &&
-                selectedProduct.printProfiles.length > 0 &&
+                getProductProfiles(selectedProduct).length > 0 &&
                 !manualMode && (
                   <div className="space-y-2">
                     <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       Perfil de Impressão
                     </Label>
                     <div className="space-y-1.5">
-                      {selectedProduct.printProfiles.map((profile) => (
+                      {getProductProfiles(selectedProduct).map((profile) => (
                         <button
                           key={profile.id}
                           type="button"

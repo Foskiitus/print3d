@@ -70,8 +70,7 @@ export async function POST(
         data: {
           userId,
           printerId,
-          productId: productId ?? null,
-          profileId: profileId ?? null,
+          // orderId omitido — job avulso (sem Ordem de Produção)
           quantity: quantity ?? 1,
           estimatedMinutes: estimatedMinutes ?? null,
           notes: notes ?? null,
