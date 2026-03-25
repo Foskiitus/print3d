@@ -1,5 +1,6 @@
 import _OgfrJgSCjZzXQaKMTeKl from '../dictionary/admin.json' with { type: 'json' };
 import _0R7VnUXExaq7GpGr8LbM from '../dictionary/alerts.json' with { type: 'json' };
+import _FoTIXvUL2ByiYmpl12M3 from '../dictionary/components.json' with { type: 'json' };
 import _KaYs2Ck9c4HEXhOw9ieL from '../dictionary/contact.json' with { type: 'json' };
 import _cu8uwYBHOjOfFOUqrWen from '../dictionary/customers.json' with { type: 'json' };
 import _WcaImCMssDN8JRJwWvSP from '../dictionary/dashboard.json' with { type: 'json' };
@@ -30,6 +31,7 @@ import _EUINc4ULDXGaE2taUrG3 from '../dictionary/users.json' with { type: 'json'
 const dictionaries = {
   "admin": _OgfrJgSCjZzXQaKMTeKl,
   "alerts": _0R7VnUXExaq7GpGr8LbM,
+  "components": _FoTIXvUL2ByiYmpl12M3,
   "contact": _KaYs2Ck9c4HEXhOw9ieL,
   "customers": _cu8uwYBHOjOfFOUqrWen,
   "dashboard": _WcaImCMssDN8JRJwWvSP,

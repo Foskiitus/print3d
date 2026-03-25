@@ -38,6 +38,7 @@ export default async function AdminPage({
         role: true,
         createdAt: true,
         plan: true,
+        avatar: true,
       },
     }),
   ]);
@@ -54,6 +55,7 @@ export default async function AdminPage({
         ...u,
         name: u.name ?? "Sem nome",
         createdAt: u.createdAt.toISOString(),
+        avatar: u.avatar ?? null,
       }))}
     />
   );

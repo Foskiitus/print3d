@@ -26,15 +26,17 @@ export async function GET(
   // Busca produções do utilizador que usaram filamentos com a mesma marca/material/cor
   // (ligação por ProductionLog → Product → ProductFilamentUsage → FilamentType)
   // Como a nova estrutura não tem ainda a ligação directa, devolvemos as produções recentes
-  const productions = await prisma.productionLog.findMany({
-    where: { userId },
-    include: {
-      product: { select: { name: true } },
-      printer: { select: { name: true } },
-    },
-    orderBy: { date: "desc" },
-    take: 20,
-  });
+  // const productions = await prisma.productionLog.findMany({
+  //   where: { userId },
+  //   include: {
+  //     product: { select: { name: true } },
+  //     printer: { select: { name: true } },
+  //   },
+  //   orderBy: { date: "desc" },
+  //   take: 20,
+  // });
+
+  const productions = [] as any[];
 
   return NextResponse.json({
     item: purchase.item,

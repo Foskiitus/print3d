@@ -24,6 +24,7 @@ import {
 import { toast } from "@/components/ui/toaster";
 import { format } from "date-fns";
 import type { AdminUser } from "../AdminPageClient";
+import UserAvatar from "@/components/ui/userAvatar";
 
 const PLAN_LABELS: Record<string, string> = {
   hobby: "Hobby",
@@ -43,6 +44,7 @@ export function UsersTab({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
+    avatar: "",
     name: "",
     email: "",
     password: "",
@@ -50,7 +52,7 @@ export function UsersTab({
   });
 
   function reset() {
-    setForm({ name: "", email: "", password: "", role: "user" });
+    setForm({ avatar: "", name: "", email: "", password: "", role: "user" });
   }
 
   async function handleCreate() {
@@ -116,6 +118,7 @@ export function UsersTab({
           <thead>
             <tr className="border-b border-border bg-muted/30">
               {[
+                "Avatar",
                 c.users.name.value,
                 c.users.email.value,
                 c.users.role.value,
@@ -136,7 +139,7 @@ export function UsersTab({
             {users.length === 0 ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   className="px-4 py-12 text-center text-muted-foreground text-sm"
                 >
                   {c.users.empty.value}
@@ -148,6 +151,13 @@ export function UsersTab({
                   key={u.id}
                   className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors"
                 >
+                  <td className="px-4 py-3 font-medium text-foreground">
+                    <UserAvatar
+                      name={u.name}
+                      avatarUrl={u.avatar ?? null}
+                      isPro={u.plan === "pro"}
+                    />
+                  </td>
                   <td className="px-4 py-3 font-medium text-foreground">
                     {u.name}
                   </td>

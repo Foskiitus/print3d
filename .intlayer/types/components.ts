@@ -1,0 +1,26 @@
+/* eslint-disable */
+export default {
+  "key": "components",
+  "content": {
+    "nodeType": "translation",
+    "translation": {
+      "pt": {
+        "page": {
+          "title": "Painel Componentes",
+          "heading": "Painel Componentes",
+          "description": "Gestão de componentes."
+        }
+      },
+      "en": {
+        "page": {
+          "title": "Components Panel",
+          "heading": "Components Panel",
+          "description": "Manage components."
+        }
+      }
+    }
+  },
+  "localIds": [
+    "components::local::src/app/[locale]/(app)/catalog/components/components.content.ts"
+  ]
+} as const;

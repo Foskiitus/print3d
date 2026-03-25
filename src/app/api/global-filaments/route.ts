@@ -10,15 +10,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
     }
 
-    const body = await req.json();
-    const { brand, material, colorName, colorCode } = body;
+    const body = (await req.json()) as {
+      brand: string;
+      material: string;
+      colorName: string;
+      colorHex: string;
+      spoolWeight: number;
+    };
+    const { brand, material, colorName, colorHex, spoolWeight } = body;
 
     const filament = await prisma.globalFilament.create({
       data: {
         brand,
         material,
         colorName,
-        colorCode,
+        colorHex,
+        spoolWeight,
       },
     });
 

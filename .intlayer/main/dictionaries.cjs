@@ -1,5 +1,6 @@
 const _OgfrJgSCjZzXQaKMTeKl = require('../dictionary/admin.json');
 const _0R7VnUXExaq7GpGr8LbM = require('../dictionary/alerts.json');
+const _FoTIXvUL2ByiYmpl12M3 = require('../dictionary/components.json');
 const _KaYs2Ck9c4HEXhOw9ieL = require('../dictionary/contact.json');
 const _cu8uwYBHOjOfFOUqrWen = require('../dictionary/customers.json');
 const _WcaImCMssDN8JRJwWvSP = require('../dictionary/dashboard.json');
@@ -30,6 +31,7 @@ const _EUINc4ULDXGaE2taUrG3 = require('../dictionary/users.json');
 const dictionaries = {
   "admin": _OgfrJgSCjZzXQaKMTeKl,
   "alerts": _0R7VnUXExaq7GpGr8LbM,
+  "components": _FoTIXvUL2ByiYmpl12M3,
   "contact": _KaYs2Ck9c4HEXhOw9ieL,
   "customers": _cu8uwYBHOjOfFOUqrWen,
   "dashboard": _WcaImCMssDN8JRJwWvSP,

@@ -29,6 +29,7 @@ export interface GlobalFilament {
 }
 
 export interface AdminUser {
+  avatar: string | null;
   id: string;
   name: string;
   email: string;

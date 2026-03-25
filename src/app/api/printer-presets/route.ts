@@ -11,14 +11,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
     }
 
-    const body = await req.json();
-    const { brand, model } = body;
+    const body = (await req.json()) as {
+      userId: string;
+      brand: string;
+      model: string;
+      name: string; // Adicionado
+      powerWatts: number; // Adicionado
+      hourlyCost: number; // Adicionado
+    };
+    const { brand, model, name, powerWatts, hourlyCost } = body;
 
     const preset = await prisma.printerPreset.create({
       data: {
-        userId, // Necessário devido à relação no schema
+        userId,
         brand,
         model,
+        name, // Agora o Prisma fica satisfeito
+        powerWatts,
+        hourlyCost,
       },
     });
 

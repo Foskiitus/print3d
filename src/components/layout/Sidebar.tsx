@@ -14,13 +14,13 @@ import {
   Layers,
   UserCircle,
   Shield,
-  Crown,
 } from "lucide-react";
 import { useSidebar } from "@/components/layout/SidebarContext";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useIntlayer } from "next-intlayer";
 import { cn } from "@/lib/utils";
+import UserAvatar from "../ui/userAvatar";
 
 // ─── Spool Icon ───────────────────────────────────────────────────────────────
 
@@ -108,52 +108,6 @@ function SpoolIcon({ className }: { className?: string }) {
   );
 }
 
-// ─── Avatar ───────────────────────────────────────────────────────────────────
-
-function UserAvatar({
-  name,
-  avatarUrl,
-  isPro,
-}: {
-  name: string;
-  avatarUrl: string | null;
-  isPro: boolean;
-}) {
-  const initials = name
-    .split(" ")
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
-  return (
-    <div className="relative flex-shrink-0">
-      {avatarUrl ? (
-        <img
-          src={avatarUrl}
-          alt={name}
-          referrerPolicy="no-referrer"
-          className="w-9 h-9 rounded-full object-cover border-2 border-border"
-        />
-      ) : (
-        <div className="w-9 h-9 rounded-full bg-primary/15 border-2 border-border flex items-center justify-center">
-          <span className="text-xs font-bold text-primary">{initials}</span>
-        </div>
-      )}
-      {/* Badge PRO dourado */}
-      {isPro && (
-        <div
-          className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
-          style={{ backgroundColor: "#F59E0B" }}
-          title="Plano Pro"
-        >
-          <Crown size={9} className="text-white" />
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── NavLink ──────────────────────────────────────────────────────────────────
 
 function NavLink({
@@ -221,6 +175,8 @@ export function Sidebar() {
         user.user_metadata?.name ??
         user.email?.split("@")[0] ??
         "";
+
+      console.log(user.user_metadata);
       // Google OAuth guarda o avatar em avatar_url ou picture
       const avatarUrl =
         user.user_metadata?.avatar_url ?? user.user_metadata?.picture ?? null;
