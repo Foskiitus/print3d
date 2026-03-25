@@ -1,11 +1,19 @@
-import { getAuthUserId } from "@/lib/auth";
+import { requirePageAuth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { CustomersClient } from "./CustomersClient";
 import { getIntlayer } from "intlayer";
 import type { LocalesValues } from "intlayer";
 
-export const metadata = { title: "Customers" };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: LocalesValues }>;
+}) {
+  const { locale } = await params;
+  const c = getIntlayer("customers", locale);
+  return { title: c.title };
+}
 
 export default async function CustomersPage({
   params,
@@ -14,9 +22,8 @@ export default async function CustomersPage({
 }) {
   const { locale } = await params;
   const c = getIntlayer("customers", locale);
-
-  const userId = await getAuthUserId();
-  if (!userId) redirect("/sign-in");
+  const userId = await requirePageAuth();
+  if (!userId) redirect(`/${locale}/sign-in`);
 
   const customers = await prisma.customer.findMany({
     where: { userId },

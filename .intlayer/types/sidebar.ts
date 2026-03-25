@@ -13,6 +13,7 @@ export default {
           "production": "Produção",
           "workshop": "A Minha Oficina",
           "sales": "Encomendas",
+          "customers": "Clientes",
           "profile": "A Minha Conta",
           "admin": "Painel Admin"
         },
@@ -31,6 +32,7 @@ export default {
           "production": "Production",
           "workshop": "My Workshop",
           "sales": "Orders",
+          "customers": "Customers",
           "profile": "My Account",
           "admin": "Admin Panel"
         },

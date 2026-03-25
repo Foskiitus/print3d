@@ -1,1 +1,105 @@
-[{"key":"sidebar","content":{"nav":{"dashboard":{"nodeType":"translation","translation":{"pt":"Dashboard","en":"Dashboard"}},"inventory":{"nodeType":"translation","translation":{"pt":"Inventário","en":"Inventory"}},"catalog":{"nodeType":"translation","translation":{"pt":"Produtos","en":"Products"}},"components":{"nodeType":"translation","translation":{"pt":"Componentes","en":"Components"}},"production":{"nodeType":"translation","translation":{"pt":"Produção","en":"Production"}},"workshop":{"nodeType":"translation","translation":{"pt":"A Minha Oficina","en":"My Workshop"}},"sales":{"nodeType":"translation","translation":{"pt":"Encomendas","en":"Orders"}},"profile":{"nodeType":"translation","translation":{"pt":"A Minha Conta","en":"My Account"}},"admin":{"nodeType":"translation","translation":{"pt":"Painel Admin","en":"Admin Panel"}}},"roles":{"admin":{"nodeType":"translation","translation":{"pt":"Admin","en":"Admin"}},"user":{"nodeType":"translation","translation":{"pt":"Utilizador","en":"User"}}},"signOut":{"nodeType":"translation","translation":{"pt":"Sair","en":"Sign out"}}},"location":"local","localId":"sidebar::local::src/components/layout/sidebar.content.ts","filePath":"src/components/layout/sidebar.content.ts"}]
+[
+  {
+    "key": "sidebar",
+    "content": {
+      "nav": {
+        "dashboard": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Dashboard",
+            "en": "Dashboard"
+          }
+        },
+        "inventory": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Inventário",
+            "en": "Inventory"
+          }
+        },
+        "catalog": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Produtos",
+            "en": "Products"
+          }
+        },
+        "components": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Componentes",
+            "en": "Components"
+          }
+        },
+        "production": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Produção",
+            "en": "Production"
+          }
+        },
+        "workshop": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "A Minha Oficina",
+            "en": "My Workshop"
+          }
+        },
+        "sales": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Encomendas",
+            "en": "Orders"
+          }
+        },
+        "customers": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Clientes",
+            "en": "Customers"
+          }
+        },
+        "profile": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "A Minha Conta",
+            "en": "My Account"
+          }
+        },
+        "admin": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Painel Admin",
+            "en": "Admin Panel"
+          }
+        }
+      },
+      "roles": {
+        "admin": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Admin",
+            "en": "Admin"
+          }
+        },
+        "user": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Utilizador",
+            "en": "User"
+          }
+        }
+      },
+      "signOut": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Sair",
+          "en": "Sign out"
+        }
+      }
+    },
+    "location": "local",
+    "localId": "sidebar::local::src/components/layout/sidebar.content.ts",
+    "filePath": "src/components/layout/sidebar.content.ts"
+  }
+]

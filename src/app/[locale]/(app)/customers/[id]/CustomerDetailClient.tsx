@@ -1,7 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Mail,
   Phone,
@@ -11,24 +21,166 @@ import {
   TrendingUp,
   ShoppingBag,
   Package,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { useIntlayer } from "next-intlayer";
+import { toast } from "@/components/ui/toaster";
 
 function formatDate(date: string | Date, locale: string) {
   return new Date(date).toLocaleDateString(
     locale === "en" ? "en-GB" : "pt-PT",
-    {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    },
+    { day: "2-digit", month: "short", year: "numeric" },
   );
 }
 
-export function CustomerDetailClient({
+// ─── Edit Dialog ──────────────────────────────────────────────────────────────
+
+function EditCustomerDialog({
   customer,
+  open,
+  onOpenChange,
+  onSaved,
+}: {
+  customer: any;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onSaved: (updated: any) => void;
+}) {
+  const c = useIntlayer("customers");
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    name: customer.name ?? "",
+    email: customer.email ?? "",
+    phone: customer.phone ?? "",
+    nif: customer.nif ?? "",
+    address: customer.address ?? "",
+    notes: customer.notes ?? "",
+  });
+
+  async function handleSave() {
+    if (!form.name.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/customers/${customer.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          email: form.email.trim() || null,
+          phone: form.phone.trim() || null,
+          nif: form.nif.trim() || null,
+          address: form.address.trim() || null,
+          notes: form.notes.trim() || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast({ title: c.toasts.updated.value });
+      onSaved(data);
+      onOpenChange(false);
+    } catch (e: any) {
+      toast({
+        title: c.toasts.error.value,
+        description: e.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Editar Cliente</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 mt-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5 col-span-2">
+              <Label>{c.edit.name.value}</Label>
+              <Input
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                autoFocus
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{c.edit.email.value}</Label>
+              <Input
+                type="email"
+                placeholder="email@exemplo.com"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{c.edit.phone.value}</Label>
+              <Input
+                placeholder="9XX XXX XXX"
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{c.edit.nif.value}</Label>
+              <Input
+                placeholder="123456789"
+                value={form.nif}
+                onChange={(e) => setForm({ ...form, nif: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5 col-span-2">
+              <Label>{c.edit.address.value}</Label>
+              <Input
+                placeholder={c.edit.addressPlaceholder.value}
+                value={form.address}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5 col-span-2">
+              <Label>{c.edit.notes.value}</Label>
+              <Input
+                placeholder={c.edit.notesPlaceholder.value}
+                value={form.notes}
+                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="flex gap-2 pt-1">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => onOpenChange(false)}
+              disabled={saving}
+            >
+              {c.edit.cancel.value}
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={handleSave}
+              disabled={saving || !form.name.trim()}
+            >
+              {saving ? c.edit.saving.value : c.edit.save.value}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export function CustomerDetailClient({
+  customer: initialCustomer,
   sales,
   stats,
   topProducts,
@@ -41,6 +193,8 @@ export function CustomerDetailClient({
   locale: string;
 }) {
   const c = useIntlayer("customers");
+  const [customer, setCustomer] = useState(initialCustomer);
+  const [editOpen, setEditOpen] = useState(false);
 
   const summaryItems = [
     {
@@ -74,6 +228,19 @@ export function CustomerDetailClient({
 
   return (
     <div className="space-y-6">
+      {/* Botão de edição no header — renderizado aqui para ter acesso ao state */}
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setEditOpen(true)}
+          className="gap-1.5"
+        >
+          <Pencil size={13} />
+          Editar cliente
+        </Button>
+      </div>
+
       {/* ── Info + métricas ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card>
@@ -135,6 +302,14 @@ export function CustomerDetailClient({
                   {c.detail.noInfo}
                 </p>
               )}
+            {/* Botão de edição também no card de info */}
+            <button
+              onClick={() => setEditOpen(true)}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors mt-1"
+            >
+              <Pencil size={11} />
+              Editar informação
+            </button>
           </CardContent>
         </Card>
 
@@ -303,6 +478,16 @@ export function CustomerDetailClient({
           </div>
         </Card>
       </div>
+
+      {/* Dialog de edição */}
+      <EditCustomerDialog
+        customer={customer}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        onSaved={(updated) =>
+          setCustomer((prev: any) => ({ ...prev, ...updated }))
+        }
+      />
     </div>
   );
 }

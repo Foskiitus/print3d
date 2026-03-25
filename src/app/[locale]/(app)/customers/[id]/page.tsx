@@ -1,4 +1,4 @@
-import { getAuthUserId } from "@/lib/auth";
+import { requirePageAuth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
@@ -15,8 +15,8 @@ export default async function CustomerDetailPage({
   const { locale, id } = await params;
   const c = getIntlayer("customers", locale);
 
-  const userId = await getAuthUserId();
-  if (!userId) redirect("/sign-in");
+  const userId = await requirePageAuth();
+  if (!userId) redirect(`/${locale}/sign-in`);
 
   const customer = await prisma.customer.findUnique({
     where: { id },
@@ -30,38 +30,69 @@ export default async function CustomerDetailPage({
 
   if (!customer || customer.userId !== userId) notFound();
 
-  const productIds = [...new Set(customer.sales.map((s) => s.productId))];
-  // const productionCosts = await prisma.productionLog.groupBy({
-  //   by: ["productId"],
-  //   where: { userId, productId: { in: productIds } },
-  //   _avg: { totalCost: true },
-  // });
-
-  const productionCosts = [] as any;
-
-  const products = await prisma.product.findMany({
-    where: { id: { in: productIds } },
+  // Calcular preço médio por material para estimar custo
+  const spools = await prisma.inventoryPurchase.findMany({
+    where: { userId, archivedAt: null },
+    include: { item: true },
   });
 
-  // const costMap = Object.fromEntries(
-  //   productionCosts.map((p) => [
-  //     p.productId,
-  //     (p._avg.totalCost ?? 0) /
-  //       (products.find((pr) => pr.id === p.productId)?.unitsPerPrint ?? 1),
-  //   ]),
-  // );
+  const materialPriceMap: Record<string, number> = {};
+  const groups: Record<string, { cost: number; weight: number }> = {};
+  for (const s of spools) {
+    const m = s.item.material;
+    if (!groups[m]) groups[m] = { cost: 0, weight: 0 };
+    groups[m].cost += s.priceCents / 100;
+    groups[m].weight += s.initialWeight;
+  }
+  for (const [m, { cost, weight }] of Object.entries(groups)) {
+    materialPriceMap[m] = weight > 0 ? cost / weight : 0.025;
+  }
+
+  // Custo por unidade via BOM
+  const productIds = [...new Set(customer.sales.map((s) => s.productId))];
+  const productsWithBom = await prisma.product.findMany({
+    where: { id: { in: productIds }, userId },
+    include: {
+      bom: {
+        include: {
+          component: {
+            include: {
+              profiles: { include: { filaments: true }, take: 1 },
+            },
+          },
+        },
+      },
+      extras: { include: { extra: true } },
+    },
+  });
+
+  const costMap: Record<string, number> = {};
+  for (const p of productsWithBom) {
+    const bomCost = p.bom.reduce((acc, entry) => {
+      const profile = entry.component.profiles[0];
+      if (!profile) return acc;
+      const filamentCost = profile.filaments.reduce((a, f) => {
+        return a + f.estimatedG * (materialPriceMap[f.material] ?? 0.025);
+      }, 0);
+      const batchSize = (profile as any).batchSize ?? 1;
+      return acc + entry.quantity * (filamentCost / batchSize);
+    }, 0);
+    const extrasCost = p.extras.reduce(
+      (acc, e) => acc + e.extra.price * e.quantity,
+      0,
+    );
+    costMap[p.id] = bomCost + extrasCost;
+  }
 
   const totalSpent = customer.sales.reduce(
     (s, x) => s + x.salePrice * x.quantity,
     0,
   );
   const totalUnits = customer.sales.reduce((s, x) => s + x.quantity, 0);
-  // const totalProfit = customer.sales.reduce((s, x) => {
-  //   const cost = costMap[x.productId] ?? 0;
-  //   return s + (x.salePrice - cost) * x.quantity;
-  // }, 0);
-
-  const totalProfit = 0;
+  const totalProfit = customer.sales.reduce((s, x) => {
+    const cost = costMap[x.productId] ?? 0;
+    return s + (x.salePrice - cost) * x.quantity;
+  }, 0);
 
   const productTotals = customer.sales.reduce(
     (
@@ -112,7 +143,7 @@ export default async function CustomerDetailPage({
         sales={customer.sales.map((s) => ({
           ...s,
           date: s.date.toISOString(),
-          costPerUnit: null,
+          costPerUnit: costMap[s.productId] ?? null,
           product: {
             ...s.product,
             createdAt: s.product.createdAt.toISOString(),

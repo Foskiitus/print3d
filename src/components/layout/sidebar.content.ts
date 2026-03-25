@@ -11,6 +11,7 @@ const sidebarContent = {
       production: t({ pt: "Produção", en: "Production" }),
       workshop: t({ pt: "A Minha Oficina", en: "My Workshop" }),
       sales: t({ pt: "Encomendas", en: "Orders" }),
+      customers: t({ pt: "Clientes", en: "Customers" }),
       // Configuração
       profile: t({ pt: "A Minha Conta", en: "My Account" }),
       admin: t({ pt: "Painel Admin", en: "Admin Panel" }),

@@ -22,8 +22,6 @@ import { createClient } from "@/lib/supabase/client";
 import { useIntlayer } from "next-intlayer";
 import { cn } from "@/lib/utils";
 
-// ─── Spool Icon ───────────────────────────────────────────────────────────────
-
 function SpoolIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -108,8 +106,6 @@ function SpoolIcon({ className }: { className?: string }) {
   );
 }
 
-// ─── NavLink ──────────────────────────────────────────────────────────────────
-
 function NavLink({
   href,
   label,
@@ -145,8 +141,6 @@ function NavLink({
     </Link>
   );
 }
-
-// ─── Sidebar ──────────────────────────────────────────────────────────────────
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -219,7 +213,6 @@ export function Sidebar() {
 
         {/* Nav principal */}
         <nav className="flex-1 px-2 py-3 overflow-y-auto space-y-0.5">
-          {/* Dashboard */}
           <NavLink
             href={l("/dashboard")}
             label={c.nav.dashboard.value}
@@ -228,7 +221,6 @@ export function Sidebar() {
             onClick={close}
           />
 
-          {/* Inventário */}
           <NavLink
             href={l("/inventory")}
             label={c.nav.inventory.value}
@@ -237,7 +229,6 @@ export function Sidebar() {
             onClick={close}
           />
 
-          {/* Produtos */}
           <NavLink
             href={l("/catalog")}
             label={c.nav.catalog.value}
@@ -246,7 +237,6 @@ export function Sidebar() {
             onClick={close}
           />
 
-          {/* Componentes (sub-item de Produtos) */}
           <NavLink
             href={l("/catalog/components")}
             label={c.nav.components.value}
@@ -256,7 +246,6 @@ export function Sidebar() {
             indent
           />
 
-          {/* Produção */}
           <NavLink
             href={l("/production")}
             label={c.nav.production.value}
@@ -265,7 +254,6 @@ export function Sidebar() {
             onClick={close}
           />
 
-          {/* A Minha Oficina */}
           <NavLink
             href={l("/printers")}
             label={c.nav.workshop.value}
@@ -274,7 +262,6 @@ export function Sidebar() {
             onClick={close}
           />
 
-          {/* Encomendas */}
           <NavLink
             href={l("/sales")}
             label={c.nav.sales.value}
@@ -282,13 +269,22 @@ export function Sidebar() {
             active={isActive("/sales")}
             onClick={close}
           />
+
+          {/* Clientes — separador visual */}
+          <NavLink
+            href={l("/customers")}
+            label={c.nav.customers.value}
+            icon={Users}
+            active={isActive("/customers")}
+            onClick={close}
+          />
         </nav>
 
         {/* Rodapé: conta + admin */}
         <div className="px-2 pb-3 border-t border-border pt-3 space-y-0.5">
-          {/* A Minha Conta */}
+          {/* A Minha Conta → /settings (sem /profile) */}
           <NavLink
-            href={l("/settings/profile")}
+            href={l("/settings")}
             label={c.nav.profile.value}
             icon={UserCircle}
             active={isActive("/settings")}
