@@ -21,6 +21,8 @@ import {
 import { toast } from "@/components/ui/toaster";
 import { ColorPicker } from "@/components/ui/colorPicker";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ExtractedProfile {
@@ -276,7 +278,7 @@ export function NewComponentModal({
           : profile.filaments;
 
         const profileRes = await fetch(
-          `${baseUrl}/api/components/${comp.id}/profiles`,
+          `${SITE_URL}/api/components/${comp.id}/profiles`,
           {
             method: "POST",
             headers: {
@@ -308,14 +310,17 @@ export function NewComponentModal({
 
       // 3. Adicionar à BOM do produto — só se productId for fornecido
       if (productId) {
-        const bomRes = await fetch(`${baseUrl}/api/products/${productId}/bom`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        const bomRes = await fetch(
+          `${SITE_URL}/api/products/${productId}/bom`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+            },
+            body: JSON.stringify({ componentId: comp.id, quantity: 1 }),
           },
-          body: JSON.stringify({ componentId: comp.id, quantity: 1 }),
-        });
+        );
         const bomEntry = await bomRes.json();
         if (!bomRes.ok) throw new Error(bomEntry.error);
         toast({ title: `"${comp.name}" criado e adicionado à BOM` });

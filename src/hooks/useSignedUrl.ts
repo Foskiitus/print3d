@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 /**
  * Dado um R2 object key, obtém uma URL assinada fresca via /api/signed-url.
  * Renova automaticamente antes de expirar (a cada 5 dias).
@@ -21,7 +23,7 @@ export function useSignedUrl(
     setLoading(true);
     try {
       const r = await fetch(
-        `${baseUrl}/api/signed-url?key=${encodeURIComponent(key)}&bucket=${bucket}`,
+        `${SITE_URL}/api/signed-url?key=${encodeURIComponent(key)}&bucket=${bucket}`,
       );
       const data = await r.json();
       if (data.url) {

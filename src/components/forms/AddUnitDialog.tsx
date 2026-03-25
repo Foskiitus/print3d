@@ -14,6 +14,8 @@ import { toast } from "@/components/ui/toaster";
 import { SearchableSelect } from "@/components/ui/searchableSelect";
 import { UnitPreset } from "@/app/[locale]/(app)/printers/WorkshopClient";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 interface AddUnitDialogProps {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -48,7 +50,7 @@ export function AddUnitDialog({
 
     setLoading(true);
     try {
-      const res = await fetch(`${baseUrl}/api/printers/${printerId}/units`, {
+      const res = await fetch(`${SITE_URL}/api/printers/${printerId}/units`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

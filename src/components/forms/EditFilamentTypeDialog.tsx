@@ -17,6 +17,8 @@ import { Lock } from "lucide-react";
 import { refreshAlerts } from "@/lib/refreshAlerts";
 import { useIntlayer } from "next-intlayer";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 type FilamentType = {
   id: string;
   brand: string;
@@ -69,7 +71,7 @@ export function EditFilamentTypeDialog({
     if (!type) return;
     setLoading(true);
     try {
-      const res = await fetch(`${baseUrl}/api/filaments/types/${type.id}`, {
+      const res = await fetch(`${SITE_URL}/api/filaments/types/${type.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

@@ -33,6 +33,8 @@ import type {
   SlotCandidate,
 } from "@/lib/preflight/matcher";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface PrintProfile {
@@ -354,7 +356,7 @@ export function PreFlightModal({
           };
 
       const res = await fetch(
-        `${baseUrl}/api/printers/${printerId}/preflight/analyze`,
+        `${SITE_URL}/api/printers/${printerId}/preflight/analyze`,
         {
           method: "POST",
           headers: {
@@ -402,7 +404,7 @@ export function PreFlightModal({
       }));
 
       const res = await fetch(
-        `${baseUrl}/api/printers/${printerId}/preflight/dispatch`,
+        `${SITE_URL}/api/printers/${printerId}/preflight/dispatch`,
         {
           method: "POST",
           headers: {

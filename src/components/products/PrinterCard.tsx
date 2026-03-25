@@ -27,6 +27,8 @@ import {
 } from "@/app/[locale]/(app)/printers/WorkshopClient";
 import { AddUnitDialog } from "../forms/AddUnitDialog";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 // ─── Status helpers ───────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<
@@ -152,7 +154,7 @@ export function PrinterCard({
     )
       return;
     try {
-      const res = await fetch(`${baseUrl}/api/printers/${printer.id}`, {
+      const res = await fetch(`${SITE_URL}/api/printers/${printer.id}`, {
         method: "DELETE",
         headers: {
           "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
@@ -168,7 +170,7 @@ export function PrinterCard({
 
   const handleStatusChange = async (status: string) => {
     try {
-      const res = await fetch(`${baseUrl}/api/printers/${printer.id}`, {
+      const res = await fetch(`${SITE_URL}/api/printers/${printer.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
