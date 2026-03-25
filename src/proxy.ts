@@ -71,7 +71,7 @@ export async function proxy(request: NextRequest) {
 
     if (!isExempt) {
       const apiKey = request.headers.get("x-api-key");
-      if (apiKey !== process.env.MY_API_SECRET_KEY) {
+      if (apiKey !== process.env.NEXT_PUBLIC_MY_API_SECRET_KEY) {
         return NextResponse.json(
           { error: "Acesso não autorizado à API." },
           { status: 401 },

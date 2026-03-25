@@ -176,7 +176,6 @@ export function Sidebar() {
         user.email?.split("@")[0] ??
         "";
 
-      console.log(user.user_metadata);
       // Google OAuth guarda o avatar em avatar_url ou picture
       const avatarUrl =
         user.user_metadata?.avatar_url ?? user.user_metadata?.picture ?? null;
