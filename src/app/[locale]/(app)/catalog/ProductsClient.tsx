@@ -22,6 +22,8 @@ import { NewProductDialog } from "@/components/forms/NewProductDialog";
 import { StorageImage } from "@/components/StorageImage";
 import { toast } from "@/components/ui/toaster";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Category {
@@ -204,7 +206,7 @@ export function ProductsClient({
   const [search, setSearch] = useState("");
 
   const refreshProducts = async () => {
-    const res = await fetch("/api/products", {
+    const res = await fetch(`${SITE_URL}/api/products`, {
       headers: { "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "" },
     });
     if (res.ok) setProducts(await res.json());
@@ -214,7 +216,7 @@ export function ProductsClient({
     e.stopPropagation();
     if (!confirm(c.toast.confirmDelete.value)) return;
     try {
-      const res = await fetch(`/api/products/${id}`, {
+      const res = await fetch(`${SITE_URL}/api/products/${id}`, {
         method: "DELETE",
         headers: {
           "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",

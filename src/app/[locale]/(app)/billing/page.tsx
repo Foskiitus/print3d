@@ -14,6 +14,8 @@ import { useParams, useRouter } from "next/navigation";
 import { Check, X, Zap } from "lucide-react";
 import { redirect } from "next/navigation";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
 );
@@ -187,7 +189,7 @@ function CardForm({
       return;
     }
 
-    const res = await fetch("/api/billing/subscribe", {
+    const res = await fetch(`${SITE_URL}/api/billing/subscribe`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

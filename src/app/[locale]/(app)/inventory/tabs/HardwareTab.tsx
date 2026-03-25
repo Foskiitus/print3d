@@ -24,6 +24,8 @@ import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import type { HardwareItem } from "../InventoryPageClient";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 // ─── Category config ──────────────────────────────────────────────────────────
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -81,7 +83,9 @@ function HardwareDialog({
     }
     setLoading(true);
     try {
-      const url = isEdit ? `/api/extras/${item!.id}` : "/api/extras";
+      const url = isEdit
+        ? `${SITE_URL}/api/extras/${item!.id}`
+        : `${SITE_URL}/api/extras`;
       const method = isEdit ? "PATCH" : "POST";
 
       const res = await fetch(url, {
@@ -401,7 +405,7 @@ export function HardwareTab({
   const handleDelete = async (id: string) => {
     if (!confirm(c.hardware.toast.confirmDelete.value)) return;
     try {
-      const res = await fetch(`/api/extras/${id}`, {
+      const res = await fetch(`${SITE_URL}/api/extras/${id}`, {
         method: "DELETE",
         headers: {
           "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",

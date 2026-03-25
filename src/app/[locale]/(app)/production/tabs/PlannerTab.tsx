@@ -25,6 +25,8 @@ import type {
   BOMEntry,
 } from "../ProductionPageClient";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 // ─── Types locais ─────────────────────────────────────────────────────────────
 
 interface PendingPart {
@@ -553,7 +555,7 @@ export function PlannerTab({
     const quantity = recipe === "full" ? batchSize : 1;
 
     try {
-      const res = await fetch("/api/production/jobs", {
+      const res = await fetch(`${SITE_URL}/api/production/jobs`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

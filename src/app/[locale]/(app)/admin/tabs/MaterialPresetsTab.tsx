@@ -17,6 +17,8 @@ import {
 import { toast } from "@/components/ui/toaster";
 import type { GlobalFilament } from "../AdminPageClient";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 export function MaterialPresetsTab({
   filaments,
   onUpdate,
@@ -63,7 +65,7 @@ export function MaterialPresetsTab({
       return;
     setLoading(true);
     try {
-      const res = await fetch("/api/global-filaments", {
+      const res = await fetch(`${SITE_URL}/api/global-filaments`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -98,7 +100,7 @@ export function MaterialPresetsTab({
   async function handleDelete(id: string) {
     if (!confirm("Eliminar este filamento?")) return;
     try {
-      const res = await fetch(`/api/global-filaments/${id}`, {
+      const res = await fetch(`${SITE_URL}/api/global-filaments/${id}`, {
         method: "DELETE",
         headers: {
           "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",

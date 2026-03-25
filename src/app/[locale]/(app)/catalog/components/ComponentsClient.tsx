@@ -35,6 +35,8 @@ import {
 } from "@/components/ui/dialog";
 import { NewComponentModal } from "@/components/forms/NewComponentModal";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface FilamentReq {
@@ -223,7 +225,7 @@ function ComponentCard({
     if (!confirm(`Apagar "${component.name}"?`)) return;
     setDeleting(true);
     try {
-      const res = await fetch(`/api/components/${component.id}`, {
+      const res = await fetch(`${SITE_URL}/api/components/${component.id}`, {
         method: "DELETE",
         headers: {
           "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
@@ -246,7 +248,7 @@ function ComponentCard({
     }
     setSavingName(true);
     try {
-      const res = await fetch(`/api/components/${component.id}`, {
+      const res = await fetch(`${SITE_URL}/api/components/${component.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -270,14 +272,17 @@ function ComponentCard({
     const qty = Math.max(0, parseInt(stockValue) || 0);
     setSavingStock(true);
     try {
-      const res = await fetch(`/api/components/${component.id}/stock`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      const res = await fetch(
+        `${SITE_URL}/api/components/${component.id}/stock`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+          },
+          body: JSON.stringify({ quantity: qty }),
         },
-        body: JSON.stringify({ quantity: qty }),
-      });
+      );
       const d = await res.json();
       if (!res.ok) throw new Error(d.error);
       onUpdateStock(component.id, qty);
@@ -643,7 +648,7 @@ export function ComponentsClient({
   );
 
   const refreshComponents = async () => {
-    const res = await fetch("/api/components", {
+    const res = await fetch(`${SITE_URL}/api/components`, {
       headers: { "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "" },
     });
     if (res.ok) setComponents(await res.json());

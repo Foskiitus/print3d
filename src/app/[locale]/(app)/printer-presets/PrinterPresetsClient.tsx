@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toaster";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 type GlobalPrinter = {
   id: string;
   brand: string;
@@ -42,7 +44,7 @@ export function PrinterPresetsClient({
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await fetch("/api/printer-presets", {
+      const res = await fetch(`${SITE_URL}/api/printer-presets`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -66,7 +68,7 @@ export function PrinterPresetsClient({
   async function handleDelete(id: string) {
     if (!confirm("Tem a certeza?")) return;
     try {
-      const res = await fetch(`/api/printer-presets/${id}`, {
+      const res = await fetch(`${SITE_URL}/api/printer-presets/${id}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error();

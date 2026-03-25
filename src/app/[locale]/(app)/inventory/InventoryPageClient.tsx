@@ -8,6 +8,8 @@ import { FilamentsTab } from "./tabs/FilamentsTab";
 import { HardwareTab } from "./tabs/HardwareTab";
 import { FinishedGoodsTab } from "./tabs/FinishedGoodsTab";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface InventoryItem {
@@ -92,7 +94,7 @@ export function InventoryPageClient({
     useState<FinishedGood[]>(initialFinishedGoods);
 
   const refreshFilaments = async () => {
-    const res = await fetch("/api/inventory", {
+    const res = await fetch(`${SITE_URL}/api/inventory`, {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
       },
@@ -101,7 +103,7 @@ export function InventoryPageClient({
   };
 
   const refreshHardware = async () => {
-    const res = await fetch("/api/extras", {
+    const res = await fetch(`${SITE_URL}/api/extras`, {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
       },

@@ -15,6 +15,8 @@ import {
 import { toast } from "@/components/ui/toaster";
 import { formatCurrency } from "@/lib/utils";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 type DataType = "sales" | "production" | "customers";
 type Format = "csv" | "pdf";
 
@@ -270,7 +272,7 @@ export function ExportClient() {
       label: content.options.sales.label.value,
       description: content.options.sales.description.value,
       icon: ShoppingCart,
-      endpoint: "/api/export/sales",
+      endpoint: `${SITE_URL}/api/export/sales`,
       filename: content.filenames.sales.value,
     },
     {
@@ -278,7 +280,7 @@ export function ExportClient() {
       label: content.options.production.label.value,
       description: content.options.production.description.value,
       icon: Factory,
-      endpoint: "/api/export/production",
+      endpoint: `${SITE_URL}/api/export/production`,
       filename: content.filenames.production.value,
     },
     {
@@ -286,7 +288,7 @@ export function ExportClient() {
       label: content.options.customers.label.value,
       description: content.options.customers.description.value,
       icon: Users,
-      endpoint: "/api/export/customers",
+      endpoint: `${SITE_URL}/api/export/customers`,
       filename: content.filenames.customers.value,
     },
   ];

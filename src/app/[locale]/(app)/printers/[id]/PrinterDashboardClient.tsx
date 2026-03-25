@@ -36,6 +36,8 @@ import { format } from "date-fns";
 import { toast } from "@/components/ui/toaster";
 import { PreFlightModal } from "@/components/forms/PreFlightModal";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface MaintenanceTaskStatus {
@@ -272,7 +274,7 @@ function SlotAssignModal({
   const [loadingStock, setLoadingStock] = useState(true);
 
   useEffect(() => {
-    fetch("/api/inventory/available", {
+    fetch(`${SITE_URL}/api/inventory/available`, {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
       },
@@ -306,14 +308,17 @@ function SlotAssignModal({
   async function assign(spoolId: string | null) {
     setLoading(true);
     try {
-      const res = await fetch(`/api/printers/${printerId}/slots/${slot.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      const res = await fetch(
+        `${SITE_URL}/api/printers/${printerId}/slots/${slot.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+          },
+          body: JSON.stringify({ spoolId }),
         },
-        body: JSON.stringify({ spoolId }),
-      });
+      );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro ao associar");
       onAssigned(slot.id, data.currentSpool);
@@ -553,7 +558,7 @@ function UnitManager({
 
   useEffect(() => {
     if (showPicker && unitPresets.length === 0) {
-      fetch("/api/printers/unit-presets", {
+      fetch(`${SITE_URL}/api/printers/unit-presets`, {
         headers: {
           "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
         },
@@ -573,7 +578,7 @@ function UnitManager({
   async function handleAdd(preset: UnitPreset) {
     setLoadingId(preset.id);
     try {
-      const res = await fetch(`/api/printers/${printerId}/units`, {
+      const res = await fetch(`${SITE_URL}/api/printers/${printerId}/units`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -609,12 +614,15 @@ function UnitManager({
       return;
     setLoadingId(unitId);
     try {
-      const res = await fetch(`/api/printers/${printerId}/units/${unitId}`, {
-        method: "DELETE",
-        headers: {
-          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      const res = await fetch(
+        `${SITE_URL}/api/printers/${printerId}/units/${unitId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+          },
         },
-      });
+      );
       if (!res.ok) throw new Error("Erro ao remover");
       toast({ title: `${unitName} removido` });
       onChange(units.filter((u) => u.id !== unitId));
@@ -813,7 +821,7 @@ export function PrinterDashboardClient({
     }
     setSavingName(true);
     try {
-      const res = await fetch(`/api/printers/${printer.id}`, {
+      const res = await fetch(`${SITE_URL}/api/printers/${printer.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -835,14 +843,17 @@ export function PrinterDashboardClient({
 
   async function handleMarkMaintenance(taskId: string, taskName: string) {
     try {
-      const res = await fetch(`/api/printers/${printer.id}/maintenance`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      const res = await fetch(
+        `${SITE_URL}/api/printers/${printer.id}/maintenance`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+          },
+          body: JSON.stringify({ taskId }),
         },
-        body: JSON.stringify({ taskId }),
-      });
+      );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro ao registar manutenção");
       toast({ title: `"${taskName}" marcada como feita` });

@@ -8,6 +8,8 @@ import { OrdersTab } from "./tabs/OrdersTab";
 import { HistoryTab } from "./tabs/HistoryTab";
 import { PlannerTab } from "./tabs/PlannerTab";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 // ─── Types (partilhados entre tabs) ──────────────────────────────────────────
 
 export interface FilamentReq {
@@ -182,7 +184,7 @@ export function ProductionPageClient({
   const [orders, setOrders] = useState<ProductionOrder[]>(initialOrders);
 
   const refreshOrders = async () => {
-    const res = await fetch("/api/production/orders", {
+    const res = await fetch(`${SITE_URL}/api/production/orders`, {
       headers: { "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "" },
     });
     if (res.ok) setOrders(await res.json());

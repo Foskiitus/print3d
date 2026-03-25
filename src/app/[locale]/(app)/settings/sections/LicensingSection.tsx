@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
 import type { License } from "../SettingsPageClient";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 export function LicensingSection({
   userId,
   initialLicenses,
@@ -26,7 +28,7 @@ export function LicensingSection({
   const [saving, setSaving] = useState(false);
 
   async function saveLicenses(updated: License[]) {
-    const res = await fetch("/api/settings", {
+    const res = await fetch(`${SITE_URL}/api/settings`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

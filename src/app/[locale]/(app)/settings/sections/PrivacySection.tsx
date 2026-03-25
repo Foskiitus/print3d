@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Download, ExternalLink, Shield } from "lucide-react";
 import { toast } from "@/components/ui/toaster";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 export function PrivacySection({ userId }: { userId: string }) {
   const c = useIntlayer("settings");
   const [exporting, setExporting] = useState(false);
@@ -13,7 +15,7 @@ export function PrivacySection({ userId }: { userId: string }) {
   async function handleExport() {
     setExporting(true);
     try {
-      const res = await fetch("/api/settings/export", {
+      const res = await fetch(`${SITE_URL}/api/settings/export`, {
         headers: {
           "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
         },

@@ -224,7 +224,7 @@ export function AddFilamentForm({
     }
     const timer = setTimeout(async () => {
       const res = await fetch(
-        `/api/filaments/catalog?q=${encodeURIComponent(query)}`,
+        `${baseUrl}/api/filaments/catalog?q=${encodeURIComponent(query)}`,
         {
           headers: {
             "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",

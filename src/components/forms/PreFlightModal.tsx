@@ -353,14 +353,17 @@ export function PreFlightModal({
             estimatedMinutes: selectedProfile?.printTime,
           };
 
-      const res = await fetch(`/api/printers/${printerId}/preflight/analyze`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      const res = await fetch(
+        `${baseUrl}/api/printers/${printerId}/preflight/analyze`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+          },
+          body: JSON.stringify(body),
         },
-        body: JSON.stringify(body),
-      });
+      );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
@@ -398,20 +401,23 @@ export function PreFlightModal({
         matchScore: m.assigned?.score ?? 0,
       }));
 
-      const res = await fetch(`/api/printers/${printerId}/preflight/dispatch`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      const res = await fetch(
+        `${baseUrl}/api/printers/${printerId}/preflight/dispatch`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+          },
+          body: JSON.stringify({
+            productId: selectedProduct?.id ?? null,
+            profileId: selectedProfile?.id ?? null,
+            quantity,
+            estimatedMinutes: selectedProfile?.printTime ?? null,
+            materials: assignedMaterials,
+          }),
         },
-        body: JSON.stringify({
-          productId: selectedProduct?.id ?? null,
-          profileId: selectedProfile?.id ?? null,
-          quantity,
-          estimatedMinutes: selectedProfile?.printTime ?? null,
-          materials: assignedMaterials,
-        }),
-      });
+      );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 

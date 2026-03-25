@@ -12,6 +12,8 @@ const SUPPORT_EMAIL = "support@spooliq.app";
 const INSTAGRAM_URL = "https://instagram.com/spooliq";
 const FACEBOOK_URL = "https://facebook.com/spooliq";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 export default function ContactPage() {
   const { locale } = useParams<{ locale: string }>();
   const content = useIntlayer("contact");
@@ -30,7 +32,7 @@ export default function ContactPage() {
     setError(null);
 
     try {
-      const res = await fetch("/api/contact", {
+      const res = await fetch(`${SITE_URL}/api/contact`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

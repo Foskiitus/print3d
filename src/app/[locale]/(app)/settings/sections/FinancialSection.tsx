@@ -8,10 +8,12 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
 import type { FinancialSettings } from "../SettingsPageClient";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 const CURRENCIES = ["EUR", "USD", "GBP", "CHF", "BRL"];
 
 async function saveSettings(userId: string, patch: Record<string, string>) {
-  const res = await fetch("/api/settings", {
+  const res = await fetch(`${SITE_URL}/api/settings`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

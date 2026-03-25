@@ -37,6 +37,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 type SortKey = "date" | "salePrice" | "customerName" | "product";
 type SortDir = "asc" | "desc";
 
@@ -75,12 +77,12 @@ export function SalesClient({
 
   const refresh = useCallback(() => {
     Promise.all([
-      fetch("/api/sales", {
+      fetch(`${SITE_URL}/api/sales`, {
         headers: {
           "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
         },
       }).then((r) => r.json()),
-      fetch("/api/sales/products-with-stock", {
+      fetch(`${SITE_URL}/api/sales/products-with-stock`, {
         headers: {
           "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
         },
@@ -92,7 +94,7 @@ export function SalesClient({
   }, []);
 
   useEffect(() => {
-    fetch("/api/customers", {
+    fetch(`${SITE_URL}/api/customers`, {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
       },
@@ -120,7 +122,7 @@ export function SalesClient({
   const handleSave = async (sale: any) => {
     setSaving(true);
     try {
-      const res = await fetch(`/api/sales/${sale.id}`, {
+      const res = await fetch(`${SITE_URL}/api/sales/${sale.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -154,7 +156,7 @@ export function SalesClient({
   const handleDelete = async (id: string) => {
     if (!confirm(c.toast.confirmDelete.value)) return;
     try {
-      const res = await fetch(`/api/sales/${id}`, {
+      const res = await fetch(`${SITE_URL}/api/sales/${id}`, {
         method: "DELETE",
         headers: {
           "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",

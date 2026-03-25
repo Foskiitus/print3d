@@ -35,6 +35,8 @@ import type {
   OrderItem,
 } from "../ProductionPageClient";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 // ─── Status config ────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<
@@ -143,7 +145,7 @@ function NewOrderDialog({
     }
     setLoading(true);
     try {
-      const res = await fetch("/api/production/orders", {
+      const res = await fetch(`${SITE_URL}/api/production/orders`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -329,7 +331,7 @@ function OrderCard({
 
   async function handleStatusChange(newStatus: string) {
     try {
-      const res = await fetch(`/api/production/orders/${order.id}`, {
+      const res = await fetch(`${SITE_URL}/api/production/orders/${order.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -352,7 +354,7 @@ function OrderCard({
   async function handleDelete() {
     if (!confirm(c.orders.toast.confirmDelete.value)) return;
     try {
-      const res = await fetch(`/api/production/orders/${order.id}`, {
+      const res = await fetch(`${SITE_URL}/api/production/orders/${order.id}`, {
         method: "DELETE",
         headers: {
           "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",

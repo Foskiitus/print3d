@@ -275,29 +275,32 @@ export function NewComponentModal({
               }))
           : profile.filaments;
 
-        const profileRes = await fetch(`/api/components/${comp.id}/profiles`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        const profileRes = await fetch(
+          `${baseUrl}/api/components/${comp.id}/profiles`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+            },
+            body: JSON.stringify({
+              name: profile.fileName.replace(/\.[^.]+$/, ""),
+              filePath: profile.filePath ?? "",
+              batchSize: extractionFailed
+                ? Number(manualProfile.batchSize) || 1
+                : ((profile as any).batchSize ?? 1),
+              printTime: extractionFailed
+                ? toMinutes(manualProfile.printTimeH, manualProfile.printTimeM)
+                : profile.printTime || null,
+              filamentUsed: extractionFailed
+                ? totalManualG > 0
+                  ? totalManualG
+                  : null
+                : profile.filamentUsed || null,
+              filaments,
+            }),
           },
-          body: JSON.stringify({
-            name: profile.fileName.replace(/\.[^.]+$/, ""),
-            filePath: profile.filePath ?? "",
-            batchSize: extractionFailed
-              ? Number(manualProfile.batchSize) || 1
-              : ((profile as any).batchSize ?? 1),
-            printTime: extractionFailed
-              ? toMinutes(manualProfile.printTimeH, manualProfile.printTimeM)
-              : profile.printTime || null,
-            filamentUsed: extractionFailed
-              ? totalManualG > 0
-                ? totalManualG
-                : null
-              : profile.filamentUsed || null,
-            filaments,
-          }),
-        });
+        );
         const profileData = await profileRes.json();
         if (!profileRes.ok)
           throw new Error(profileData.error ?? "Erro ao criar perfil");
@@ -305,7 +308,7 @@ export function NewComponentModal({
 
       // 3. Adicionar à BOM do produto — só se productId for fornecido
       if (productId) {
-        const bomRes = await fetch(`/api/products/${productId}/bom`, {
+        const bomRes = await fetch(`${baseUrl}/api/products/${productId}/bom`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

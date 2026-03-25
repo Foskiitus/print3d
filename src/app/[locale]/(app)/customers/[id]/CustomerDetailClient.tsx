@@ -30,6 +30,8 @@ import { cn } from "@/lib/utils";
 import { useIntlayer } from "next-intlayer";
 import { toast } from "@/components/ui/toaster";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 function formatDate(date: string | Date, locale: string) {
   return new Date(date).toLocaleDateString(
     locale === "en" ? "en-GB" : "pt-PT",
@@ -65,7 +67,7 @@ function EditCustomerDialog({
     if (!form.name.trim()) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/customers/${customer.id}`, {
+      const res = await fetch(`${SITE_URL}/api/customers/${customer.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

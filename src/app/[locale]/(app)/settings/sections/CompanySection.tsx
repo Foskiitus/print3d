@@ -9,6 +9,8 @@ import { toast } from "@/components/ui/toaster";
 import { Upload, Building2 } from "lucide-react";
 import type { Company } from "../SettingsPageClient";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 export function CompanySection({
   userId,
   initialData,
@@ -23,7 +25,7 @@ export function CompanySection({
   async function handleSave() {
     setSaving(true);
     try {
-      const res = await fetch("/api/settings", {
+      const res = await fetch(`${SITE_URL}/api/settings`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -76,7 +78,7 @@ export function CompanySection({
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
-                  const signRes = await fetch("/api/upload", {
+                  const signRes = await fetch(`${SITE_URL}/api/upload`, {
                     method: "POST",
                     headers: {
                       "Content-Type": "application/json",

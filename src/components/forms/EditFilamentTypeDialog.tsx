@@ -69,7 +69,7 @@ export function EditFilamentTypeDialog({
     if (!type) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/filaments/types/${type.id}`, {
+      const res = await fetch(`${baseUrl}/api/filaments/types/${type.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

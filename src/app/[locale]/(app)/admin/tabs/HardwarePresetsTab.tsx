@@ -16,6 +16,8 @@ import {
 import { toast } from "@/components/ui/toaster";
 import type { PrinterPreset } from "../AdminPageClient";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 export function HardwarePresetsTab({
   presets,
   onUpdate,
@@ -41,7 +43,7 @@ export function HardwarePresetsTab({
     if (!form.brand.trim() || !form.model.trim()) return;
     setLoading(true);
     try {
-      const res = await fetch("/api/printer-presets", {
+      const res = await fetch(`${SITE_URL}/api/printer-presets`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -75,7 +77,7 @@ export function HardwarePresetsTab({
   async function handleDelete(id: string) {
     if (!confirm("Eliminar este preset?")) return;
     try {
-      const res = await fetch(`/api/printer-presets/${id}`, {
+      const res = await fetch(`${SITE_URL}/api/printer-presets/${id}`, {
         method: "DELETE",
         headers: {
           "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",

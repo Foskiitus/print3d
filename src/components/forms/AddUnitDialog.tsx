@@ -48,7 +48,7 @@ export function AddUnitDialog({
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/printers/${printerId}/units`, {
+      const res = await fetch(`${baseUrl}/api/printers/${printerId}/units`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -26,6 +26,8 @@ import { format } from "date-fns";
 import type { AdminUser } from "../AdminPageClient";
 import UserAvatar from "@/components/ui/userAvatar";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 const PLAN_LABELS: Record<string, string> = {
   hobby: "Hobby",
   pro: "Pro",
@@ -59,7 +61,7 @@ export function UsersTab({
     if (!form.email.trim() || !form.password.trim()) return;
     setLoading(true);
     try {
-      const res = await fetch("/api/users", {
+      const res = await fetch(`${SITE_URL}/api/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -90,7 +92,7 @@ export function UsersTab({
   async function handleDelete(id: string) {
     if (!confirm(c.users.toast.confirmDelete.value)) return;
     try {
-      const res = await fetch(`/api/users/${id}`, {
+      const res = await fetch(`${SITE_URL}/api/users/${id}`, {
         method: "DELETE",
         headers: {
           "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",

@@ -21,7 +21,7 @@ export function useSignedUrl(
     setLoading(true);
     try {
       const r = await fetch(
-        `/api/signed-url?key=${encodeURIComponent(key)}&bucket=${bucket}`,
+        `${baseUrl}/api/signed-url?key=${encodeURIComponent(key)}&bucket=${bucket}`,
       );
       const data = await r.json();
       if (data.url) {

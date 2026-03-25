@@ -24,6 +24,8 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useIntlayer } from "next-intlayer";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 export function CustomersClient({
   initialCustomers,
   locale,
@@ -39,7 +41,7 @@ export function CustomersClient({
   const [saving, setSaving] = useState(false);
 
   const refresh = async () => {
-    const res = await fetch("/api/customers", {
+    const res = await fetch(`${SITE_URL}/api/customers`, {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
       },
@@ -68,7 +70,7 @@ export function CustomersClient({
     if (!editForm.name.trim()) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/customers/${id}`, {
+      const res = await fetch(`${SITE_URL}/api/customers/${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -102,7 +104,7 @@ export function CustomersClient({
   const handleDelete = async (id: string) => {
     if (!confirm(c.confirmDelete.value)) return;
     try {
-      const res = await fetch(`/api/customers/${id}`, {
+      const res = await fetch(`${SITE_URL}/api/customers/${id}`, {
         method: "DELETE",
         headers: {
           "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",

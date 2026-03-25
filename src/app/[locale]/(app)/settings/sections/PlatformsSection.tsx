@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
 import type { Platform } from "../SettingsPageClient";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 const PLATFORM_EXAMPLES = [
   { name: "Etsy", commission: 6.5, fixedFee: 0.2 },
   { name: "Shopify", commission: 2.0, fixedFee: 0.3 },
@@ -29,7 +31,7 @@ export function PlatformsSection({
   const [saving, setSaving] = useState(false);
 
   async function savePlatforms(updated: Platform[]) {
-    const res = await fetch("/api/settings", {
+    const res = await fetch(`${SITE_URL}/api/settings`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

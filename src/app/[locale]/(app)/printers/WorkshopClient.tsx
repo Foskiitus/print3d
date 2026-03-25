@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { PrinterCard } from "@/components/products/PrinterCard";
 import { AddPrinterDialog } from "@/components/forms/AddPrinterDialog";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface UnitPreset {
@@ -87,7 +89,7 @@ export function WorkshopClient({
   const [addOpen, setAddOpen] = useState(false);
 
   const refresh = async () => {
-    const res = await fetch("/api/printers", {
+    const res = await fetch(`${SITE_URL}/api/printers`, {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
       },

@@ -16,6 +16,8 @@ import { toast } from "@/components/ui/toaster";
 import { useIntlayer, useLocale } from "next-intlayer";
 import { cn } from "@/lib/utils";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 interface Purchase {
   id: string;
   qrCodeId: string;
@@ -141,7 +143,7 @@ export function SpoolOwnerPanel({
     : "—";
 
   useEffect(() => {
-    fetch(`/api/inventory/${purchase.id}/history`, {
+    fetch(`${SITE_URL}/api/inventory/${purchase.id}/history`, {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
       },
@@ -156,7 +158,7 @@ export function SpoolOwnerPanel({
     const w = parseFloat(newWeight);
     if (isNaN(w) || w < 0) return;
 
-    const res = await fetch(`/api/inventory/${purchase.id}`, {
+    const res = await fetch(`${SITE_URL}/api/inventory/${purchase.id}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -175,7 +177,7 @@ export function SpoolOwnerPanel({
 
   const handleLoadPrinter = async (printerId: string) => {
     setLoadingPrinter(printerId);
-    const res = await fetch(`/api/printers/${printerId}/load`, {
+    const res = await fetch(`${SITE_URL}/api/printers/${printerId}/load`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -195,7 +197,7 @@ export function SpoolOwnerPanel({
   const handleArchive = async () => {
     if (!confirm(c.toast.confirmDeleteAdjustment.value)) return;
     setArchiving(true);
-    const res = await fetch(`/api/inventory/${purchase.id}`, {
+    const res = await fetch(`${SITE_URL}/api/inventory/${purchase.id}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",

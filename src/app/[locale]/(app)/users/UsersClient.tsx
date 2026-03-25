@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 type User = {
   id: string;
   name: string;
@@ -49,7 +51,7 @@ export function UsersClient({ users: initial }: { users: User[] }) {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const res = await fetch("/api/users", {
+    const res = await fetch(`${SITE_URL}/api/users`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -76,7 +78,7 @@ export function UsersClient({ users: initial }: { users: User[] }) {
 
   async function handleDelete(id: string) {
     if (!confirm(c.toast.confirmDelete.value)) return;
-    const res = await fetch(`/api/users/${id}`, {
+    const res = await fetch(`${SITE_URL}/api/users/${id}`, {
       method: "DELETE",
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",

@@ -38,6 +38,8 @@ import { toast } from "@/components/ui/toaster";
 import { NewComponentModal } from "@/components/forms/NewComponentModal";
 import { ProductionSummaryCard } from "@/components/products/ProductionSummaryCard";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Category {
@@ -290,7 +292,7 @@ function AddComponentPicker({
   async function handleAdd(component: Component) {
     setLoadingId(component.id);
     try {
-      const res = await fetch(`/api/products/${productId}/bom`, {
+      const res = await fetch(`${SITE_URL}/api/products/${productId}/bom`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -479,7 +481,7 @@ export function ProductDetailClient({
     }
     setSavingName(true);
     try {
-      const res = await fetch(`/api/products/${product.id}`, {
+      const res = await fetch(`${SITE_URL}/api/products/${product.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -502,14 +504,17 @@ export function ProductDetailClient({
   // ── BOM: atualizar quantidade ─────────────────────────────────────────────
   async function handleUpdateBOMQty(bomId: string, quantity: number) {
     try {
-      const res = await fetch(`/api/products/${product.id}/bom/${bomId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      const res = await fetch(
+        `${SITE_URL}/api/products/${product.id}/bom/${bomId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+          },
+          body: JSON.stringify({ quantity }),
         },
-        body: JSON.stringify({ quantity }),
-      });
+      );
       if (!res.ok) throw new Error("Erro ao atualizar");
       setBom((prev) =>
         prev.map((e) => (e.id === bomId ? { ...e, quantity } : e)),
@@ -522,12 +527,15 @@ export function ProductDetailClient({
   // ── BOM: remover componente ───────────────────────────────────────────────
   async function handleRemoveBOM(bomId: string) {
     try {
-      const res = await fetch(`/api/products/${product.id}/bom/${bomId}`, {
-        method: "DELETE",
-        headers: {
-          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      const res = await fetch(
+        `${SITE_URL}/api/products/${product.id}/bom/${bomId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+          },
         },
-      });
+      );
       if (!res.ok) throw new Error("Erro ao remover");
       setBom((prev) => prev.filter((e) => e.id !== bomId));
       toast({ title: "Componente removido da BOM" });
@@ -767,15 +775,19 @@ export function ProductDetailClient({
                         const val = parseFloat(e.target.value);
                         if (isNaN(val) || val === product.margin) return;
                         try {
-                          await fetch(`/api/products/${product.id}`, {
-                            method: "PATCH",
-                            headers: {
-                              "Content-Type": "application/json",
-                              "x-api-key":
-                                process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+                          await fetch(
+                            `${SITE_URL}/api/products/${product.id}`,
+                            {
+                              method: "PATCH",
+                              headers: {
+                                "Content-Type": "application/json",
+                                "x-api-key":
+                                  process.env.NEXT_PUBLIC_MY_API_SECRET_KEY ||
+                                  "",
+                              },
+                              body: JSON.stringify({ margin: val }),
                             },
-                            body: JSON.stringify({ margin: val }),
-                          });
+                          );
                           setProduct((p) => ({ ...p, margin: val }));
                         } catch {
                           /* silent */
@@ -803,7 +815,7 @@ export function ProductDetailClient({
                         ? parseInt(e.target.value)
                         : null;
                       try {
-                        await fetch(`/api/products/${product.id}`, {
+                        await fetch(`${SITE_URL}/api/products/${product.id}`, {
                           method: "PATCH",
                           headers: {
                             "Content-Type": "application/json",
@@ -828,7 +840,7 @@ export function ProductDetailClient({
                     onValueChange={async (val) => {
                       const categoryId = val === "none" ? null : val;
                       try {
-                        await fetch(`/api/products/${product.id}`, {
+                        await fetch(`${SITE_URL}/api/products/${product.id}`, {
                           method: "PATCH",
                           headers: {
                             "Content-Type": "application/json",
