@@ -8,19 +8,21 @@ import {
   Factory,
   LogOut,
   Users,
-  Settings,
   Printer,
   Warehouse,
   BookOpen,
   Layers,
   UserCircle,
   Shield,
+  Crown,
 } from "lucide-react";
 import { useSidebar } from "@/components/layout/SidebarContext";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useIntlayer } from "next-intlayer";
 import { cn } from "@/lib/utils";
+
+// ─── Spool Icon ───────────────────────────────────────────────────────────────
 
 function SpoolIcon({ className }: { className?: string }) {
   return (
@@ -106,6 +108,54 @@ function SpoolIcon({ className }: { className?: string }) {
   );
 }
 
+// ─── Avatar ───────────────────────────────────────────────────────────────────
+
+function UserAvatar({
+  name,
+  avatarUrl,
+  isPro,
+}: {
+  name: string;
+  avatarUrl: string | null;
+  isPro: boolean;
+}) {
+  const initials = name
+    .split(" ")
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  return (
+    <div className="relative flex-shrink-0">
+      {avatarUrl ? (
+        <img
+          src={avatarUrl}
+          alt={name}
+          referrerPolicy="no-referrer"
+          className="w-9 h-9 rounded-full object-cover border-2 border-border"
+        />
+      ) : (
+        <div className="w-9 h-9 rounded-full bg-primary/15 border-2 border-border flex items-center justify-center">
+          <span className="text-xs font-bold text-primary">{initials}</span>
+        </div>
+      )}
+      {/* Badge PRO dourado */}
+      {isPro && (
+        <div
+          className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: "#F59E0B" }}
+          title="Plano Pro"
+        >
+          <Crown size={9} className="text-white" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── NavLink ──────────────────────────────────────────────────────────────────
+
 function NavLink({
   href,
   label,
@@ -142,14 +192,18 @@ function NavLink({
   );
 }
 
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
+
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { open, setOpen } = useSidebar();
   const [role, setRole] = useState<string | null>(null);
+  const [plan, setPlan] = useState<string>("hobby");
   const [userInfo, setUserInfo] = useState<{
     name: string;
     email: string;
+    avatarUrl: string | null;
   } | null>(null);
   const supabase = createClient();
   const c = useIntlayer("sidebar");
@@ -167,12 +221,18 @@ export function Sidebar() {
         user.user_metadata?.name ??
         user.email?.split("@")[0] ??
         "";
-      setUserInfo({ name, email: user.email ?? "" });
+      // Google OAuth guarda o avatar em avatar_url ou picture
+      const avatarUrl =
+        user.user_metadata?.avatar_url ?? user.user_metadata?.picture ?? null;
+      setUserInfo({ name, email: user.email ?? "", avatarUrl });
     });
 
     fetch("/api/auth/role")
       .then((r) => r.json())
-      .then((d) => setRole(d.role ?? "user"))
+      .then((d) => {
+        setRole(d.role ?? "user");
+        setPlan(d.plan ?? "hobby");
+      })
       .catch(() => setRole("user"));
   }, []);
 
@@ -183,6 +243,7 @@ export function Sidebar() {
   };
 
   const isAdmin = role === "admin" || role === "superadmin";
+  const isPro = ["pro", "team", "enterprise"].includes(plan);
 
   return (
     <>
@@ -270,7 +331,6 @@ export function Sidebar() {
             onClick={close}
           />
 
-          {/* Clientes — separador visual */}
           <NavLink
             href={l("/customers")}
             label={c.nav.customers.value}
@@ -280,9 +340,8 @@ export function Sidebar() {
           />
         </nav>
 
-        {/* Rodapé: conta + admin */}
+        {/* Rodapé */}
         <div className="px-2 pb-3 border-t border-border pt-3 space-y-0.5">
-          {/* A Minha Conta → /settings (sem /profile) */}
           <NavLink
             href={l("/settings")}
             label={c.nav.profile.value}
@@ -291,7 +350,6 @@ export function Sidebar() {
             onClick={close}
           />
 
-          {/* Painel Admin — só admins */}
           {isAdmin && (
             <NavLink
               href={l("/admin")}
@@ -305,24 +363,46 @@ export function Sidebar() {
           {/* User info + logout */}
           <div className="pt-3 mt-1 border-t border-border space-y-2">
             {userInfo && (
-              <div className="px-3 space-y-0.5">
-                <p className="text-xs font-semibold text-foreground truncate">
-                  {userInfo.name}
-                </p>
-                <p className="text-[10px] text-muted-foreground truncate">
-                  {userInfo.email}
-                </p>
-                <span
-                  className={cn(
-                    "inline-block text-[10px] px-1.5 py-0.5 rounded-md font-medium mt-0.5",
-                    isAdmin
-                      ? "bg-primary/15 text-primary"
-                      : "bg-muted text-muted-foreground",
-                  )}
-                >
-                  {isAdmin ? c.roles.admin.value : c.roles.user.value}
-                </span>
-              </div>
+              <Link
+                href={l("/settings")}
+                onClick={close}
+                className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-accent transition-colors group"
+              >
+                <UserAvatar
+                  name={userInfo.name}
+                  avatarUrl={userInfo.avatarUrl}
+                  isPro={isPro}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold text-foreground truncate leading-tight">
+                    {userInfo.name}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground truncate leading-tight">
+                    {userInfo.email}
+                  </p>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    {isPro ? (
+                      <span
+                        className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                        style={{
+                          backgroundColor: "#F59E0B22",
+                          color: "#F59E0B",
+                        }}
+                      >
+                        PRO
+                      </span>
+                    ) : isAdmin ? (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-primary/15 text-primary">
+                        {c.roles.admin.value}
+                      </span>
+                    ) : (
+                      <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                        {c.roles.user.value}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </Link>
             )}
             <button
               onClick={handleSignOut}

@@ -8,8 +8,11 @@ export async function GET() {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true },
+    select: { role: true, plan: true },
   });
 
-  return NextResponse.json({ role: user?.role ?? "user" });
+  return NextResponse.json({
+    role: user?.role ?? "user",
+    plan: user?.plan ?? "hobby",
+  });
 }
