@@ -1,25 +1,55 @@
-import { requireApiAuth } from "@/lib/auth";
+import { requirePageAuth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { SalesClient } from "./SalesClient";
+import { getIntlayer } from "intlayer";
+import type { LocalesValues } from "intlayer";
 
-// GET /api/sales/products-with-stock
-// Usado pelo SalesClient para atualizar a lista de produtos e stock após nova venda
-export async function GET() {
-  const { userId, error } = await requireApiAuth();
-  if (error) return error;
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: LocalesValues }>;
+}) {
+  const { locale } = await params;
+  const c = getIntlayer("sales", locale);
+  return { title: c.page.title };
+}
 
-  const [products, productionTotals, salesTotals] = await Promise.all([
+export default async function SalesPage({
+  params,
+}: {
+  params: Promise<{ locale: LocalesValues }>;
+}) {
+  const { locale } = await params;
+  const c = getIntlayer("sales", locale);
+  const userId = await requirePageAuth();
+  if (!userId) redirect(`/${locale}/sign-in`);
+
+  const [sales, products, productionTotals, salesTotals] = await Promise.all([
+    // Vendas com produto e cliente
+    prisma.sale.findMany({
+      where: { userId },
+      include: {
+        product: true,
+        customer: { select: { id: true, name: true } },
+      },
+      orderBy: { date: "desc" },
+    }),
+
+    // Produtos para o dialog de nova venda
     prisma.product.findMany({
       where: { userId },
       orderBy: { name: "asc" },
     }),
 
+    // Total produzido por produto (OPs concluídas)
     prisma.orderItem.groupBy({
       by: ["productId"],
       where: { order: { userId, status: "done" } },
       _sum: { completed: true },
     }),
 
+    // Total vendido por produto
     prisma.sale.groupBy({
       by: ["productId"],
       where: { userId },
@@ -27,7 +57,7 @@ export async function GET() {
     }),
   ]);
 
-  // Calcular preço médio por material
+  // Calcular preço médio por material para estimar custo por unidade
   const spools = await prisma.inventoryPurchase.findMany({
     where: { userId, archivedAt: null },
     include: { item: true },
@@ -45,7 +75,7 @@ export async function GET() {
     materialPriceMap[m] = weight > 0 ? cost / weight : 0.025;
   }
 
-  // Custo por unidade via BOM
+  // Calcular custo por unidade por produto (via BOM)
   const productsWithBom = await prisma.product.findMany({
     where: { userId },
     include: {
@@ -81,6 +111,7 @@ export async function GET() {
     costMap[p.id] = bomCost + extrasCost;
   }
 
+  // Calcular stock por produto
   const productionMap = Object.fromEntries(
     productionTotals.map((r) => [r.productId, r._sum.completed ?? 0]),
   );
@@ -88,7 +119,7 @@ export async function GET() {
     salesTotals.map((r) => [r.productId, r._sum.quantity ?? 0]),
   );
 
-  const result = products.map((p) => ({
+  const productsWithStock = products.map((p) => ({
     ...p,
     stock: (productionMap[p.id] ?? 0) - (salesMap[p.id] ?? 0),
     costPerUnit: costMap[p.id] ?? null,
@@ -96,5 +127,28 @@ export async function GET() {
     updatedAt: p.updatedAt.toISOString(),
   }));
 
-  return NextResponse.json(result);
+  // Enriquecer vendas com costPerUnit
+  const enrichedSales = sales.map((s) => ({
+    ...s,
+    date: s.date.toISOString(),
+    costPerUnit: costMap[s.productId] ?? null,
+    customer: s.customer ?? null,
+  }));
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-xl font-semibold text-foreground">
+          {c.page.heading}
+        </h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          {c.page.description}
+        </p>
+      </div>
+      <SalesClient
+        initialSales={enrichedSales as any}
+        products={productsWithStock as any}
+      />
+    </div>
+  );
 }

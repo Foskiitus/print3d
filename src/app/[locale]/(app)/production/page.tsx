@@ -1,8 +1,9 @@
-import { getAuthUserId } from "@/lib/auth";
+import { requirePageAuth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { ProductionClient } from "./ProductionClient";
+import { prisma } from "@/lib/prisma";
 import { getIntlayer } from "intlayer";
 import type { LocalesValues } from "intlayer";
+import { ProductionPageClient } from "./ProductionPageClient";
 
 export async function generateMetadata({
   params,
@@ -20,63 +21,116 @@ export default async function ProductionPage({
   params: Promise<{ locale: LocalesValues }>;
 }) {
   const { locale } = await params;
-  const c = getIntlayer("production", locale);
+  const userId = await requirePageAuth();
+  if (!userId) redirect(`/${locale}/sign-in`);
 
-  const userId = await getAuthUserId();
-  if (!userId) redirect("/sign-in");
+  const [orders, products, printers, inventory] = await Promise.all([
+    // Ordens de produção com itens e print jobs
+    prisma.productionOrder.findMany({
+      where: { userId },
+      include: {
+        items: {
+          include: {
+            product: {
+              include: {
+                bom: {
+                  include: {
+                    component: {
+                      include: {
+                        profiles: {
+                          include: { filaments: true },
+                          take: 1,
+                        },
+                        stock: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        printJobs: {
+          include: {
+            printer: { include: { preset: true } },
+            items: {
+              include: {
+                component: true,
+                profile: { include: { filaments: true } },
+              },
+            },
+            materials: { include: { spool: { include: { item: true } } } },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
 
-  // --- DUMMY DATA ---
-  const dummyPrinters = [
-    { id: "p1", name: "Ender 3 V3", brand: "Creality", model: "V3" },
-    { id: "p2", name: "Bambu Lab P1S", brand: "Bambu", model: "P1S" },
-  ];
+    // Produtos do utilizador para o dialog de nova OP
+    prisma.product.findMany({
+      where: { userId },
+      include: {
+        bom: {
+          include: {
+            component: {
+              include: {
+                profiles: { include: { filaments: true }, take: 1 },
+                stock: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { name: "asc" },
+    }),
 
-  const dummyProducts = [
-    {
-      id: "prod1",
-      name: "Articulated Dragon",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      filamentUsage: [],
-    },
-    {
-      id: "prod2",
-      name: "Tool Organizer",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      filamentUsage: [],
-    },
-  ];
+    // Impressoras com unidades e slots
+    prisma.printer.findMany({
+      where: { userId },
+      include: {
+        preset: true,
+        units: {
+          include: {
+            unitPreset: true,
+            slots: {
+              include: {
+                currentSpool: { include: { item: true } },
+              },
+              orderBy: { position: "asc" },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: "asc" },
+    }),
 
-  const dummyLogs = [
-    {
-      id: "log1",
-      date: new Date().toISOString(),
-      quantity: 2,
-      status: "COMPLETED",
-      userId,
-      productId: "prod1",
-      printerId: "p1",
-      product: dummyProducts[0],
-      printer: dummyPrinters[0],
-    },
-  ];
+    // Inventário de bobines para cálculo de custos
+    prisma.inventoryPurchase.findMany({
+      where: { userId, archivedAt: null },
+      include: { item: true },
+    }),
+  ]);
+
+  // Calcular preço médio por grama por material
+  const materialPriceMap: Record<string, number> = {};
+  const groups: Record<string, { cost: number; weight: number }> = {};
+  for (const p of inventory) {
+    const m = p.item.material;
+    if (!groups[m]) groups[m] = { cost: 0, weight: 0 };
+    groups[m].cost += p.priceCents / 100;
+    groups[m].weight += p.initialWeight;
+  }
+  for (const [m, { cost, weight }] of Object.entries(groups)) {
+    materialPriceMap[m] = weight > 0 ? cost / weight : 0.025;
+  }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">
-          {c.page.heading}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          {c.page.description}
-        </p>
-      </div>
-      <ProductionClient
-        initialLogs={dummyLogs as any}
-        products={dummyProducts as any}
-        printers={dummyPrinters as any}
-      />
-    </div>
+    <ProductionPageClient
+      initialOrders={orders as any}
+      products={products as any}
+      printers={printers as any}
+      materialPriceMap={materialPriceMap}
+      locale={locale}
+    />
   );
 }

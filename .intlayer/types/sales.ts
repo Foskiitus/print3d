@@ -119,6 +119,6 @@ export default {
     }
   },
   "localIds": [
-    "sales::local::src/app/[locale]/(app)/sales-ledger/sales.content.ts"
+    "sales::local::src/app/[locale]/(app)/sales/sales.content.ts"
   ]
 } as const;

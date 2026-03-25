@@ -50,7 +50,8 @@ interface Product {
 
 interface ProductsClientProps {
   initialProducts: Product[];
-  categories: { id: string; name: string }[]; // <-- Adiciona isto
+  categories: { id: string; name: string }[];
+  locale: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -68,18 +69,19 @@ function formatTime(minutes: number): string {
 
 function ProductCard({
   product,
+  locale,
   onDelete,
 }: {
   product: Product;
+  locale: string;
   onDelete: (e: React.MouseEvent, id: string) => void;
 }) {
   const router = useRouter();
-  const { locale } = useLocale();
 
   return (
     <Card
       className="cursor-pointer hover:border-primary/50 transition-colors overflow-hidden group"
-      onClick={() => router.push(`/${locale}/products/${product.id}`)}
+      onClick={() => router.push(`/${locale}/catalog/${product.id}`)}
     >
       {/* Imagem */}
       {product.imageUrl ? (
@@ -160,7 +162,7 @@ function ProductCard({
           </div>
         )}
 
-        {/* Estado do stock de componentes */}
+        {/* Estado do stock */}
         {(product.componentCount ?? product.bom?.length ?? 0) === 0 ? (
           <div className="flex items-center gap-1.5 p-1.5 rounded-md bg-amber-500/5 border border-amber-500/20">
             <AlertCircle size={10} className="text-amber-500 flex-shrink-0" />
@@ -194,8 +196,8 @@ function ProductCard({
 export function ProductsClient({
   initialProducts,
   categories = [],
+  locale,
 }: ProductsClientProps) {
-  const { locale } = useLocale();
   const c = useIntlayer("products");
   const [products, setProducts] = useState(initialProducts);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -203,9 +205,7 @@ export function ProductsClient({
 
   const refreshProducts = async () => {
     const res = await fetch("/api/products", {
-      headers: {
-        "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
-      },
+      headers: { "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "" },
     });
     if (res.ok) setProducts(await res.json());
   };
@@ -233,7 +233,6 @@ export function ProductsClient({
     }
   };
 
-  // Filtrar por categoria e pesquisa
   const filtered = products.filter((p) => {
     const matchCat = !selectedCategory || p.categoryId === selectedCategory;
     const matchSearch =
@@ -243,7 +242,7 @@ export function ProductsClient({
     return matchCat && matchSearch;
   });
 
-  // Agrupar por categoria (substituiu o agrupamento por impressora)
+  // Agrupar por categoria
   const grouped: { category: Category | null; products: Product[] }[] = [];
   const seen = new Set<string | null>();
 
@@ -256,7 +255,6 @@ export function ProductsClient({
     grouped.find((g) => (g.category?.id ?? null) === key)!.products.push(p);
   }
 
-  // Categorias com produtos primeiro, sem categoria por último
   grouped.sort((a, b) => {
     if (a.category === null) return 1;
     if (b.category === null) return -1;
@@ -305,7 +303,6 @@ export function ProductsClient({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Pesquisa */}
           <div className="relative">
             <Search
               size={12}
@@ -339,7 +336,6 @@ export function ProductsClient({
         <div className="space-y-8">
           {grouped.map((group) => (
             <div key={group.category?.id ?? "__none__"} className="space-y-4">
-              {/* Cabeçalho do grupo */}
               <div className="flex items-center gap-2">
                 <Tag size={13} className="text-muted-foreground" />
                 <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
@@ -350,13 +346,12 @@ export function ProductsClient({
                 </span>
                 <div className="flex-1 h-px bg-border" />
               </div>
-
-              {/* Grid de produtos */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {group.products.map((product) => (
                   <ProductCard
                     key={product.id}
                     product={product}
+                    locale={locale}
                     onDelete={handleDelete}
                   />
                 ))}

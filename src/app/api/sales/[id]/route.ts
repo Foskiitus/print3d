@@ -1,4 +1,4 @@
-import { getAuthUserId } from "@/lib/auth";
+import { requireApiAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
@@ -7,77 +7,47 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const userId = await getAuthUserId();
-  if (!userId)
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  const { userId, error } = await requireApiAuth();
+  if (error) return error;
 
   const { id } = await params;
 
   try {
-    const existing = await prisma.sale.findUnique({ where: { id } });
-    if (!existing || existing.userId !== userId) {
-      return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+    const existing = await prisma.sale.findFirst({ where: { id, userId } });
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Venda não encontrada" },
+        { status: 404 },
+      );
     }
 
-    const { customerName, customerId, quantity, notes } = await req.json();
+    const { quantity, salePrice, customerId, customerName, notes } =
+      await req.json();
 
-    // Verificar stock se quantidade aumentou
-    if (quantity && quantity !== existing.quantity) {
-      const [productionTotal, salesTotal] = await Promise.all([
-        prisma.productionLog.aggregate({
-          where: { userId: userId, productId: existing.productId },
-          _sum: { quantity: true },
-        }),
-        prisma.sale.aggregate({
-          where: { userId: userId, productId: existing.productId },
-          _sum: { quantity: true },
-        }),
-      ]);
-
-      const currentStock =
-        (productionTotal._sum.quantity ?? 0) - (salesTotal._sum.quantity ?? 0);
-
-      // Stock disponível = stock atual + quantidade desta venda (antes da edição)
-      const availableStock = currentStock + existing.quantity;
-
-      if (quantity > availableStock) {
-        return NextResponse.json(
-          {
-            error: `Stock insuficiente. Disponível: ${availableStock} unidade(s).`,
-          },
-          { status: 409 },
-        );
-      }
-    }
-
-    const sale = await prisma.sale.update({
+    const updated = await prisma.sale.update({
       where: { id },
       data: {
-        customerId:
-          customerId !== undefined ? customerId || null : existing.customerId,
-        customerName:
-          customerName !== undefined
-            ? customerName || null
-            : existing.customerName,
-        quantity: quantity ? Number(quantity) : existing.quantity,
-        notes: notes !== undefined ? notes || null : existing.notes,
+        ...(quantity !== undefined && { quantity: Number(quantity) }),
+        ...(salePrice !== undefined && { salePrice: Number(salePrice) }),
+        ...(customerId !== undefined && {
+          customerId: customerId === "none" ? null : customerId || null,
+        }),
+        ...(customerName !== undefined && {
+          customerName: customerName?.trim() || null,
+        }),
+        ...(notes !== undefined && { notes: notes?.trim() || null }),
       },
-      include: { product: true },
+      include: {
+        product: true,
+        customer: { select: { id: true, name: true } },
+      },
     });
 
-    return NextResponse.json({
-      ...sale,
-      date: sale.date.toISOString(),
-      product: {
-        ...sale.product,
-        createdAt: sale.product.createdAt.toISOString(),
-        updatedAt: sale.product.updatedAt.toISOString(),
-      },
-    });
-  } catch (error: any) {
-    console.error("[PATCH /api/sales/[id]]", error);
+    return NextResponse.json(updated);
+  } catch (err: any) {
+    console.error("[PATCH /api/sales/[id]]", err);
     return NextResponse.json(
-      { error: "Erro ao atualizar venda", details: error.message },
+      { error: "Falha ao atualizar", details: err.message },
       { status: 500 },
     );
   }
@@ -88,26 +58,27 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const userId = await getAuthUserId();
-  if (!userId)
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  const { userId, error } = await requireApiAuth();
+  if (error) return error;
 
   const { id } = await params;
 
   try {
-    const existing = await prisma.sale.findUnique({ where: { id } });
-
-    if (!existing || existing.userId !== userId) {
-      return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+    const existing = await prisma.sale.findFirst({ where: { id, userId } });
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Venda não encontrada" },
+        { status: 404 },
+      );
     }
 
     await prisma.sale.delete({ where: { id } });
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    console.error("[DELETE /api/sales/[id]]", error);
+  } catch (err: any) {
+    console.error("[DELETE /api/sales/[id]]", err);
     return NextResponse.json(
-      { error: "Erro ao apagar venda", details: error.message },
+      { error: "Falha ao eliminar", details: err.message },
       { status: 500 },
     );
   }

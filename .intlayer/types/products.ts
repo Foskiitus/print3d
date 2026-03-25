@@ -155,6 +155,6 @@ export default {
     }
   },
   "localIds": [
-    "products::local::src/app/[locale]/(app)/products/products.content.ts"
+    "products::local::src/app/[locale]/(app)/catalog/products.content.ts"
   ]
 } as const;
