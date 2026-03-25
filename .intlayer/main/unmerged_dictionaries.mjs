@@ -1,3 +1,4 @@
+import _nkp7GhghJTUz7ayUInYS from '../unmerged_dictionary/admin.json' with { type: 'json' };
 import _Z5slJGG8C3Vs4QWXuNHU from '../unmerged_dictionary/alerts.json' with { type: 'json' };
 import _wtylXZfNiBi5kDnVhK2t from '../unmerged_dictionary/contact.json' with { type: 'json' };
 import _UW9e2dgaGTR8hU2jPLGV from '../unmerged_dictionary/customers.json' with { type: 'json' };
@@ -26,6 +27,7 @@ import _Wn8zRpfg86k2ysdcOCYS from '../unmerged_dictionary/terms.json' with { typ
 import _f3VwlaoBckANDpAyqpEZ from '../unmerged_dictionary/users.json' with { type: 'json' };
 
 const dictionaries = {
+  "admin": _nkp7GhghJTUz7ayUInYS,
   "alerts": _Z5slJGG8C3Vs4QWXuNHU,
   "contact": _wtylXZfNiBi5kDnVhK2t,
   "customers": _UW9e2dgaGTR8hU2jPLGV,

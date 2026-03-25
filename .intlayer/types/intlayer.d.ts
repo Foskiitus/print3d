@@ -1,4 +1,5 @@
 import "intlayer";
+import _v2uSZ2urdAuz2MC7eNjR from './admin.ts';
 import _dpMMySqX8lu6S0cvOroX from './alerts.ts';
 import _kGpKKIxTtNHJzd02XmBP from './contact.ts';
 import _nhvwcPkirfDSYvPG464i from './customers.ts';
@@ -28,6 +29,7 @@ import _sFvPIK9NN2exznhGG7Wi from './users.ts';
 
 declare module 'intlayer' {
   interface __DictionaryRegistry {
+    "admin": typeof _v2uSZ2urdAuz2MC7eNjR;
     "alerts": typeof _dpMMySqX8lu6S0cvOroX;
     "contact": typeof _kGpKKIxTtNHJzd02XmBP;
     "customers": typeof _nhvwcPkirfDSYvPG464i;

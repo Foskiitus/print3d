@@ -1,0 +1,63 @@
+[
+  {
+    "key": "admin",
+    "content": {
+      "page": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Painel Admin",
+            "en": "Admin Panel"
+          }
+        },
+        "heading": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Painel de Administração",
+            "en": "Administration Panel"
+          }
+        },
+        "description": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Gestão de utilizadores, presets de hardware e catálogo de materiais.",
+            "en": "Manage users, hardware presets and materials catalogue."
+          }
+        }
+      },
+      "tabs": {
+        "users": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Utilizadores",
+            "en": "Users"
+          }
+        },
+        "hardware": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Presets de Hardware",
+            "en": "Hardware Presets"
+          }
+        },
+        "materials": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Presets de Materiais",
+            "en": "Material Presets"
+          }
+        }
+      },
+      "accessDenied": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Acesso negado. Esta área é exclusiva para administradores.",
+          "en": "Access denied. This area is for administrators only."
+        }
+      }
+    },
+    "location": "local",
+    "localId": "admin::local::src/app/[locale]/(app)/admin/admin.content.ts",
+    "filePath": "src/app/[locale]/(app)/admin/admin.content.ts"
+  }
+]

@@ -1,3 +1,4 @@
+const _nkp7GhghJTUz7ayUInYS = require('../unmerged_dictionary/admin.json');
 const _Z5slJGG8C3Vs4QWXuNHU = require('../unmerged_dictionary/alerts.json');
 const _wtylXZfNiBi5kDnVhK2t = require('../unmerged_dictionary/contact.json');
 const _UW9e2dgaGTR8hU2jPLGV = require('../unmerged_dictionary/customers.json');
@@ -26,6 +27,7 @@ const _Wn8zRpfg86k2ysdcOCYS = require('../unmerged_dictionary/terms.json');
 const _f3VwlaoBckANDpAyqpEZ = require('../unmerged_dictionary/users.json');
 
 const dictionaries = {
+  "admin": _nkp7GhghJTUz7ayUInYS,
   "alerts": _Z5slJGG8C3Vs4QWXuNHU,
   "contact": _wtylXZfNiBi5kDnVhK2t,
   "customers": _UW9e2dgaGTR8hU2jPLGV,
