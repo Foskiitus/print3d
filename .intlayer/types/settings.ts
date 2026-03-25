@@ -6,195 +6,211 @@ export default {
     "translation": {
       "pt": {
         "page": {
-          "title": "Configurações",
-          "heading": "Configurações",
-          "description": "Gerencie categorias e extras para os seus produtos."
+          "title": "Definições",
+          "heading": "Definições"
         },
-        "messages": {
-          "deleteCategorySuccess": "Categoria eliminada com sucesso",
-          "deleteCategoryError": "Erro ao eliminar a categoria",
-          "deleteExtraSuccess": "Extra eliminado com sucesso",
-          "deleteExtraError": "Erro ao eliminar o extra",
-          "confirmDelete": "Tem a certeza?",
-          "presetAdded": "Preset adicionado!",
-          "presetDeleted": "Preset eliminado!",
-          "presetDeleteError": "Erro ao eliminar o preset"
+        "nav": {
+          "financial": "Financeiro & Custos",
+          "platforms": "Plataformas & Taxas",
+          "licensing": "Licenciamento",
+          "company": "Identidade da Empresa",
+          "locations": "Armazém",
+          "privacy": "Privacidade & Dados"
         },
-        "preferences": {
-          "title": "Preferências Pessoais",
-          "description": "Configurações individuais — cada utilizador define os seus próprios valores."
+        "financial": {
+          "heading": "Financeiro & Custos",
+          "energy": "Energia",
+          "kwhPrice": "Preço do kWh (€)",
+          "kwhHint": "Usado no cálculo de custo de eletricidade por impressão.",
+          "postProcessing": "Pós-Processamento",
+          "fixedCost": "Custo fixo por produto (€)",
+          "fixedCostHint": "Consumíveis de limpeza, embalamento, etc.",
+          "hourlyRate": "Valor hora de trabalho manual (€/h)",
+          "logistics": "Logística",
+          "shippingCost": "Custo padrão de envio (€)",
+          "tax": "Fiscalidade",
+          "vatRate": "Taxa de IVA por defeito (%)",
+          "currency": "Moeda",
+          "save": "Guardar Alterações",
+          "saving": "A guardar...",
+          "saved": "Definições guardadas!"
         },
-        "theme": {
-          "label": "Tema da interface",
-          "description": "Escolhe entre o modo escuro e claro. A preferência é guardada no browser.",
-          "dark": "Escuro",
-          "light": "Claro"
+        "platforms": {
+          "heading": "Plataformas & Taxas",
+          "addButton": "Adicionar Plataforma",
+          "name": "Nome da plataforma",
+          "commission": "Comissão (%)",
+          "fixedFee": "Taxa fixa por venda (€)",
+          "empty": "Nenhuma plataforma configurada.",
+          "emptyHint": "Adiciona Etsy, Shopify, etc. para calcular as taxas automaticamente.",
+          "examples": "Ex: Etsy (6.5% + €0.20), Shopify (2% + €0.30)",
+          "save": "Guardar",
+          "toast": {
+            "saved": "Plataforma guardada!",
+            "deleted": "Plataforma eliminada.",
+            "error": "Erro"
+          }
         },
-        "locale": {
-          "label": "Idioma",
-          "description": "Altera o idioma da interface. A mudança é imediata.",
-          "portuguese": "Português",
-          "english": "English"
+        "licensing": {
+          "heading": "Licenciamento & Royalties",
+          "addButton": "Adicionar Licença",
+          "name": "Nome da licença",
+          "monthlyCost": "Custo mensal (€)",
+          "royaltyPerUnit": "Royalty por unidade (€)",
+          "hint": "Divide o custo mensal pelo nº de unidades vendidas, ou define um valor fixo por peça.",
+          "empty": "Nenhuma licença configurada.",
+          "save": "Guardar",
+          "toast": {
+            "saved": "Licença guardada!",
+            "deleted": "Licença eliminada.",
+            "error": "Erro"
+          }
         },
-        "electricity": {
-          "label": "Preço da eletricidade",
-          "description": "Usado para calcular o custo de energia em cada produção. O valor padrão é 0.20€/kWh.",
-          "unit": "€/kWh",
+        "company": {
+          "heading": "Identidade da Empresa",
+          "logo": "Logotipo",
+          "logoHint": "Usado em faturas e relatórios. PNG ou SVG, máx. 2MB.",
+          "uploadLogo": "Carregar logotipo",
+          "name": "Nome / Marca",
+          "address": "Morada",
+          "email": "Email",
+          "phone": "Telemóvel",
+          "website": "Website",
+          "vatId": "NIF / VAT ID",
           "save": "Guardar",
           "saving": "A guardar...",
-          "saved": "Preço de eletricidade guardado!",
-          "invalidValue": "Valor inválido"
+          "saved": "Empresa guardada!"
         },
-        "platform": {
-          "title": "Configurações da Plataforma",
-          "description": "Configurações globais que afetam todos os utilizadores da plataforma.",
-          "admin": "Admin"
-        },
-        "uploadLimit": {
-          "label": "Limite de upload de ficheiros",
-          "description": "Tamanho máximo permitido para ficheiros .3mf e .stl. Máximo absoluto: 500 MB.",
-          "unit": "MB",
+        "locations": {
+          "heading": "Logística de Armazém",
+          "addButton": "Adicionar Localização",
+          "name": "Nome da localização",
+          "namePlaceholder": "ex: Prateleira A1, Caixa Seca 02",
+          "hint": "Estes nomes aparecem como dropdown no Inventário de Filamentos para saberes onde está cada rolo.",
+          "empty": "Nenhuma localização definida.",
           "save": "Guardar",
-          "saving": "A guardar...",
-          "saved": "Limite de upload guardado!",
-          "invalidValue": "Valor inválido. Deve estar entre 1 e 500 MB."
+          "toast": {
+            "saved": "Localização guardada!",
+            "deleted": "Localização eliminada.",
+            "error": "Erro"
+          }
         },
-        "filament": {
-          "title": "Presets de Filamentos",
-          "description": "Lista global de marcas, materiais e cores disponíveis como sugestões ao registar filamentos.",
-          "admin": "Admin",
-          "add": "Adicionar preset",
-          "addButton": "Adicionar Preset",
-          "adding": "A adicionar...",
-          "added": "Preset adicionado!",
-          "deleted": "Preset eliminado",
-          "deleteError": "Erro ao eliminar",
-          "deleteConfirm": "Eliminar este preset?",
-          "noPresets": "Nenhum preset criado ainda.",
-          "brand": "Marca",
-          "brandPlaceholder": "Ex: Bambu Lab",
-          "material": "Material",
-          "materialPlaceholder": "Ex: PLA Basic",
-          "colorName": "Nome da cor",
-          "colorNamePlaceholder": "Ex: Preto",
-          "colorVisual": "Cor visual"
+        "privacy": {
+          "heading": "Privacidade & Dados",
+          "exportTitle": "Exportar os meus dados",
+          "exportDesc": "Exporta todos os teus dados em formato JSON. Inclui filamentos, produtos, vendas e produções. Requisito RGPD.",
+          "exportButton": "Exportar Tudo (.json)",
+          "exporting": "A exportar...",
+          "linksTitle": "Documentos Legais",
+          "privacy": "Política de Privacidade",
+          "terms": "Termos de Serviço"
         },
-        "categories": {
-          "title": "Categorias",
-          "empty": "Nenhuma categoria criada.",
-          "emptyDescription": "Cria categorias para organizar os teus produtos.",
-          "products": "produto(s)",
-          "deleteConfirm": "Eliminar esta categoria? Os produtos associados ficarão sem categoria.",
-          "deleted": "Categoria eliminada",
-          "deleteError": "Erro ao eliminar"
-        },
-        "extras": {
-          "title": "Extras",
-          "empty": "Nenhum extra criado.",
-          "emptyDescription": "Adiciona materiais extra como correntes, parafusos, cola, etc.",
-          "products": "produto(s)",
-          "deleteConfirm": "Eliminar este extra?",
-          "deleted": "Extra eliminado",
-          "deleteError": "Erro ao eliminar"
-        },
-        "common": {
+        "toast": {
           "error": "Erro"
         }
       },
       "en": {
         "page": {
           "title": "Settings",
-          "heading": "Settings",
-          "description": "Manage categories and extras for your products."
+          "heading": "Settings"
         },
-        "messages": {
-          "deleteCategorySuccess": "Category deleted successfully",
-          "deleteCategoryError": "Error deleting category",
-          "deleteExtraSuccess": "Extra deleted successfully",
-          "deleteExtraError": "Error deleting o extra",
-          "confirmDelete": "Are you sure?",
-          "presetAdded": "Preset added!",
-          "presetDeleted": "Preset deleted!",
-          "presetDeleteError": "Error deleting preset"
+        "nav": {
+          "financial": "Financial & Costs",
+          "platforms": "Platforms & Fees",
+          "licensing": "Licensing",
+          "company": "Company Identity",
+          "locations": "Warehouse",
+          "privacy": "Privacy & Data"
         },
-        "preferences": {
-          "title": "Personal Preferences",
-          "description": "Individual settings — each user defines their own values."
+        "financial": {
+          "heading": "Financial & Costs",
+          "energy": "Energy",
+          "kwhPrice": "kWh Price (€)",
+          "kwhHint": "Used to calculate electricity cost per print.",
+          "postProcessing": "Post-Processing",
+          "fixedCost": "Fixed cost per product (€)",
+          "fixedCostHint": "Cleaning consumables, packaging, etc.",
+          "hourlyRate": "Manual labour hourly rate (€/h)",
+          "logistics": "Logistics",
+          "shippingCost": "Default shipping cost (€)",
+          "tax": "Tax",
+          "vatRate": "Default VAT rate (%)",
+          "currency": "Currency",
+          "save": "Save Changes",
+          "saving": "Saving...",
+          "saved": "Settings saved!"
         },
-        "theme": {
-          "label": "Interface theme",
-          "description": "Choose between dark and light mode. The preference is saved in your browser.",
-          "dark": "Dark",
-          "light": "Light"
+        "platforms": {
+          "heading": "Platforms & Fees",
+          "addButton": "Add Platform",
+          "name": "Platform name",
+          "commission": "Commission (%)",
+          "fixedFee": "Fixed fee per sale (€)",
+          "empty": "No platforms configured.",
+          "emptyHint": "Add Etsy, Shopify, etc. to automatically calculate fees.",
+          "examples": "e.g. Etsy (6.5% + €0.20), Shopify (2% + €0.30)",
+          "save": "Save",
+          "toast": {
+            "saved": "Platform saved!",
+            "deleted": "Platform deleted.",
+            "error": "Error"
+          }
         },
-        "locale": {
-          "label": "Language",
-          "description": "Change the interface language. The change is immediate.",
-          "portuguese": "Portuguese",
-          "english": "English"
+        "licensing": {
+          "heading": "Licensing & Royalties",
+          "addButton": "Add License",
+          "name": "License name",
+          "monthlyCost": "Monthly cost (€)",
+          "royaltyPerUnit": "Royalty per unit (€)",
+          "hint": "Divide monthly cost by units sold, or set a fixed amount per piece.",
+          "empty": "No licenses configured.",
+          "save": "Save",
+          "toast": {
+            "saved": "License saved!",
+            "deleted": "License deleted.",
+            "error": "Error"
+          }
         },
-        "electricity": {
-          "label": "Electricity price",
-          "description": "Used to calculate the energy cost for each production. The default value is 0.20€/kWh.",
-          "unit": "€/kWh",
+        "company": {
+          "heading": "Company Identity",
+          "logo": "Logo",
+          "logoHint": "Used in invoices and reports. PNG or SVG, max 2MB.",
+          "uploadLogo": "Upload logo",
+          "name": "Name / Brand",
+          "address": "Address",
+          "email": "Email",
+          "phone": "Phone",
+          "website": "Website",
+          "vatId": "VAT ID / NIF",
           "save": "Save",
           "saving": "Saving...",
-          "saved": "Electricity price saved!",
-          "invalidValue": "Invalid value"
+          "saved": "Company saved!"
         },
-        "platform": {
-          "title": "Platform Settings",
-          "description": "Global settings that affect all users on the platform.",
-          "admin": "Admin"
-        },
-        "uploadLimit": {
-          "label": "File upload limit",
-          "description": "Maximum file size allowed for .3mf and .stl files. Absolute maximum: 500 MB.",
-          "unit": "MB",
+        "locations": {
+          "heading": "Warehouse Logistics",
+          "addButton": "Add Location",
+          "name": "Location name",
+          "namePlaceholder": "e.g. Shelf A1, Dry Box 02",
+          "hint": "These names appear as a dropdown in Filament Inventory so you know where each spool is.",
+          "empty": "No locations defined.",
           "save": "Save",
-          "saving": "Saving...",
-          "saved": "Upload limit saved!",
-          "invalidValue": "Invalid value. Must be between 1 and 500 MB."
+          "toast": {
+            "saved": "Location saved!",
+            "deleted": "Location deleted.",
+            "error": "Error"
+          }
         },
-        "filament": {
-          "title": "Filament Presets",
-          "description": "Global list of brands, materials and colors available as suggestions when registering filaments.",
-          "admin": "Admin",
-          "add": "Add preset",
-          "addButton": "Add Preset",
-          "adding": "Adding...",
-          "added": "Preset added!",
-          "deleted": "Preset deleted",
-          "deleteError": "Error deleting preset",
-          "deleteConfirm": "Delete this preset?",
-          "noPresets": "No presets created yet.",
-          "brand": "Brand",
-          "brandPlaceholder": "Ex: Bambu Lab",
-          "material": "Material",
-          "materialPlaceholder": "Ex: PLA Basic",
-          "colorName": "Color name",
-          "colorNamePlaceholder": "Ex: Black",
-          "colorVisual": "Visual color"
+        "privacy": {
+          "heading": "Privacy & Data",
+          "exportTitle": "Export my data",
+          "exportDesc": "Export all your data in JSON format. Includes filaments, products, sales and production. GDPR requirement.",
+          "exportButton": "Export All (.json)",
+          "exporting": "Exporting...",
+          "linksTitle": "Legal Documents",
+          "privacy": "Privacy Policy",
+          "terms": "Terms of Service"
         },
-        "categories": {
-          "title": "Categories",
-          "empty": "No categories created.",
-          "emptyDescription": "Create categories to organize your products.",
-          "products": "product(s)",
-          "deleteConfirm": "Delete this category? Associated products will have no category.",
-          "deleted": "Category deleted",
-          "deleteError": "Error deleting category"
-        },
-        "extras": {
-          "title": "Extras",
-          "empty": "No extras created.",
-          "emptyDescription": "Add extra materials such as chains, screws, glue, etc.",
-          "products": "product(s)",
-          "deleteConfirm": "Delete this extra?",
-          "deleted": "Extra deleted",
-          "deleteError": "Error deleting extra"
-        },
-        "common": {
+        "toast": {
           "error": "Error"
         }
       }

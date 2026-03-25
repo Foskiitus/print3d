@@ -23,6 +23,7 @@ import _l13highE9gXwoMiKb99P from '../unmerged_dictionary/sidebar.json' with { t
 import _OHlqXu0tqVI1CPFQfafY from '../unmerged_dictionary/sign-in.json' with { type: 'json' };
 import _jlude8tJPVJZh6cw9aNf from '../unmerged_dictionary/sign-up.json' with { type: 'json' };
 import _Z5BuJT1derbpFV2NUuQe from '../unmerged_dictionary/spool.json' with { type: 'json' };
+import _iMcD6Y7Vv00lX7AaKDGS from '../unmerged_dictionary/tabs.json' with { type: 'json' };
 import _Wn8zRpfg86k2ysdcOCYS from '../unmerged_dictionary/terms.json' with { type: 'json' };
 import _f3VwlaoBckANDpAyqpEZ from '../unmerged_dictionary/users.json' with { type: 'json' };
 
@@ -52,6 +53,7 @@ const dictionaries = {
   "sign-in": _OHlqXu0tqVI1CPFQfafY,
   "sign-up": _jlude8tJPVJZh6cw9aNf,
   "spool": _Z5BuJT1derbpFV2NUuQe,
+  "tabs": _iMcD6Y7Vv00lX7AaKDGS,
   "terms": _Wn8zRpfg86k2ysdcOCYS,
   "users": _f3VwlaoBckANDpAyqpEZ
 };

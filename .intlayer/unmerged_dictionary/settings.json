@@ -1,1 +1,587 @@
-[{"key":"settings","content":{"page":{"title":{"nodeType":"translation","translation":{"en":"Settings","pt":"Configurações"}},"heading":{"nodeType":"translation","translation":{"en":"Settings","pt":"Configurações"}},"description":{"nodeType":"translation","translation":{"en":"Manage categories and extras for your products.","pt":"Gerencie categorias e extras para os seus produtos."}}},"messages":{"deleteCategorySuccess":{"nodeType":"translation","translation":{"en":"Category deleted successfully","pt":"Categoria eliminada com sucesso"}},"deleteCategoryError":{"nodeType":"translation","translation":{"en":"Error deleting category","pt":"Erro ao eliminar a categoria"}},"deleteExtraSuccess":{"nodeType":"translation","translation":{"en":"Extra deleted successfully","pt":"Extra eliminado com sucesso"}},"deleteExtraError":{"nodeType":"translation","translation":{"en":"Error deleting o extra","pt":"Erro ao eliminar o extra"}},"confirmDelete":{"nodeType":"translation","translation":{"en":"Are you sure?","pt":"Tem a certeza?"}},"presetAdded":{"nodeType":"translation","translation":{"en":"Preset added!","pt":"Preset adicionado!"}},"presetDeleted":{"nodeType":"translation","translation":{"en":"Preset deleted!","pt":"Preset eliminado!"}},"presetDeleteError":{"nodeType":"translation","translation":{"en":"Error deleting preset","pt":"Erro ao eliminar o preset"}}},"preferences":{"title":{"nodeType":"translation","translation":{"en":"Personal Preferences","pt":"Preferências Pessoais"}},"description":{"nodeType":"translation","translation":{"en":"Individual settings — each user defines their own values.","pt":"Configurações individuais — cada utilizador define os seus próprios valores."}}},"theme":{"label":{"nodeType":"translation","translation":{"en":"Interface theme","pt":"Tema da interface"}},"description":{"nodeType":"translation","translation":{"en":"Choose between dark and light mode. The preference is saved in your browser.","pt":"Escolhe entre o modo escuro e claro. A preferência é guardada no browser."}},"dark":{"nodeType":"translation","translation":{"en":"Dark","pt":"Escuro"}},"light":{"nodeType":"translation","translation":{"en":"Light","pt":"Claro"}}},"locale":{"label":{"nodeType":"translation","translation":{"en":"Language","pt":"Idioma"}},"description":{"nodeType":"translation","translation":{"en":"Change the interface language. The change is immediate.","pt":"Altera o idioma da interface. A mudança é imediata."}},"portuguese":{"nodeType":"translation","translation":{"en":"Portuguese","pt":"Português"}},"english":{"nodeType":"translation","translation":{"en":"English","pt":"English"}}},"electricity":{"label":{"nodeType":"translation","translation":{"en":"Electricity price","pt":"Preço da eletricidade"}},"description":{"nodeType":"translation","translation":{"en":"Used to calculate the energy cost for each production. The default value is 0.20€/kWh.","pt":"Usado para calcular o custo de energia em cada produção. O valor padrão é 0.20€/kWh."}},"unit":{"nodeType":"translation","translation":{"en":"€/kWh","pt":"€/kWh"}},"save":{"nodeType":"translation","translation":{"en":"Save","pt":"Guardar"}},"saving":{"nodeType":"translation","translation":{"en":"Saving...","pt":"A guardar..."}},"saved":{"nodeType":"translation","translation":{"en":"Electricity price saved!","pt":"Preço de eletricidade guardado!"}},"invalidValue":{"nodeType":"translation","translation":{"en":"Invalid value","pt":"Valor inválido"}}},"platform":{"title":{"nodeType":"translation","translation":{"en":"Platform Settings","pt":"Configurações da Plataforma"}},"description":{"nodeType":"translation","translation":{"en":"Global settings that affect all users on the platform.","pt":"Configurações globais que afetam todos os utilizadores da plataforma."}},"admin":{"nodeType":"translation","translation":{"en":"Admin","pt":"Admin"}}},"uploadLimit":{"label":{"nodeType":"translation","translation":{"en":"File upload limit","pt":"Limite de upload de ficheiros"}},"description":{"nodeType":"translation","translation":{"en":"Maximum file size allowed for .3mf and .stl files. Absolute maximum: 500 MB.","pt":"Tamanho máximo permitido para ficheiros .3mf e .stl. Máximo absoluto: 500 MB."}},"unit":{"nodeType":"translation","translation":{"en":"MB","pt":"MB"}},"save":{"nodeType":"translation","translation":{"en":"Save","pt":"Guardar"}},"saving":{"nodeType":"translation","translation":{"en":"Saving...","pt":"A guardar..."}},"saved":{"nodeType":"translation","translation":{"en":"Upload limit saved!","pt":"Limite de upload guardado!"}},"invalidValue":{"nodeType":"translation","translation":{"en":"Invalid value. Must be between 1 and 500 MB.","pt":"Valor inválido. Deve estar entre 1 e 500 MB."}}},"filament":{"title":{"nodeType":"translation","translation":{"en":"Filament Presets","pt":"Presets de Filamentos"}},"description":{"nodeType":"translation","translation":{"en":"Global list of brands, materials and colors available as suggestions when registering filaments.","pt":"Lista global de marcas, materiais e cores disponíveis como sugestões ao registar filamentos."}},"admin":{"nodeType":"translation","translation":{"en":"Admin","pt":"Admin"}},"add":{"nodeType":"translation","translation":{"en":"Add preset","pt":"Adicionar preset"}},"addButton":{"nodeType":"translation","translation":{"en":"Add Preset","pt":"Adicionar Preset"}},"adding":{"nodeType":"translation","translation":{"en":"Adding...","pt":"A adicionar..."}},"added":{"nodeType":"translation","translation":{"en":"Preset added!","pt":"Preset adicionado!"}},"deleted":{"nodeType":"translation","translation":{"en":"Preset deleted","pt":"Preset eliminado"}},"deleteError":{"nodeType":"translation","translation":{"en":"Error deleting preset","pt":"Erro ao eliminar"}},"deleteConfirm":{"nodeType":"translation","translation":{"en":"Delete this preset?","pt":"Eliminar este preset?"}},"noPresets":{"nodeType":"translation","translation":{"en":"No presets created yet.","pt":"Nenhum preset criado ainda."}},"brand":{"nodeType":"translation","translation":{"en":"Brand","pt":"Marca"}},"brandPlaceholder":{"nodeType":"translation","translation":{"en":"Ex: Bambu Lab","pt":"Ex: Bambu Lab"}},"material":{"nodeType":"translation","translation":{"en":"Material","pt":"Material"}},"materialPlaceholder":{"nodeType":"translation","translation":{"en":"Ex: PLA Basic","pt":"Ex: PLA Basic"}},"colorName":{"nodeType":"translation","translation":{"en":"Color name","pt":"Nome da cor"}},"colorNamePlaceholder":{"nodeType":"translation","translation":{"en":"Ex: Black","pt":"Ex: Preto"}},"colorVisual":{"nodeType":"translation","translation":{"en":"Visual color","pt":"Cor visual"}}},"categories":{"title":{"nodeType":"translation","translation":{"en":"Categories","pt":"Categorias"}},"empty":{"nodeType":"translation","translation":{"en":"No categories created.","pt":"Nenhuma categoria criada."}},"emptyDescription":{"nodeType":"translation","translation":{"en":"Create categories to organize your products.","pt":"Cria categorias para organizar os teus produtos."}},"products":{"nodeType":"translation","translation":{"en":"product(s)","pt":"produto(s)"}},"deleteConfirm":{"nodeType":"translation","translation":{"en":"Delete this category? Associated products will have no category.","pt":"Eliminar esta categoria? Os produtos associados ficarão sem categoria."}},"deleted":{"nodeType":"translation","translation":{"en":"Category deleted","pt":"Categoria eliminada"}},"deleteError":{"nodeType":"translation","translation":{"en":"Error deleting category","pt":"Erro ao eliminar"}}},"extras":{"title":{"nodeType":"translation","translation":{"en":"Extras","pt":"Extras"}},"empty":{"nodeType":"translation","translation":{"en":"No extras created.","pt":"Nenhum extra criado."}},"emptyDescription":{"nodeType":"translation","translation":{"en":"Add extra materials such as chains, screws, glue, etc.","pt":"Adiciona materiais extra como correntes, parafusos, cola, etc."}},"products":{"nodeType":"translation","translation":{"en":"product(s)","pt":"produto(s)"}},"deleteConfirm":{"nodeType":"translation","translation":{"en":"Delete this extra?","pt":"Eliminar este extra?"}},"deleted":{"nodeType":"translation","translation":{"en":"Extra deleted","pt":"Extra eliminado"}},"deleteError":{"nodeType":"translation","translation":{"en":"Error deleting extra","pt":"Erro ao eliminar"}}},"common":{"error":{"nodeType":"translation","translation":{"en":"Error","pt":"Erro"}}}},"location":"local","localId":"settings::local::src/app/[locale]/(app)/settings/settings.content.ts","filePath":"src/app/[locale]/(app)/settings/settings.content.ts"}]
+[
+  {
+    "key": "settings",
+    "content": {
+      "page": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Definições",
+            "en": "Settings"
+          }
+        },
+        "heading": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Definições",
+            "en": "Settings"
+          }
+        }
+      },
+      "nav": {
+        "financial": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Financeiro & Custos",
+            "en": "Financial & Costs"
+          }
+        },
+        "platforms": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Plataformas & Taxas",
+            "en": "Platforms & Fees"
+          }
+        },
+        "licensing": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Licenciamento",
+            "en": "Licensing"
+          }
+        },
+        "company": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Identidade da Empresa",
+            "en": "Company Identity"
+          }
+        },
+        "locations": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Armazém",
+            "en": "Warehouse"
+          }
+        },
+        "privacy": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Privacidade & Dados",
+            "en": "Privacy & Data"
+          }
+        }
+      },
+      "financial": {
+        "heading": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Financeiro & Custos",
+            "en": "Financial & Costs"
+          }
+        },
+        "energy": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Energia",
+            "en": "Energy"
+          }
+        },
+        "kwhPrice": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Preço do kWh (€)",
+            "en": "kWh Price (€)"
+          }
+        },
+        "kwhHint": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Usado no cálculo de custo de eletricidade por impressão.",
+            "en": "Used to calculate electricity cost per print."
+          }
+        },
+        "postProcessing": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Pós-Processamento",
+            "en": "Post-Processing"
+          }
+        },
+        "fixedCost": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Custo fixo por produto (€)",
+            "en": "Fixed cost per product (€)"
+          }
+        },
+        "fixedCostHint": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Consumíveis de limpeza, embalamento, etc.",
+            "en": "Cleaning consumables, packaging, etc."
+          }
+        },
+        "hourlyRate": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Valor hora de trabalho manual (€/h)",
+            "en": "Manual labour hourly rate (€/h)"
+          }
+        },
+        "logistics": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Logística",
+            "en": "Logistics"
+          }
+        },
+        "shippingCost": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Custo padrão de envio (€)",
+            "en": "Default shipping cost (€)"
+          }
+        },
+        "tax": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Fiscalidade",
+            "en": "Tax"
+          }
+        },
+        "vatRate": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Taxa de IVA por defeito (%)",
+            "en": "Default VAT rate (%)"
+          }
+        },
+        "currency": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Moeda",
+            "en": "Currency"
+          }
+        },
+        "save": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Guardar Alterações",
+            "en": "Save Changes"
+          }
+        },
+        "saving": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "A guardar...",
+            "en": "Saving..."
+          }
+        },
+        "saved": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Definições guardadas!",
+            "en": "Settings saved!"
+          }
+        }
+      },
+      "platforms": {
+        "heading": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Plataformas & Taxas",
+            "en": "Platforms & Fees"
+          }
+        },
+        "addButton": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Adicionar Plataforma",
+            "en": "Add Platform"
+          }
+        },
+        "name": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Nome da plataforma",
+            "en": "Platform name"
+          }
+        },
+        "commission": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Comissão (%)",
+            "en": "Commission (%)"
+          }
+        },
+        "fixedFee": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Taxa fixa por venda (€)",
+            "en": "Fixed fee per sale (€)"
+          }
+        },
+        "empty": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Nenhuma plataforma configurada.",
+            "en": "No platforms configured."
+          }
+        },
+        "emptyHint": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Adiciona Etsy, Shopify, etc. para calcular as taxas automaticamente.",
+            "en": "Add Etsy, Shopify, etc. to automatically calculate fees."
+          }
+        },
+        "examples": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Ex: Etsy (6.5% + €0.20), Shopify (2% + €0.30)",
+            "en": "e.g. Etsy (6.5% + €0.20), Shopify (2% + €0.30)"
+          }
+        },
+        "save": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Guardar",
+            "en": "Save"
+          }
+        },
+        "toast": {
+          "saved": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Plataforma guardada!",
+              "en": "Platform saved!"
+            }
+          },
+          "deleted": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Plataforma eliminada.",
+              "en": "Platform deleted."
+            }
+          },
+          "error": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Erro",
+              "en": "Error"
+            }
+          }
+        }
+      },
+      "licensing": {
+        "heading": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Licenciamento & Royalties",
+            "en": "Licensing & Royalties"
+          }
+        },
+        "addButton": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Adicionar Licença",
+            "en": "Add License"
+          }
+        },
+        "name": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Nome da licença",
+            "en": "License name"
+          }
+        },
+        "monthlyCost": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Custo mensal (€)",
+            "en": "Monthly cost (€)"
+          }
+        },
+        "royaltyPerUnit": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Royalty por unidade (€)",
+            "en": "Royalty per unit (€)"
+          }
+        },
+        "hint": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Divide o custo mensal pelo nº de unidades vendidas, ou define um valor fixo por peça.",
+            "en": "Divide monthly cost by units sold, or set a fixed amount per piece."
+          }
+        },
+        "empty": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Nenhuma licença configurada.",
+            "en": "No licenses configured."
+          }
+        },
+        "save": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Guardar",
+            "en": "Save"
+          }
+        },
+        "toast": {
+          "saved": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Licença guardada!",
+              "en": "License saved!"
+            }
+          },
+          "deleted": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Licença eliminada.",
+              "en": "License deleted."
+            }
+          },
+          "error": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Erro",
+              "en": "Error"
+            }
+          }
+        }
+      },
+      "company": {
+        "heading": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Identidade da Empresa",
+            "en": "Company Identity"
+          }
+        },
+        "logo": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Logotipo",
+            "en": "Logo"
+          }
+        },
+        "logoHint": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Usado em faturas e relatórios. PNG ou SVG, máx. 2MB.",
+            "en": "Used in invoices and reports. PNG or SVG, max 2MB."
+          }
+        },
+        "uploadLogo": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Carregar logotipo",
+            "en": "Upload logo"
+          }
+        },
+        "name": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Nome / Marca",
+            "en": "Name / Brand"
+          }
+        },
+        "address": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Morada",
+            "en": "Address"
+          }
+        },
+        "email": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Email",
+            "en": "Email"
+          }
+        },
+        "phone": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Telemóvel",
+            "en": "Phone"
+          }
+        },
+        "website": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Website",
+            "en": "Website"
+          }
+        },
+        "vatId": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "NIF / VAT ID",
+            "en": "VAT ID / NIF"
+          }
+        },
+        "save": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Guardar",
+            "en": "Save"
+          }
+        },
+        "saving": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "A guardar...",
+            "en": "Saving..."
+          }
+        },
+        "saved": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Empresa guardada!",
+            "en": "Company saved!"
+          }
+        }
+      },
+      "locations": {
+        "heading": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Logística de Armazém",
+            "en": "Warehouse Logistics"
+          }
+        },
+        "addButton": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Adicionar Localização",
+            "en": "Add Location"
+          }
+        },
+        "name": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Nome da localização",
+            "en": "Location name"
+          }
+        },
+        "namePlaceholder": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "ex: Prateleira A1, Caixa Seca 02",
+            "en": "e.g. Shelf A1, Dry Box 02"
+          }
+        },
+        "hint": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Estes nomes aparecem como dropdown no Inventário de Filamentos para saberes onde está cada rolo.",
+            "en": "These names appear as a dropdown in Filament Inventory so you know where each spool is."
+          }
+        },
+        "empty": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Nenhuma localização definida.",
+            "en": "No locations defined."
+          }
+        },
+        "save": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Guardar",
+            "en": "Save"
+          }
+        },
+        "toast": {
+          "saved": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Localização guardada!",
+              "en": "Location saved!"
+            }
+          },
+          "deleted": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Localização eliminada.",
+              "en": "Location deleted."
+            }
+          },
+          "error": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Erro",
+              "en": "Error"
+            }
+          }
+        }
+      },
+      "privacy": {
+        "heading": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Privacidade & Dados",
+            "en": "Privacy & Data"
+          }
+        },
+        "exportTitle": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Exportar os meus dados",
+            "en": "Export my data"
+          }
+        },
+        "exportDesc": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Exporta todos os teus dados em formato JSON. Inclui filamentos, produtos, vendas e produções. Requisito RGPD.",
+            "en": "Export all your data in JSON format. Includes filaments, products, sales and production. GDPR requirement."
+          }
+        },
+        "exportButton": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Exportar Tudo (.json)",
+            "en": "Export All (.json)"
+          }
+        },
+        "exporting": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "A exportar...",
+            "en": "Exporting..."
+          }
+        },
+        "linksTitle": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Documentos Legais",
+            "en": "Legal Documents"
+          }
+        },
+        "privacy": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Política de Privacidade",
+            "en": "Privacy Policy"
+          }
+        },
+        "terms": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Termos de Serviço",
+            "en": "Terms of Service"
+          }
+        }
+      },
+      "toast": {
+        "error": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Erro",
+            "en": "Error"
+          }
+        }
+      }
+    },
+    "location": "local",
+    "localId": "settings::local::src/app/[locale]/(app)/settings/settings.content.ts",
+    "filePath": "src/app/[locale]/(app)/settings/settings.content.ts"
+  }
+]

@@ -1,53 +1,40 @@
-import { getAuthUserId } from "@/lib/auth";
+import { requireApiAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-// GET /api/settings?key=electricityPrice
-export async function GET(req: Request) {
-  const userId = await getAuthUserId();
-  if (!userId)
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-
-  const { searchParams } = new URL(req.url);
-  const key = searchParams.get("key");
-
-  if (key) {
-    const setting = await prisma.settings.findUnique({
-      where: { userId_key: { userId: userId, key } },
-    });
-    return NextResponse.json({ key, value: setting?.value ?? null });
-  }
-
-  const settings = await prisma.settings.findMany({
-    where: { userId: userId },
-  });
-  return NextResponse.json(settings);
-}
-
-// POST /api/settings  { key, value }
+// POST /api/settings
+// Body: { settings: Record<string, string> }
+// Faz upsert de cada chave para o utilizador autenticado
 export async function POST(req: Request) {
-  const userId = await getAuthUserId();
-  if (!userId)
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  const { userId, error } = await requireApiAuth();
+  if (error) return error;
 
   try {
-    const { key, value } = await req.json();
+    const { settings } = await req.json();
 
-    if (!key) {
-      return NextResponse.json({ error: "Key é obrigatória" }, { status: 400 });
+    if (!settings || typeof settings !== "object") {
+      return NextResponse.json(
+        { error: "settings é obrigatório" },
+        { status: 400 },
+      );
     }
 
-    const setting = await prisma.settings.upsert({
-      where: { userId_key: { userId: userId, key } },
-      update: { value: String(value) },
-      create: { userId: userId, key, value: String(value) },
-    });
+    // Upsert de cada chave em paralelo
+    await Promise.all(
+      Object.entries(settings).map(([key, value]) =>
+        prisma.settings.upsert({
+          where: { userId_key: { userId, key } },
+          update: { value: String(value) },
+          create: { userId, key, value: String(value) },
+        }),
+      ),
+    );
 
-    return NextResponse.json(setting);
-  } catch (error: any) {
-    console.error("[POST /api/settings]", error);
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    console.error("[POST /api/settings]", err);
     return NextResponse.json(
-      { error: "Erro ao guardar configuração", details: error.message },
+      { error: "Falha ao guardar definições", details: err.message },
       { status: 500 },
     );
   }

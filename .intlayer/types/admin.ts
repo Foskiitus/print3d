@@ -7,28 +7,132 @@ export default {
       "pt": {
         "page": {
           "title": "Painel Admin",
-          "heading": "Painel de Administração",
-          "description": "Gestão de utilizadores, presets de hardware e catálogo de materiais."
+          "heading": "Painel Admin",
+          "description": "Gestão de presets globais e utilizadores do sistema."
         },
         "tabs": {
-          "users": "Utilizadores",
           "hardware": "Presets de Hardware",
-          "materials": "Presets de Materiais"
+          "materials": "Presets de Materiais",
+          "users": "Utilizadores"
         },
-        "accessDenied": "Acesso negado. Esta área é exclusiva para administradores."
+        "printerPresets": {
+          "addButton": "Nova Impressora",
+          "dialogTitle": "Adicionar Impressora Global",
+          "brand": "Marca",
+          "model": "Modelo",
+          "powerWatts": "Potência (W)",
+          "hourlyCost": "Custo/hora (€)",
+          "empty": "Nenhuma impressora global.",
+          "submit": "Adicionar",
+          "submitting": "A adicionar...",
+          "toast": {
+            "created": "Impressora adicionada!",
+            "deleted": "Impressora apagada.",
+            "error": "Erro"
+          }
+        },
+        "globalFilaments": {
+          "addButton": "Novo Filamento",
+          "dialogTitle": "Adicionar Filamento Global",
+          "brand": "Marca",
+          "material": "Material",
+          "colorName": "Nome da Cor",
+          "colorHex": "Cor (Hex)",
+          "spoolWeight": "Peso do rolo (g)",
+          "empty": "Nenhum filamento global.",
+          "submit": "Adicionar",
+          "submitting": "A adicionar...",
+          "toast": {
+            "created": "Filamento adicionado!",
+            "deleted": "Filamento apagado.",
+            "error": "Erro"
+          }
+        },
+        "users": {
+          "addButton": "Novo Utilizador",
+          "dialogTitle": "Criar Utilizador",
+          "name": "Nome",
+          "email": "Email",
+          "password": "Password",
+          "role": "Role",
+          "plan": "Plano",
+          "createdAt": "Criado em",
+          "empty": "Nenhum utilizador.",
+          "submit": "Criar",
+          "submitting": "A criar...",
+          "noName": "Sem nome",
+          "toast": {
+            "created": "Utilizador criado!",
+            "deleted": "Utilizador apagado.",
+            "error": "Erro",
+            "confirmDelete": "Tens a certeza que queres apagar este utilizador?"
+          }
+        }
       },
       "en": {
         "page": {
           "title": "Admin Panel",
-          "heading": "Administration Panel",
-          "description": "Manage users, hardware presets and materials catalogue."
+          "heading": "Admin Panel",
+          "description": "Manage global presets and system users."
         },
         "tabs": {
-          "users": "Users",
           "hardware": "Hardware Presets",
-          "materials": "Material Presets"
+          "materials": "Material Presets",
+          "users": "Users"
         },
-        "accessDenied": "Access denied. This area is for administrators only."
+        "printerPresets": {
+          "addButton": "New Printer",
+          "dialogTitle": "Add Global Printer",
+          "brand": "Brand",
+          "model": "Model",
+          "powerWatts": "Power (W)",
+          "hourlyCost": "Cost/hour (€)",
+          "empty": "No global printers.",
+          "submit": "Add",
+          "submitting": "Adding...",
+          "toast": {
+            "created": "Printer added!",
+            "deleted": "Printer deleted.",
+            "error": "Error"
+          }
+        },
+        "globalFilaments": {
+          "addButton": "New Filament",
+          "dialogTitle": "Add Global Filament",
+          "brand": "Brand",
+          "material": "Material",
+          "colorName": "Color Name",
+          "colorHex": "Color (Hex)",
+          "spoolWeight": "Spool weight (g)",
+          "empty": "No global filaments.",
+          "submit": "Add",
+          "submitting": "Adding...",
+          "toast": {
+            "created": "Filament added!",
+            "deleted": "Filament deleted.",
+            "error": "Error"
+          }
+        },
+        "users": {
+          "addButton": "New User",
+          "dialogTitle": "Create User",
+          "name": "Name",
+          "email": "Email",
+          "password": "Password",
+          "role": "Role",
+          "plan": "Plan",
+          "createdAt": "Created at",
+          "empty": "No users.",
+          "submit": "Create",
+          "submitting": "Creating...",
+          "noName": "No name",
+          "toast": {
+            "created": "User created!",
+            "deleted": "User deleted.",
+            "error": "Error",
+            "confirmDelete": "Are you sure you want to delete this user?"
+          }
+        }
       }
     }
   },

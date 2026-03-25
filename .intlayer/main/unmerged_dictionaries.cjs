@@ -23,6 +23,7 @@ const _l13highE9gXwoMiKb99P = require('../unmerged_dictionary/sidebar.json');
 const _OHlqXu0tqVI1CPFQfafY = require('../unmerged_dictionary/sign-in.json');
 const _jlude8tJPVJZh6cw9aNf = require('../unmerged_dictionary/sign-up.json');
 const _Z5BuJT1derbpFV2NUuQe = require('../unmerged_dictionary/spool.json');
+const _iMcD6Y7Vv00lX7AaKDGS = require('../unmerged_dictionary/tabs.json');
 const _Wn8zRpfg86k2ysdcOCYS = require('../unmerged_dictionary/terms.json');
 const _f3VwlaoBckANDpAyqpEZ = require('../unmerged_dictionary/users.json');
 
@@ -52,6 +53,7 @@ const dictionaries = {
   "sign-in": _OHlqXu0tqVI1CPFQfafY,
   "sign-up": _jlude8tJPVJZh6cw9aNf,
   "spool": _Z5BuJT1derbpFV2NUuQe,
+  "tabs": _iMcD6Y7Vv00lX7AaKDGS,
   "terms": _Wn8zRpfg86k2ysdcOCYS,
   "users": _f3VwlaoBckANDpAyqpEZ
 };

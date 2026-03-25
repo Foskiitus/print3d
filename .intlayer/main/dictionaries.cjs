@@ -23,6 +23,7 @@ const _CxgkDWwHRdJFzphWjspL = require('../dictionary/sidebar.json');
 const _ifGIGZsSCEceCNsYuBOh = require('../dictionary/sign-in.json');
 const _Y0fMSXnGwSCGlzNYeexB = require('../dictionary/sign-up.json');
 const _e94kJgpRnfJAFEPnHcLf = require('../dictionary/spool.json');
+const _NlXViG2lAXgfvTM0T6Tn = require('../dictionary/tabs.json');
 const _UTAEqQKCZjlTIxCvtzW6 = require('../dictionary/terms.json');
 const _EUINc4ULDXGaE2taUrG3 = require('../dictionary/users.json');
 
@@ -52,6 +53,7 @@ const dictionaries = {
   "sign-in": _ifGIGZsSCEceCNsYuBOh,
   "sign-up": _Y0fMSXnGwSCGlzNYeexB,
   "spool": _e94kJgpRnfJAFEPnHcLf,
+  "tabs": _NlXViG2lAXgfvTM0T6Tn,
   "terms": _UTAEqQKCZjlTIxCvtzW6,
   "users": _EUINc4ULDXGaE2taUrG3
 };

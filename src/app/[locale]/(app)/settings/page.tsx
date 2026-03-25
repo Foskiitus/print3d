@@ -1,8 +1,7 @@
-import { getAuthUserId, getAuthUserIsAdmin } from "@/lib/auth";
+import { requirePageAuth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { SettingsClient } from "./SettingsClient";
-import { Metadata } from "next";
+import { SettingsPageClient } from "./SettingsPageClient";
 import { getIntlayer } from "intlayer";
 import type { LocalesValues } from "intlayer";
 
@@ -22,57 +21,66 @@ export default async function SettingsPage({
   params: Promise<{ locale: LocalesValues }>;
 }) {
   const { locale } = await params;
+  const userId = await requirePageAuth();
+  if (!userId) redirect(`/${locale}/sign-in`);
 
-  const c = getIntlayer("settings", locale);
+  // Carregar todas as settings do utilizador
+  const settings = await prisma.settings.findMany({
+    where: { userId },
+  });
 
-  const userId = await getAuthUserId();
-  if (!userId) redirect("/sign-in");
-  const isAdmin = await getAuthUserIsAdmin();
+  const settingsMap = Object.fromEntries(settings.map((s) => [s.key, s.value]));
 
-  const [categories, extras, electricitySetting, uploadLimitSetting] =
-    await Promise.all([
-      prisma.category.findMany({
-        where: { userId },
-        include: { _count: { select: { products: true } } },
-        orderBy: { name: "asc" },
-      }),
-      prisma.extra.findMany({
-        where: { userId },
-        include: { _count: { select: { usages: true } } },
-        orderBy: { name: "asc" },
-      }),
-      prisma.settings.findUnique({
-        where: { userId_key: { userId, key: "electricityPrice" } },
-      }),
-      prisma.settings.findUnique({
-        where: { userId_key: { userId, key: "uploadLimitMb" } },
-      }),
-    ]);
+  // Carregar localizações de armazém
+  // Guardadas como setting com key "warehouse_locations" em JSON
+  const locationsRaw = settingsMap["warehouse_locations"] ?? "[]";
+  const locations = JSON.parse(locationsRaw) as { id: string; name: string }[];
 
-  const electricityPrice = electricitySetting
-    ? Number(electricitySetting.value)
-    : 0.2;
-  const uploadLimitMb = uploadLimitSetting
-    ? Number(uploadLimitSetting.value)
-    : 100;
+  // Plataformas de venda
+  const platformsRaw = settingsMap["sale_platforms"] ?? "[]";
+  const platforms = JSON.parse(platformsRaw) as {
+    id: string;
+    name: string;
+    commission: number;
+    fixedFee: number;
+  }[];
+
+  // Licenças
+  const licensesRaw = settingsMap["licenses"] ?? "[]";
+  const licenses = JSON.parse(licensesRaw) as {
+    id: string;
+    name: string;
+    monthlyCost: number;
+    royaltyPerUnit: number;
+  }[];
+
+  // Empresa
+  const companyRaw = settingsMap["company"] ?? "{}";
+  const company = JSON.parse(companyRaw) as {
+    name?: string;
+    address?: string;
+    email?: string;
+    phone?: string;
+    website?: string;
+    vatId?: string;
+    logoUrl?: string;
+  };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">
-          {c.page.heading.value}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          {c.page.description.value}
-        </p>
-      </div>
-      <SettingsClient
-        initialCategories={categories as any}
-        initialExtras={extras as any}
-        initialElectricityPrice={electricityPrice}
-        initialUploadLimitMb={uploadLimitMb}
-        isAdmin={isAdmin}
-      />
-    </div>
+    <SettingsPageClient
+      userId={userId}
+      financial={{
+        kwhPrice: Number(settingsMap["electricityPrice"] ?? "0.16"),
+        fixedCostPerProduct: Number(settingsMap["fixedCostPerProduct"] ?? "0"),
+        hourlyRate: Number(settingsMap["hourlyRate"] ?? "0"),
+        shippingCost: Number(settingsMap["shippingCost"] ?? "0"),
+        vatRate: Number(settingsMap["vatRate"] ?? "23"),
+        currency: settingsMap["currency"] ?? "EUR",
+      }}
+      platforms={platforms}
+      licenses={licenses}
+      company={company}
+      locations={locations}
+    />
   );
 }
