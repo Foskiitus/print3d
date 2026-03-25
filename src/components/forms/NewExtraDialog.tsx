@@ -45,7 +45,10 @@ export function NewExtraDialog({ onCreated }: { onCreated: () => void }) {
     try {
       const res = await fetch("/api/extras", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({
           name: form.name.trim(),
           description: form.description.trim() || null,

@@ -7,8 +7,11 @@ import _EUHmUbnUzq9cJ0Xrd9TH from '../dictionary/export-page.json' with { type: 
 import _ZRmv98DGqPNYjUWRtxNS from '../dictionary/faq.json' with { type: 'json' };
 import _1CRIOFwYFuoG4LDqCIEP from '../dictionary/features.json' with { type: 'json' };
 import _XS5u0tOVouuIUixfh93v from '../dictionary/filaments.json' with { type: 'json' };
+import _ciZ1iaC1WdAmUzPo3NzJ from '../dictionary/global-filaments.json' with { type: 'json' };
+import _ly88cR7FaBwtydAsShR0 from '../dictionary/inventory.json' with { type: 'json' };
 import _ajNh5kC02rwWvqdyfKwT from '../dictionary/landing.json' with { type: 'json' };
 import _y1VSuLNUCugocKdgQ4S0 from '../dictionary/pricing.json' with { type: 'json' };
+import _2Gt3EUr4XSxwcWWXIKXo from '../dictionary/printer-presets.json' with { type: 'json' };
 import _lXEAZoH0nLB9ByQG823B from '../dictionary/printers.json' with { type: 'json' };
 import _JYonKfGo07u6zOQj7ksV from '../dictionary/privacy.json' with { type: 'json' };
 import _0dmQ2nuBGaPxgSZbqJYQ from '../dictionary/production.json' with { type: 'json' };
@@ -19,7 +22,6 @@ import _CxgkDWwHRdJFzphWjspL from '../dictionary/sidebar.json' with { type: 'jso
 import _ifGIGZsSCEceCNsYuBOh from '../dictionary/sign-in.json' with { type: 'json' };
 import _Y0fMSXnGwSCGlzNYeexB from '../dictionary/sign-up.json' with { type: 'json' };
 import _e94kJgpRnfJAFEPnHcLf from '../dictionary/spool.json' with { type: 'json' };
-import _bEXiddktbQj5aHyJbPjW from '../dictionary/stock.json' with { type: 'json' };
 import _UTAEqQKCZjlTIxCvtzW6 from '../dictionary/terms.json' with { type: 'json' };
 import _EUINc4ULDXGaE2taUrG3 from '../dictionary/users.json' with { type: 'json' };
 
@@ -33,8 +35,11 @@ const dictionaries = {
   "faq": _ZRmv98DGqPNYjUWRtxNS,
   "features": _1CRIOFwYFuoG4LDqCIEP,
   "filaments": _XS5u0tOVouuIUixfh93v,
+  "global-filaments": _ciZ1iaC1WdAmUzPo3NzJ,
+  "inventory": _ly88cR7FaBwtydAsShR0,
   "landing": _ajNh5kC02rwWvqdyfKwT,
   "pricing": _y1VSuLNUCugocKdgQ4S0,
+  "printer-presets": _2Gt3EUr4XSxwcWWXIKXo,
   "printers": _lXEAZoH0nLB9ByQG823B,
   "privacy": _JYonKfGo07u6zOQj7ksV,
   "production": _0dmQ2nuBGaPxgSZbqJYQ,
@@ -45,7 +50,6 @@ const dictionaries = {
   "sign-in": _ifGIGZsSCEceCNsYuBOh,
   "sign-up": _Y0fMSXnGwSCGlzNYeexB,
   "spool": _e94kJgpRnfJAFEPnHcLf,
-  "stock": _bEXiddktbQj5aHyJbPjW,
   "terms": _UTAEqQKCZjlTIxCvtzW6,
   "users": _EUINc4ULDXGaE2taUrG3
 };

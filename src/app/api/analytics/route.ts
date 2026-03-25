@@ -12,82 +12,59 @@ export async function GET(req: NextRequest) {
       const now = new Date();
       const monthStart = startOfMonth(now);
 
-      const [allSales, products, monthlySales, allProductionLogs] =
-        await Promise.all([
-          prisma.sale.findMany(),
-          prisma.product.findMany(),
-          prisma.sale.findMany({ where: { date: { gte: monthStart } } }),
-          prisma.productionLog.findMany(), // Nova tabela para extrair os custos reais
-        ]);
+      // Removemos o prisma.productionLog.findMany() daqui
+      const [allSales, products, monthlySales] = await Promise.all([
+        prisma.sale.findMany(),
+        prisma.product.findMany(),
+        prisma.sale.findMany({ where: { date: { gte: monthStart } } }),
+      ]);
 
-      // O total faturado é a soma de (Preço de Venda * Quantidade) de todas as vendas
+      // --- DADOS DUMMY PARA SUBSTITUIR PRODUCTION LOG ---
+      const dummyTotalCost = 150.75; // Um valor fixo para o custo total de produção
+
       const totalRevenue = allSales.reduce(
         (sum, s) => sum + s.salePrice * s.quantity,
         0,
       );
 
-      // O custo real é a soma de todos os gastos registados nas impressoras
-      const totalCost = allProductionLogs.reduce(
-        (sum, log) => sum + (log.totalCost || 0),
-        0,
-      );
+      // Lucro Líquido Real usando o valor dummy
+      const totalProfit = totalRevenue - dummyTotalCost;
 
-      // Lucro Líquido Real = Faturação - Gastos de Produção
-      const totalProfit = totalRevenue - totalCost;
+      // Cálculo simplificado de ROI
+      const roi = dummyTotalCost > 0 ? (totalProfit / dummyTotalCost) * 100 : 0;
 
-      // ==========================================
-      // NOVO CÁLCULO DE STOCK DINÂMICO AQUI
-      // ==========================================
-      // 1. Soma tudo o que já fabricaste
-      const totalProducedQuantity = allProductionLogs.reduce(
-        (sum, log) => sum + log.quantity,
-        0,
-      );
-
-      // 2. Soma tudo o que já vendeste
-      const totalSoldQuantity = allSales.reduce(
-        (sum, sale) => sum + sale.quantity,
-        0,
-      );
-
-      // 3. O stock atual é a diferença
-      const totalStock = totalProducedQuantity - totalSoldQuantity;
-
-      const monthlySalesVolume = monthlySales.reduce(
-        (sum, s) => sum + s.quantity,
-        0,
-      );
+      // Vendas do mês atual
       const monthlyRevenue = monthlySales.reduce(
         (sum, s) => sum + s.salePrice * s.quantity,
         0,
       );
 
       return NextResponse.json({
+        totalRevenue,
         totalProfit,
-        totalStock,
-        monthlySalesVolume,
+        totalCost: dummyTotalCost,
+        roi,
         monthlyRevenue,
+        productCount: products.length,
+        salesCount: allSales.length,
       });
     }
 
-    // 2. GRÁFICO DE EVOLUÇÃO DE VENDAS (Linhas/Barras)
-    if (type === "sales-chart") {
-      const days = Number(searchParams.get("days") || 30);
-      const since = subDays(new Date(), days);
+    // 2. EVOLUÇÃO DE VENDAS (Últimos 30 dias)
+    if (type === "revenue-chart") {
+      const last30Days = Array.from({ length: 30 }, (_, i) => {
+        const d = subDays(new Date(), i);
+        return format(d, "yyyy-MM-dd");
+      }).reverse();
 
+      const startDate = subDays(new Date(), 30);
       const sales = await prisma.sale.findMany({
-        where: { date: { gte: since } },
-        orderBy: { date: "asc" },
+        where: { date: { gte: startDate } },
       });
 
-      // Inicializa um objeto com todos os dias a 0, para que o gráfico não tenha "buracos"
       const grouped: Record<string, { revenue: number; count: number }> = {};
-      for (let i = days; i >= 0; i--) {
-        const d = format(subDays(new Date(), i), "yyyy-MM-dd");
-        grouped[d] = { revenue: 0, count: 0 };
-      }
+      last30Days.forEach((d) => (grouped[d] = { revenue: 0, count: 0 }));
 
-      // Preenche os dias com as vendas reais
       for (const sale of sales) {
         const d = format(new Date(sale.date), "yyyy-MM-dd");
         if (grouped[d]) {
@@ -96,7 +73,6 @@ export async function GET(req: NextRequest) {
         }
       }
 
-      // Converte o objeto de volta para um array para o frontend usar no Recharts
       return NextResponse.json(
         Object.entries(grouped).map(([date, v]) => ({ date, ...v })),
       );
@@ -104,7 +80,11 @@ export async function GET(req: NextRequest) {
 
     // 3. TOP 5 PRODUTOS MAIS VENDIDOS
     if (type === "top-products") {
-      const sales = await prisma.sale.findMany({ include: { product: true } });
+      // Nota: Adicionei o include: { product: true } que faltava ou que o Prisma exige
+      const sales = await prisma.sale.findMany({
+        include: { product: true },
+      });
+
       const map: Record<
         string,
         { name: string; totalSold: number; revenue: number }
@@ -133,11 +113,8 @@ export async function GET(req: NextRequest) {
       { error: "Tipo de análise inválido" },
       { status: 400 },
     );
-  } catch (error) {
-    console.error("Erro na rota de analytics:", error);
-    return NextResponse.json(
-      { error: "Falha ao processar os dados analíticos" },
-      { status: 500 },
-    );
+  } catch (error: any) {
+    console.error("Erro Analytics:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

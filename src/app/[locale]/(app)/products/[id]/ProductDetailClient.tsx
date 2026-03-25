@@ -292,7 +292,10 @@ function AddComponentPicker({
     try {
       const res = await fetch(`/api/products/${productId}/bom`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({ componentId: component.id, quantity: 1 }),
       });
       const data = await res.json();
@@ -478,7 +481,10 @@ export function ProductDetailClient({
     try {
       const res = await fetch(`/api/products/${product.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({ name: nameValue.trim() }),
       });
       const data = await res.json();
@@ -498,7 +504,10 @@ export function ProductDetailClient({
     try {
       const res = await fetch(`/api/products/${product.id}/bom/${bomId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({ quantity }),
       });
       if (!res.ok) throw new Error("Erro ao atualizar");
@@ -515,6 +524,9 @@ export function ProductDetailClient({
     try {
       const res = await fetch(`/api/products/${product.id}/bom/${bomId}`, {
         method: "DELETE",
+        headers: {
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
       });
       if (!res.ok) throw new Error("Erro ao remover");
       setBom((prev) => prev.filter((e) => e.id !== bomId));
@@ -757,7 +769,11 @@ export function ProductDetailClient({
                         try {
                           await fetch(`/api/products/${product.id}`, {
                             method: "PATCH",
-                            headers: { "Content-Type": "application/json" },
+                            headers: {
+                              "Content-Type": "application/json",
+                              "x-api-key":
+                                process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+                            },
                             body: JSON.stringify({ margin: val }),
                           });
                           setProduct((p) => ({ ...p, margin: val }));
@@ -789,7 +805,11 @@ export function ProductDetailClient({
                       try {
                         await fetch(`/api/products/${product.id}`, {
                           method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
+                          headers: {
+                            "Content-Type": "application/json",
+                            "x-api-key":
+                              process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+                          },
                           body: JSON.stringify({ alertThreshold: val }),
                         });
                       } catch {
@@ -810,7 +830,11 @@ export function ProductDetailClient({
                       try {
                         await fetch(`/api/products/${product.id}`, {
                           method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
+                          headers: {
+                            "Content-Type": "application/json",
+                            "x-api-key":
+                              process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+                          },
                           body: JSON.stringify({ categoryId }),
                         });
                         setProduct((p) => ({ ...p, categoryId }));

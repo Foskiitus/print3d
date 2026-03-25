@@ -38,7 +38,10 @@ export function NewCategoryDialog({ onCreated }: { onCreated: () => void }) {
     try {
       const res = await fetch("/api/categories", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({
           name: form.name.trim(),
           description: form.description.trim() || null,

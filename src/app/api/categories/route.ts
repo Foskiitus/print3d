@@ -1,10 +1,11 @@
-import { getAuthUserId } from "@/lib/auth";
+import { getAuthUserId, requireApiAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 // GET /api/categories
 export async function GET() {
-  const userId = await getAuthUserId();
+  const { userId, error } = await requireApiAuth();
+  if (error) return error;
   if (!userId)
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
@@ -19,7 +20,8 @@ export async function GET() {
 
 // POST /api/categories
 export async function POST(req: Request) {
-  const userId = await getAuthUserId();
+  const { userId, error } = await requireApiAuth();
+  if (error) return error;
   if (!userId)
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 

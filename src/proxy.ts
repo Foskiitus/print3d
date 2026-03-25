@@ -5,6 +5,15 @@ const LOCALES = ["pt", "en"] as const;
 const DEFAULT_LOCALE = "pt";
 const PUBLIC_PATHS = ["/sign-in", "/sign-up", "/auth/callback", "/auth/error"];
 
+// ── LISTA BRANCA DA API ──────────────────────────────────────────────────
+// Rotas isentas de x-api-key (públicas ou autenticadas por outro meio)
+const EXEMPT_API_PATHS = [
+  "/api/auth/role",
+  "/api/signed-url",
+  "/api/global-filaments",
+  "/api/printer-presets",
+];
+
 type Locale = (typeof LOCALES)[number];
 
 function getLocaleFromPathname(pathname: string): Locale | null {
@@ -20,29 +29,8 @@ function getPreferredLocale(request: NextRequest): Locale {
     : DEFAULT_LOCALE;
 }
 
-export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  // ── 1. Passa diretamente: API routes, ficheiros estáticos, OAuth ─────────
-  if (
-    pathname.startsWith("/api/") ||
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/auth/")
-  ) {
-    return NextResponse.next();
-  }
-
-  // ── 2. Locale routing: redireciona /dashboard → /pt/dashboard ───────────
-  const localeInPath = getLocaleFromPathname(pathname);
-
-  if (!localeInPath) {
-    const locale = getPreferredLocale(request);
-    const url = request.nextUrl.clone();
-    url.pathname = `/${locale}${pathname}`;
-    return NextResponse.redirect(url);
-  }
-
-  // ── 3. Supabase Auth ─────────────────────────────────────────────────────
+// ── Helper: cria cliente Supabase e renova sessão ────────────────────────
+async function refreshSupabaseSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -70,6 +58,50 @@ export async function proxy(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  return { supabaseResponse, user };
+}
+
+export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // ── 1. Proteção de Rotas da API (Default Deny) ───────────────────────
+  if (pathname.startsWith("/api/")) {
+    const isExempt = EXEMPT_API_PATHS.some((path) => pathname.startsWith(path));
+
+    if (!isExempt) {
+      const apiKey = request.headers.get("x-api-key");
+      if (apiKey !== process.env.MY_API_SECRET_KEY) {
+        return NextResponse.json(
+          { error: "Acesso não autorizado à API." },
+          { status: 401 },
+        );
+      }
+    }
+
+    // Passa pelo Supabase para garantir que a sessão é renovada e os
+    // cookies sb-* são escritos — necessário para requireApiAuth() funcionar
+    const { supabaseResponse } = await refreshSupabaseSession(request);
+    return supabaseResponse;
+  }
+
+  // ── 2. Passa diretamente: ficheiros estáticos, OAuth ─────────────────
+  if (pathname.startsWith("/_next") || pathname.startsWith("/auth/")) {
+    return NextResponse.next();
+  }
+
+  // ── 3. Locale routing: redireciona /dashboard → /pt/dashboard ────────
+  const localeInPath = getLocaleFromPathname(pathname);
+
+  if (!localeInPath) {
+    const locale = getPreferredLocale(request);
+    const url = request.nextUrl.clone();
+    url.pathname = `/${locale}${pathname}`;
+    return NextResponse.redirect(url);
+  }
+
+  // ── 4. Supabase Auth (páginas) ────────────────────────────────────────
+  const { supabaseResponse, user } = await refreshSupabaseSession(request);
 
   const pathnameWithoutLocale = pathname.replace(`/${localeInPath}`, "") || "/";
 

@@ -5,58 +5,38 @@ export default {
     "nodeType": "translation",
     "translation": {
       "pt": {
-        "groups": {
-          "management": "Gestão",
-          "others": "Outros",
-          "admin": "Administração"
-        },
         "nav": {
           "dashboard": "Dashboard",
-          "filaments": "Filamentos",
-          "products": "Produtos",
+          "inventory": "Inventário",
+          "catalog": "Produtos",
           "components": "Componentes",
-          "stock": "Stock",
           "production": "Produção",
-          "sales": "Vendas",
-          "printers": "Impressoras",
-          "customers": "Clientes",
-          "export": "Exportação",
-          "alerts": "Alertas",
-          "settings": "Configurações",
-          "billing": "Subscrição",
-          "users": "Utilizadores"
+          "workshop": "A Minha Oficina",
+          "sales": "Encomendas",
+          "profile": "A Minha Conta",
+          "admin": "Painel Admin"
         },
         "roles": {
           "admin": "Admin",
-          "viewer": "Viewer"
+          "user": "Utilizador"
         },
         "signOut": "Sair"
       },
       "en": {
-        "groups": {
-          "management": "Management",
-          "others": "Others",
-          "admin": "Administration"
-        },
         "nav": {
           "dashboard": "Dashboard",
-          "filaments": "Filaments",
-          "products": "Products",
+          "inventory": "Inventory",
+          "catalog": "Products",
           "components": "Components",
-          "stock": "Stock",
           "production": "Production",
-          "sales": "Sales",
-          "printers": "Printers",
-          "customers": "Customers",
-          "export": "Export",
-          "alerts": "Alerts",
-          "settings": "Settings",
-          "billing": "Billing",
-          "users": "Users"
+          "workshop": "My Workshop",
+          "sales": "Orders",
+          "profile": "My Account",
+          "admin": "Admin Panel"
         },
         "roles": {
           "admin": "Admin",
-          "viewer": "Viewer"
+          "user": "User"
         },
         "signOut": "Sign out"
       }

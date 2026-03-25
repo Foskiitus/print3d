@@ -1,6 +1,5 @@
 import { getAuthUserId } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { SalesClient } from "./SalesClient";
 import { getIntlayer } from "intlayer";
 import type { LocalesValues } from "intlayer";
@@ -26,33 +25,53 @@ export default async function SalesLedgerPage({
   const userId = await getAuthUserId();
   if (!userId) redirect("/sign-in");
 
-  const [sales, products, productionTotals, salesTotals, productionCosts] =
-    await Promise.all([
-      prisma.sale.findMany({
-        where: { userId },
-        include: { product: true, customer: true },
-        orderBy: { date: "desc" },
-      }),
-      prisma.product.findMany({
-        where: { userId },
-        orderBy: { name: "asc" },
-      }),
-      prisma.productionLog.groupBy({
-        by: ["productId"],
-        where: { userId },
-        _sum: { quantity: true },
-      }),
-      prisma.sale.groupBy({
-        by: ["productId"],
-        where: { userId },
-        _sum: { quantity: true },
-      }),
-      prisma.productionLog.groupBy({
-        by: ["productId"],
-        where: { userId },
-        _avg: { totalCost: true },
-      }),
-    ]);
+  // --- DADOS DUMMY (Substituindo o Prisma) ---
+
+  const products = [
+    {
+      id: "p1",
+      name: "Articulated Dragon",
+      unitsPerPrint: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    {
+      id: "p2",
+      name: "Low-Poly Vase",
+      unitsPerPrint: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  ];
+
+  const sales = [
+    {
+      id: "s1",
+      date: new Date(),
+      quantity: 2,
+      totalPrice: 30,
+      productId: "p1",
+      product: products[0],
+      customer: { id: "c1", name: "João Silva" },
+    },
+  ];
+
+  const productionTotals = [
+    { productId: "p1", _sum: { quantity: 10 } },
+    { productId: "p2", _sum: { quantity: 5 } },
+  ];
+
+  const salesTotals = [
+    { productId: "p1", _sum: { quantity: 2 } },
+    { productId: "p2", _sum: { quantity: 0 } },
+  ];
+
+  const productionCosts = [
+    { productId: "p1", _avg: { totalCost: 5.5 } },
+    { productId: "p2", _avg: { totalCost: 2.1 } },
+  ];
+
+  // --- LÓGICA DE CÁLCULO (Mantida igual, mas usando os arrays acima) ---
 
   const stockMap = Object.fromEntries(
     products.map((p) => {
@@ -91,23 +110,18 @@ export default async function SalesLedgerPage({
         </p>
       </div>
       <SalesClient
-        initialSales={sales.map((s) => ({
-          ...s,
-          date: s.date.toISOString(),
-          product: {
-            ...s.product,
-            createdAt: s.product.createdAt.toISOString(),
-            updatedAt: s.product.updatedAt.toISOString(),
-          },
-          customer: s.customer
-            ? {
-                id: s.customer.id,
-                name: s.customer.name,
-                email: s.customer.email,
-              }
-            : null,
-          costPerUnit: costMap[s.productId] ?? null,
-        }))}
+        initialSales={
+          sales.map((s) => ({
+            ...s,
+            date: s.date.toISOString(),
+            product: {
+              ...s.product,
+              createdAt: s.product.createdAt.toISOString(),
+              updatedAt: s.product.updatedAt.toISOString(),
+            },
+            customer: s.customer ? { ...s.customer } : null,
+          })) as any
+        }
         products={productsWithStock as any}
       />
     </div>

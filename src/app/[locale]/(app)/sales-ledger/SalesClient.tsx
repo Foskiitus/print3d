@@ -75,8 +75,16 @@ export function SalesClient({
 
   const refresh = useCallback(() => {
     Promise.all([
-      fetch("/api/sales").then((r) => r.json()),
-      fetch("/api/sales/products-with-stock").then((r) => r.json()),
+      fetch("/api/sales", {
+        headers: {
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
+      }).then((r) => r.json()),
+      fetch("/api/sales/products-with-stock", {
+        headers: {
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
+      }).then((r) => r.json()),
     ]).then(([salesData, productsData]) => {
       setSales(salesData);
       if (Array.isArray(productsData)) setProductsList(productsData);
@@ -84,7 +92,11 @@ export function SalesClient({
   }, []);
 
   useEffect(() => {
-    fetch("/api/customers")
+    fetch("/api/customers", {
+      headers: {
+        "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      },
+    })
       .then((r) => r.json())
       .then(setCustomers)
       .catch(() => {});
@@ -110,7 +122,10 @@ export function SalesClient({
     try {
       const res = await fetch(`/api/sales/${sale.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({
           customerId:
             editForm.customerId === "none" ? null : editForm.customerId || null,
@@ -139,7 +154,12 @@ export function SalesClient({
   const handleDelete = async (id: string) => {
     if (!confirm(c.toast.confirmDelete.value)) return;
     try {
-      const res = await fetch(`/api/sales/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/sales/${id}`, {
+        method: "DELETE",
+        headers: {
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       toast({ title: c.toast.deleted.value });

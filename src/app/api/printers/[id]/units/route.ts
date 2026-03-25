@@ -1,71 +1,63 @@
-// src/app/api/printers/[id]/units/route.ts
-
-import { getAuthUserId } from "@/lib/auth";
+import { requireApiAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-// ─── POST /api/printers/[id]/units ───────────────────────────────────────────
-// Adiciona uma nova unidade de expansão à impressora e cria os slots automaticamente.
-
+// POST /api/printers/[id]/units
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const userId = await getAuthUserId();
-  if (!userId)
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  const { userId, error } = await requireApiAuth();
+  if (error) return error;
 
   const { id: printerId } = await params;
 
-  // Verificar que a impressora pertence ao utilizador
-  const printer = await prisma.printer.findFirst({
-    where: { id: printerId, userId },
-  });
-  if (!printer)
-    return NextResponse.json(
-      { error: "Impressora não encontrada" },
-      { status: 404 },
-    );
-
   try {
-    const { presetId, name, slotCount, supportsHighTemp, supportsAbrasive } =
-      await req.json();
+    const { presetId, name } = await req.json();
 
-    if (!name || !slotCount) {
+    // Verificar que a impressora pertence ao utilizador
+    const printer = await prisma.printer.findFirst({
+      where: { id: printerId, userId },
+    });
+    if (!printer) {
       return NextResponse.json(
-        { error: "name e slotCount são obrigatórios" },
-        { status: 400 },
+        { error: "Impressora não encontrada" },
+        { status: 404 },
       );
     }
+
+    // Buscar o preset para saber quantos slots criar
+    const preset = presetId
+      ? await prisma.unitPreset.findUnique({ where: { id: presetId } })
+      : null;
+
+    const slotCount = preset?.slotCount ?? 4;
 
     const unit = await prisma.printerUnit.create({
       data: {
         printerId,
-        presetId: presetId ?? null,
-        name,
-        slotCount: Number(slotCount),
-        supportsHighTemp: Boolean(supportsHighTemp),
-        supportsAbrasive: Boolean(supportsAbrasive),
-        // Gerar slots automaticamente
+        presetId: presetId || null,
+        name: name?.trim() || preset?.name || "AMS",
+        slotCount,
+        supportsHighTemp: preset?.supportsHighTemp ?? false,
+        supportsAbrasive: preset?.supportsAbrasive ?? false,
         slots: {
-          create: Array.from({ length: Number(slotCount) }, (_, i) => ({
-            position: i + 1,
+          create: Array.from({ length: slotCount }, (_, i) => ({
+            position: i,
           })),
         },
       },
       include: {
-        slots: {
-          include: { currentSpool: { include: { item: true } } },
-          orderBy: { position: "asc" },
-        },
+        unitPreset: true,
+        slots: true,
       },
     });
 
     return NextResponse.json(unit, { status: 201 });
-  } catch (error: any) {
-    console.error("[POST /api/printers/[id]/units]", error);
+  } catch (err: any) {
+    console.error("[POST /api/printers/[id]/units]", err);
     return NextResponse.json(
-      { error: "Falha ao adicionar unidade", details: error.message },
+      { error: "Falha ao adicionar unidade", details: err.message },
       { status: 500 },
     );
   }

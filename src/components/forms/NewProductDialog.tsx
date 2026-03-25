@@ -22,7 +22,10 @@ import { useIntlayer } from "next-intlayer";
 async function executeDirectUpload(file: File, bucket: "images" | "models") {
   const signRes = await fetch("/api/upload", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+    },
     body: JSON.stringify({
       fileName: file.name,
       contentType: file.type,
@@ -35,7 +38,10 @@ async function executeDirectUpload(file: File, bucket: "images" | "models") {
   const uploadRes = await fetch(url, {
     method: "PUT",
     body: file,
-    headers: { "Content-Type": file.type },
+    headers: {
+      "Content-Type": file.type,
+      "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+    },
   });
   if (!uploadRes.ok) throw new Error("Falha no upload para o storage");
   return key;
@@ -65,11 +71,24 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
 
   // Carregar categorias ao abrir
   useEffect(() => {
-    if (!open) return;
-    fetch("/api/categories")
-      .then((r) => r.json())
-      .then(setCategories)
-      .catch(() => {});
+    async function loadCategories() {
+      try {
+        const res = await fetch("/api/categories", {
+          headers: {
+            "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+          },
+        });
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setCategories(data);
+        }
+      } catch (err) {
+        console.error("Falha ao carregar categorias", err);
+      }
+    }
+
+    // Só faz fetch se não recebeu categorias por props ou se precisares de refresh
+    if (categories.length === 0) loadCategories();
   }, [open]);
 
   function resetForm() {
@@ -102,7 +121,10 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
 
       const res = await fetch("/api/products", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({
           name: form.name.trim(),
           description: form.description.trim() || null,
@@ -208,10 +230,12 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
             <div className="space-y-1.5">
               <Label>{d.category}</Label>
               <SearchableSelect
-                options={categories.map((cat) => ({
-                  value: cat.id,
-                  label: cat.name,
-                }))}
+                options={(Array.isArray(categories) ? categories : []).map(
+                  (cat) => ({
+                    value: cat.id,
+                    label: cat.name,
+                  }),
+                )}
                 value={form.categoryId}
                 onValueChange={(v) => setForm({ ...form, categoryId: v })}
                 placeholder={d.categoryPlaceholder.value}

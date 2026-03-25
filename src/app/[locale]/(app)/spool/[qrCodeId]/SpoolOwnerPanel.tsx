@@ -141,7 +141,11 @@ export function SpoolOwnerPanel({
     : "—";
 
   useEffect(() => {
-    fetch(`/api/inventory/${purchase.id}/history`)
+    fetch(`/api/inventory/${purchase.id}/history`, {
+      headers: {
+        "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      },
+    })
       .then((r) => r.json())
       .then((d) => setHistory(d.productions ?? []))
       .catch(() => setHistory([]))
@@ -154,7 +158,10 @@ export function SpoolOwnerPanel({
 
     const res = await fetch(`/api/inventory/${purchase.id}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      },
       body: JSON.stringify({ currentWeight: w }),
     });
 
@@ -170,7 +177,10 @@ export function SpoolOwnerPanel({
     setLoadingPrinter(printerId);
     const res = await fetch(`/api/printers/${printerId}/load`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      },
       body: JSON.stringify({ purchaseId: purchase.id }),
     });
     const data = await res.json();
@@ -187,7 +197,10 @@ export function SpoolOwnerPanel({
     setArchiving(true);
     const res = await fetch(`/api/inventory/${purchase.id}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      },
       body: JSON.stringify({ archived: true }),
     });
     setArchiving(false);

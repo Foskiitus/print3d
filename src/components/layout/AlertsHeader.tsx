@@ -157,7 +157,11 @@ export function AlertsHeader() {
       } catch {}
 
       try {
-        const res = await fetch("/api/alerts");
+        const res = await fetch("/api/alerts", {
+          headers: {
+            "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+          },
+        });
         const data = await res.json();
         setProductAlerts(data.productAlerts ?? []);
         setSpoolAlerts(data.spoolAlerts ?? []);

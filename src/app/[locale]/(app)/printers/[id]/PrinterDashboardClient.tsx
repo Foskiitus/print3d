@@ -272,7 +272,11 @@ function SlotAssignModal({
   const [loadingStock, setLoadingStock] = useState(true);
 
   useEffect(() => {
-    fetch("/api/inventory/available")
+    fetch("/api/inventory/available", {
+      headers: {
+        "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      },
+    })
       .then((r) => r.json())
       .then((data) => {
         setStock(data);
@@ -304,7 +308,10 @@ function SlotAssignModal({
     try {
       const res = await fetch(`/api/printers/${printerId}/slots/${slot.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({ spoolId }),
       });
       const data = await res.json();
@@ -546,7 +553,11 @@ function UnitManager({
 
   useEffect(() => {
     if (showPicker && unitPresets.length === 0) {
-      fetch("/api/printers/unit-presets")
+      fetch("/api/printers/unit-presets", {
+        headers: {
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
+      })
         .then((r) => r.json())
         .then(setUnitPresets)
         .catch(() => {});
@@ -564,7 +575,10 @@ function UnitManager({
     try {
       const res = await fetch(`/api/printers/${printerId}/units`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({
           presetId: preset.id,
           name: preset.name,
@@ -597,6 +611,9 @@ function UnitManager({
     try {
       const res = await fetch(`/api/printers/${printerId}/units/${unitId}`, {
         method: "DELETE",
+        headers: {
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
       });
       if (!res.ok) throw new Error("Erro ao remover");
       toast({ title: `${unitName} removido` });
@@ -798,7 +815,10 @@ export function PrinterDashboardClient({
     try {
       const res = await fetch(`/api/printers/${printer.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({ name: nameValue.trim() }),
       });
       const data = await res.json();
@@ -817,7 +837,10 @@ export function PrinterDashboardClient({
     try {
       const res = await fetch(`/api/printers/${printer.id}/maintenance`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({ taskId }),
       });
       const data = await res.json();

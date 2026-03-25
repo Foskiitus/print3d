@@ -111,7 +111,7 @@ export default async function ProductsPage({
       </div>
       <ProductsClient
         initialProducts={enriched as any}
-        categories={categories as any}
+        categories={categories}
       />
     </div>
   );

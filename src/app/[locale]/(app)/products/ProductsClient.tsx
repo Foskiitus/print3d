@@ -44,7 +44,13 @@ interface Product {
   stockReady: boolean;
   materials: string[];
   alertThreshold: number | null;
+  bom?: any[];
   _count: { sales: number };
+}
+
+interface ProductsClientProps {
+  initialProducts: Product[];
+  categories: { id: string; name: string }[]; // <-- Adiciona isto
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -187,11 +193,8 @@ function ProductCard({
 
 export function ProductsClient({
   initialProducts,
-  categories,
-}: {
-  initialProducts: Product[];
-  categories: Category[];
-}) {
+  categories = [],
+}: ProductsClientProps) {
   const { locale } = useLocale();
   const c = useIntlayer("products");
   const [products, setProducts] = useState(initialProducts);
@@ -199,7 +202,11 @@ export function ProductsClient({
   const [search, setSearch] = useState("");
 
   const refreshProducts = async () => {
-    const res = await fetch("/api/products");
+    const res = await fetch("/api/products", {
+      headers: {
+        "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      },
+    });
     if (res.ok) setProducts(await res.json());
   };
 
@@ -207,7 +214,12 @@ export function ProductsClient({
     e.stopPropagation();
     if (!confirm(c.toast.confirmDelete.value)) return;
     try {
-      const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/products/${id}`, {
+        method: "DELETE",
+        headers: {
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       toast({ title: c.toast.productDeleted.value });

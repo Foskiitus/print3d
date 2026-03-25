@@ -3,30 +3,21 @@ import { t, type DeclarationContent } from "intlayer";
 const sidebarContent = {
   key: "sidebar",
   content: {
-    groups: {
-      management: t({ pt: "Gestão", en: "Management" }),
-      others: t({ pt: "Outros", en: "Others" }),
-      admin: t({ pt: "Administração", en: "Administration" }),
-    },
     nav: {
       dashboard: t({ pt: "Dashboard", en: "Dashboard" }),
-      filaments: t({ pt: "Filamentos", en: "Filaments" }),
-      products: t({ pt: "Produtos", en: "Products" }),
+      inventory: t({ pt: "Inventário", en: "Inventory" }),
+      catalog: t({ pt: "Produtos", en: "Products" }),
       components: t({ pt: "Componentes", en: "Components" }),
-      stock: t({ pt: "Stock", en: "Stock" }),
       production: t({ pt: "Produção", en: "Production" }),
-      sales: t({ pt: "Vendas", en: "Sales" }),
-      printers: t({ pt: "Impressoras", en: "Printers" }),
-      customers: t({ pt: "Clientes", en: "Customers" }),
-      export: t({ pt: "Exportação", en: "Export" }),
-      alerts: t({ pt: "Alertas", en: "Alerts" }),
-      settings: t({ pt: "Configurações", en: "Settings" }),
-      billing: t({ pt: "Subscrição", en: "Billing" }),
-      users: t({ pt: "Utilizadores", en: "Users" }),
+      workshop: t({ pt: "A Minha Oficina", en: "My Workshop" }),
+      sales: t({ pt: "Encomendas", en: "Orders" }),
+      // Configuração
+      profile: t({ pt: "A Minha Conta", en: "My Account" }),
+      admin: t({ pt: "Painel Admin", en: "Admin Panel" }),
     },
     roles: {
       admin: t({ pt: "Admin", en: "Admin" }),
-      viewer: t({ pt: "Viewer", en: "Viewer" }),
+      user: t({ pt: "Utilizador", en: "User" }),
     },
     signOut: t({ pt: "Sair", en: "Sign out" }),
   },

@@ -78,7 +78,10 @@ export function AddSpoolDialog({
     try {
       const res = await fetch("/api/filaments/spools", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({
           filamentTypeId: form.filamentTypeId,
           spoolWeight: Number(form.spoolWeight),

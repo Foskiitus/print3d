@@ -51,7 +51,10 @@ export function UsersClient({ users: initial }: { users: User[] }) {
     setLoading(true);
     const res = await fetch("/api/users", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      },
       body: JSON.stringify(form),
     });
     if (res.ok) {
@@ -73,7 +76,12 @@ export function UsersClient({ users: initial }: { users: User[] }) {
 
   async function handleDelete(id: string) {
     if (!confirm(c.toast.confirmDelete.value)) return;
-    const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/users/${id}`, {
+      method: "DELETE",
+      headers: {
+        "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      },
+    });
     if (res.ok) {
       setUsers((prev) => prev.filter((u) => u.id !== id));
       toast({ title: c.toast.deleted.value });

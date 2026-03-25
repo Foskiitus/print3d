@@ -30,7 +30,6 @@ interface ExtractedProfile {
   estimatedG: number;
 }
 
-// Entrada manual de filamento (multicor)
 interface ManualFilament {
   material: string;
   colorHex: string;
@@ -40,7 +39,8 @@ interface ManualFilament {
 
 interface NewComponentModalProps {
   initialName?: string;
-  productId: string;
+  // productId é opcional — se não for passado, cria componente sem adicionar à BOM
+  productId?: string;
   onCreated: (bomEntry: any) => void;
   onClose: () => void;
 }
@@ -82,14 +82,12 @@ export function NewComponentModal({
 
   const [extractionFailed, setExtractionFailed] = useState(false);
 
-  // Campos escalares do modo manual
   const [manualProfile, setManualProfile] = useState({
     printTimeH: "",
     printTimeM: "",
     batchSize: "1",
   });
 
-  // Converte horas + minutos para minutos totais (ou null se ambos vazios)
   function toMinutes(h: string, m: string): number | null {
     const hours = Number(h) || 0;
     const mins = Number(m) || 0;
@@ -97,12 +95,10 @@ export function NewComponentModal({
     return hours * 60 + mins;
   }
 
-  // Lista de filamentos no modo manual (suporta multicor)
   const [manualFilaments, setManualFilaments] = useState<ManualFilament[]>([
     emptyFilament(),
   ]);
 
-  // ── Helpers para lista de filamentos manuais ──────────────────────────────
   function updateFilament(index: number, patch: Partial<ManualFilament>) {
     setManualFilaments((prev) =>
       prev.map((f, i) => (i === index ? { ...f, ...patch } : f)),
@@ -117,7 +113,6 @@ export function NewComponentModal({
     setManualFilaments((prev) => prev.filter((_, i) => i !== index));
   }
 
-  // totalG calculado a partir da lista
   const totalManualG = manualFilaments.reduce(
     (acc, f) => acc + (Number(f.estimatedG) || 0),
     0,
@@ -134,10 +129,13 @@ export function NewComponentModal({
     setProfile(null);
 
     try {
-      // 1. Obter presigned URL do R2
+      // 1. Obter presigned URL
       const signRes = await fetch("/api/upload", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({
           fileName: selectedFile.name,
           contentType: selectedFile.type || "application/octet-stream",
@@ -148,7 +146,7 @@ export function NewComponentModal({
       if (!signRes.ok) throw new Error("Falha ao gerar link de upload");
       const { url, key } = await signRes.json();
 
-      // 2. Upload directo para o R2 (sem passar pelo Next.js)
+      // 2. Upload direto para o R2
       const uploadRes = await fetch(url, {
         method: "PUT",
         body: selectedFile,
@@ -158,16 +156,18 @@ export function NewComponentModal({
       });
       if (!uploadRes.ok) throw new Error("Falha no upload para o R2");
 
-      // 3. Pedir extracção de metadados com a key (sem enviar o ficheiro)
+      // 3. Extrair metadados
       const res = await fetch("/api/components/extract", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({ fileKey: key }),
       });
       const data = await res.json();
 
       if (!res.ok || data.source === "manual_required") {
-        // Extração completamente falhada — modo totalmente manual
         setExtractionFailed(true);
         toast({
           title: "Não foi possível extrair metadados",
@@ -184,7 +184,6 @@ export function NewComponentModal({
       }
 
       if (data.source === "3mf_no_weight") {
-        // Cores extraídas mas sem gramas — pré-preencher filamentos, pedir gramas/tempo
         setExtractionFailed(true);
         const preFilled = (data.filaments ?? []).map((f: any) => ({
           material: f.material ?? "",
@@ -214,7 +213,7 @@ export function NewComponentModal({
         return;
       }
 
-      // Extração completa — tudo preenchido automaticamente
+      // Extração completa
       setProfile({
         fileName: selectedFile.name,
         printTime: data.printTime ?? 0,
@@ -246,13 +245,13 @@ export function NewComponentModal({
     setSaving(true);
 
     try {
-      // O ficheiro .3mf já foi enviado para o R2 durante a extração
-      // em /api/components/extract, que devolveu profile.filePath.
-
       // 1. Criar o componente
       const compRes = await fetch("/api/components", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({
           name: form.name.trim(),
           description: form.description.trim() || null,
@@ -263,9 +262,7 @@ export function NewComponentModal({
       const comp = await compRes.json();
       if (!compRes.ok) throw new Error(comp.error);
 
-      // 2. Se há perfil, criar o ComponentPrintProfile
-      // Cria sempre que haja um ficheiro carregado (profile != null),
-      // mesmo que a extração tenha falhado e os dados sejam manuais.
+      // 2. Criar perfil de impressão (se houver ficheiro)
       if (profile) {
         const filaments: ExtractedProfile[] = extractionFailed
           ? manualFilaments
@@ -280,7 +277,10 @@ export function NewComponentModal({
 
         const profileRes = await fetch(`/api/components/${comp.id}/profiles`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+          },
           body: JSON.stringify({
             name: profile.fileName.replace(/\.[^.]+$/, ""),
             filePath: profile.filePath ?? "",
@@ -303,17 +303,25 @@ export function NewComponentModal({
           throw new Error(profileData.error ?? "Erro ao criar perfil");
       }
 
-      // 3. Adicionar à BOM do produto
-      const bomRes = await fetch(`/api/products/${productId}/bom`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ componentId: comp.id, quantity: 1 }),
-      });
-      const bomEntry = await bomRes.json();
-      if (!bomRes.ok) throw new Error(bomEntry.error);
+      // 3. Adicionar à BOM do produto — só se productId for fornecido
+      if (productId) {
+        const bomRes = await fetch(`/api/products/${productId}/bom`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+          },
+          body: JSON.stringify({ componentId: comp.id, quantity: 1 }),
+        });
+        const bomEntry = await bomRes.json();
+        if (!bomRes.ok) throw new Error(bomEntry.error);
+        toast({ title: `"${comp.name}" criado e adicionado à BOM` });
+        onCreated(bomEntry);
+      } else {
+        toast({ title: `"${comp.name}" criado com sucesso` });
+        onCreated(comp);
+      }
 
-      toast({ title: `"${comp.name}" criado e adicionado à BOM` });
-      onCreated(bomEntry);
       onClose();
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
@@ -334,9 +342,11 @@ export function NewComponentModal({
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border sticky top-0 bg-background">
           <div>
-            <p className="text-xs text-muted-foreground">Novo componente</p>
+            <p className="text-xs text-muted-foreground">
+              {productId ? "Novo componente" : "Novo componente independente"}
+            </p>
             <h2 className="text-sm font-semibold text-foreground">
-              Criar e adicionar à BOM
+              {productId ? "Criar e adicionar à BOM" : "Criar componente"}
             </h2>
           </div>
           <button
@@ -362,7 +372,12 @@ export function NewComponentModal({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="comp-desc">Descrição (opcional)</Label>
+            <Label htmlFor="comp-desc">
+              Descrição{" "}
+              <span className="text-muted-foreground font-normal">
+                (opcional)
+              </span>
+            </Label>
             <Input
               id="comp-desc"
               placeholder="Breve descrição da peça"
@@ -377,7 +392,10 @@ export function NewComponentModal({
           <div className="space-y-2">
             <Label className="flex items-center gap-1.5">
               <FileType size={11} className="text-muted-foreground" />
-              Ficheiro de impressão (.3mf / .gcode)
+              Ficheiro de impressão (.3mf / .gcode){" "}
+              <span className="text-muted-foreground font-normal">
+                (opcional)
+              </span>
             </Label>
 
             <input
@@ -433,7 +451,6 @@ export function NewComponentModal({
                 </div>
 
                 {!extractionFailed && profile.filamentUsed > 0 ? (
-                  // Extração automática bem-sucedida
                   <div className="flex items-center gap-3 flex-wrap">
                     <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                       <Layers size={9} />
@@ -468,14 +485,12 @@ export function NewComponentModal({
                     </Badge>
                   </div>
                 ) : (
-                  // Extração falhou — input manual multicor
                   <div className="space-y-3 pt-1">
                     <p className="text-[10px] text-amber-500 flex items-center gap-1">
                       <AlertTriangle size={9} />
                       Preenche manualmente:
                     </p>
 
-                    {/* Campos escalares: tempo + lote */}
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
                         <Label className="text-[10px] text-muted-foreground">
@@ -520,7 +535,6 @@ export function NewComponentModal({
                             </span>
                           </div>
                         </div>
-                        {/* Preview em minutos */}
                         {(manualProfile.printTimeH ||
                           manualProfile.printTimeM) && (
                           <p className="text-[10px] text-muted-foreground">
@@ -553,7 +567,6 @@ export function NewComponentModal({
                       </div>
                     </div>
 
-                    {/* Lista de filamentos (multicor) */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <Label className="text-[10px] text-muted-foreground">
@@ -579,14 +592,12 @@ export function NewComponentModal({
                           key={i}
                           className="grid grid-cols-[auto_1fr_1fr_auto] gap-1.5 items-center"
                         >
-                          {/* Color Picker */}
                           <ColorPicker
                             value={fil.colorHex}
                             onChange={(color) =>
                               updateFilament(i, { colorHex: color })
                             }
                           />
-                          {/* Material */}
                           <Input
                             placeholder="Material (ex: PLA)"
                             value={fil.material}
@@ -595,7 +606,6 @@ export function NewComponentModal({
                             }
                             className="h-7 text-xs"
                           />
-                          {/* Gramas */}
                           <Input
                             type="number"
                             placeholder="Gramas"
@@ -605,7 +615,6 @@ export function NewComponentModal({
                             }
                             className="h-7 text-xs"
                           />
-                          {/* Remover (só se houver mais de 1) */}
                           {manualFilaments.length > 1 ? (
                             <button
                               type="button"
@@ -635,7 +644,7 @@ export function NewComponentModal({
           <Button
             size="sm"
             onClick={handleSubmit}
-            disabled={saving || !form.name.trim()}
+            disabled={saving || extracting || !form.name.trim()}
             className="gap-1.5"
           >
             {saving ? (
@@ -643,7 +652,11 @@ export function NewComponentModal({
             ) : (
               <Check size={13} />
             )}
-            {saving ? "A criar…" : "Criar e adicionar"}
+            {saving
+              ? "A criar…"
+              : productId
+                ? "Criar e adicionar"
+                : "Criar componente"}
           </Button>
         </div>
       </div>

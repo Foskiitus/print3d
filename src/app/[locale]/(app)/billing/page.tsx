@@ -189,7 +189,10 @@ function CardForm({
 
     const res = await fetch("/api/billing/subscribe", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      },
       body: JSON.stringify({ paymentMethodId: paymentMethod.id }),
     });
 
@@ -422,7 +425,11 @@ export default function BillingPage() {
   // const c = t[locale as keyof typeof t] ?? t.en;
 
   // const loadBilling = useCallback(async () => {
-  //   const res = await fetch("/api/billing");
+  //   const res = await fetch("/api/billing", {
+  // headers: {
+  //  'x-api-key': process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || ""
+  // }
+  // });
   //   if (res.ok) setBilling(await res.json());
   //   setLoading(false);
   // }, []);
@@ -433,7 +440,9 @@ export default function BillingPage() {
 
   // useEffect(() => {
   //   if (billing?.plan === "hobby") {
-  //     fetch("/api/billing/setup-intent", { method: "POST" })
+  //     fetch("/api/billing/setup-intent", { method: "POST",headers: {
+  //  'x-api-key': process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || ""
+  //} })
   //       .then((r) => r.json())
   //       .then((d) => setClientSecret(d.clientSecret));
   //   }
@@ -442,7 +451,9 @@ export default function BillingPage() {
   // const handleCancel = async () => {
   //   if (!confirm(c.cancelConfirm)) return;
   //   setCanceling(true);
-  //   await fetch("/api/billing/cancel", { method: "POST" });
+  //   await fetch("/api/billing/cancel", { method: "POST", headers: {
+  //  'x-api-key': process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || ""
+  //} });
   //   await loadBilling();
   //   setCanceling(false);
   // };

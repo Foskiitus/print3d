@@ -1,15 +1,14 @@
-import { getAuthUserId } from "@/lib/auth";
+import { requireApiAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 // GET /api/extras
 export async function GET() {
-  const userId = await getAuthUserId();
-  if (!userId)
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  const { userId, error } = await requireApiAuth();
+  if (error) return error;
 
   const extras = await prisma.extra.findMany({
-    where: { userId: userId },
+    where: { userId },
     include: { _count: { select: { usages: true } } },
     orderBy: { name: "asc" },
   });
@@ -19,12 +18,19 @@ export async function GET() {
 
 // POST /api/extras
 export async function POST(req: Request) {
-  const userId = await getAuthUserId();
-  if (!userId)
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  const { userId, error } = await requireApiAuth();
+  if (error) return error;
 
   try {
-    const { name, description, price, unit } = await req.json();
+    const {
+      name,
+      description,
+      price,
+      unit,
+      category,
+      quantity,
+      alertThreshold,
+    } = await req.json();
 
     if (!name?.trim() || price === undefined) {
       return NextResponse.json(
@@ -35,11 +41,14 @@ export async function POST(req: Request) {
 
     const extra = await prisma.extra.create({
       data: {
-        userId: userId,
+        userId,
         name: name.trim(),
         description: description || null,
         price: Number(price),
         unit: unit || null,
+        category: category || "hardware",
+        quantity: Number(quantity) || 0,
+        alertThreshold: alertThreshold ? Number(alertThreshold) : null,
       },
     });
 

@@ -298,7 +298,11 @@ export function ExportClient() {
     const key = `${option.type}-${format}`;
     setLoading(key);
     try {
-      const res = await fetch(option.endpoint);
+      const res = await fetch(option.endpoint, {
+        headers: {
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 

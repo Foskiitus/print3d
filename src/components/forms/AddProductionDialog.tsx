@@ -73,7 +73,10 @@ export function AddProductionDialog({
     try {
       const res = await fetch("/api/production", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({
           productId,
           printerId,

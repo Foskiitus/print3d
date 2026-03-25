@@ -4,25 +4,25 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
-  Package,
   ShoppingCart,
   Factory,
   LogOut,
   Users,
-  Droplets,
   Settings,
   Printer,
-  FileDown,
-  AlertTriangle,
-  Boxes,
-  CreditCard,
+  Warehouse,
+  BookOpen,
   Layers,
+  UserCircle,
+  Shield,
 } from "lucide-react";
 import { useSidebar } from "@/components/layout/SidebarContext";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useIntlayer } from "next-intlayer";
 import { cn } from "@/lib/utils";
+
+// ─── Spool Icon ───────────────────────────────────────────────────────────────
 
 function SpoolIcon({ className }: { className?: string }) {
   return (
@@ -108,25 +108,30 @@ function SpoolIcon({ className }: { className?: string }) {
   );
 }
 
+// ─── NavLink ──────────────────────────────────────────────────────────────────
+
 function NavLink({
   href,
   label,
   icon: Icon,
   active,
   onClick,
+  indent = false,
 }: {
   href: string;
   label: string;
   icon: React.ElementType;
   active: boolean;
   onClick: () => void;
+  indent?: boolean;
 }) {
   return (
     <Link
       href={href}
       onClick={onClick}
       className={cn(
-        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150",
+        "flex items-center gap-3 py-2 rounded-lg text-sm transition-all duration-150",
+        indent ? "px-3 pl-8" : "px-3",
         active
           ? "bg-primary/10 text-primary font-semibold"
           : "text-muted-foreground hover:text-foreground hover:bg-accent",
@@ -141,6 +146,8 @@ function NavLink({
   );
 }
 
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
+
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -153,49 +160,10 @@ export function Sidebar() {
   const supabase = createClient();
   const c = useIntlayer("sidebar");
 
-  // Extrai o locale do pathname: /pt/dashboard → "pt"
   const locale = pathname.split("/")[1] ?? "pt";
-
-  // Helper: prefixo de locale nos links
   const l = (path: string) => `/${locale}${path}`;
-
-  const navGroups = [
-    {
-      label: null,
-      items: [
-        {
-          label: c.nav.dashboard.value,
-          icon: LayoutDashboard,
-          href: "/dashboard",
-        },
-      ],
-    },
-    {
-      label: c.groups.management.value,
-      items: [
-        { label: c.nav.filaments.value, icon: Droplets, href: "/filaments" },
-        { label: c.nav.products.value, icon: Package, href: "/products" },
-        { label: c.nav.components.value, icon: Layers, href: "/components" },
-        { label: c.nav.stock.value, icon: Boxes, href: "/stock" },
-        { label: c.nav.production.value, icon: Factory, href: "/production" },
-        { label: c.nav.sales.value, icon: ShoppingCart, href: "/sales-ledger" },
-        { label: c.nav.printers.value, icon: Printer, href: "/printers" },
-      ],
-    },
-    {
-      label: c.groups.others.value,
-      items: [
-        { label: c.nav.customers.value, icon: Users, href: "/customers" },
-        { label: c.nav.export.value, icon: FileDown, href: "/export" },
-        { label: c.nav.alerts.value, icon: AlertTriangle, href: "/alerts" },
-      ],
-    },
-  ];
-
-  const adminItems = [
-    { label: c.nav.users.value, icon: Users, href: "/users" },
-    { label: c.nav.settings.value, icon: Settings, href: "/settings" },
-  ];
+  const close = () => setOpen(false);
+  const isActive = (href: string) => pathname.startsWith(`/${locale}${href}`);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -221,7 +189,6 @@ export function Sidebar() {
   };
 
   const isAdmin = role === "admin" || role === "superadmin";
-  const close = () => setOpen(false);
 
   return (
     <>
@@ -250,99 +217,125 @@ export function Sidebar() {
           </span>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 px-2 py-3 overflow-y-auto space-y-4">
-          {navGroups.map((group) => (
-            <div key={group.label ?? "main"}>
-              {group.label && (
-                <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
-                  {group.label}
-                </p>
-              )}
-              <div className="space-y-0.5">
-                {group.items.map(({ href, label, icon }) => (
-                  <NavLink
-                    key={href}
-                    href={l(href)}
-                    label={label}
-                    icon={icon}
-                    active={pathname.startsWith(`/${locale}${href}`)}
-                    onClick={close}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
+        {/* Nav principal */}
+        <nav className="flex-1 px-2 py-3 overflow-y-auto space-y-0.5">
+          {/* Dashboard */}
+          <NavLink
+            href={l("/dashboard")}
+            label={c.nav.dashboard.value}
+            icon={LayoutDashboard}
+            active={isActive("/dashboard")}
+            onClick={close}
+          />
 
-          {!isAdmin && (
-            <div className="space-y-0.5">
-              <NavLink
-                href={l("/settings")}
-                label={c.nav.settings.value}
-                icon={Settings}
-                active={pathname.startsWith(`/${locale}/settings`)}
-                onClick={close}
-              />
-              {/* <NavLink
-                href={l("/billing")}
-                label={c.nav.billing.value}
-                icon={CreditCard}
-                active={pathname.startsWith(`/${locale}/billing`)}
-                onClick={close}
-              /> */}
-            </div>
-          )}
+          {/* Inventário */}
+          <NavLink
+            href={l("/inventory")}
+            label={c.nav.inventory.value}
+            icon={Warehouse}
+            active={isActive("/inventory")}
+            onClick={close}
+          />
 
-          {isAdmin && (
-            <div>
-              <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
-                {c.groups.admin.value}
-              </p>
-              <div className="space-y-0.5">
-                {adminItems.map(({ href, label, icon }) => (
-                  <NavLink
-                    key={href}
-                    href={l(href)}
-                    label={label}
-                    icon={icon}
-                    active={pathname.startsWith(`/${locale}${href}`)}
-                    onClick={close}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Produtos */}
+          <NavLink
+            href={l("/catalog")}
+            label={c.nav.catalog.value}
+            icon={BookOpen}
+            active={isActive("/catalog") && !isActive("/catalog/components")}
+            onClick={close}
+          />
+
+          {/* Componentes (sub-item de Produtos) */}
+          <NavLink
+            href={l("/catalog/components")}
+            label={c.nav.components.value}
+            icon={Layers}
+            active={isActive("/catalog/components")}
+            onClick={close}
+            indent
+          />
+
+          {/* Produção */}
+          <NavLink
+            href={l("/production")}
+            label={c.nav.production.value}
+            icon={Factory}
+            active={isActive("/production")}
+            onClick={close}
+          />
+
+          {/* A Minha Oficina */}
+          <NavLink
+            href={l("/printers")}
+            label={c.nav.workshop.value}
+            icon={Printer}
+            active={isActive("/printers")}
+            onClick={close}
+          />
+
+          {/* Encomendas */}
+          <NavLink
+            href={l("/sales")}
+            label={c.nav.sales.value}
+            icon={ShoppingCart}
+            active={isActive("/sales")}
+            onClick={close}
+          />
         </nav>
 
-        {/* User / logout */}
-        <div className="px-4 py-4 border-t border-border space-y-3">
-          {userInfo && (
-            <div className="space-y-0.5">
-              <p className="text-xs font-semibold text-foreground truncate">
-                {userInfo.name}
-              </p>
-              <p className="text-xs text-muted-foreground truncate">
-                {userInfo.email}
-              </p>
-              <span
-                className={cn(
-                  "inline-block text-xs px-1.5 py-0.5 rounded-md font-medium mt-1",
-                  isAdmin
-                    ? "bg-primary/15 text-primary"
-                    : "bg-muted text-muted-foreground",
-                )}
-              >
-                {isAdmin ? c.roles.admin.value : c.roles.viewer.value}
-              </span>
-            </div>
+        {/* Rodapé: conta + admin */}
+        <div className="px-2 pb-3 border-t border-border pt-3 space-y-0.5">
+          {/* A Minha Conta */}
+          <NavLink
+            href={l("/settings/profile")}
+            label={c.nav.profile.value}
+            icon={UserCircle}
+            active={isActive("/settings")}
+            onClick={close}
+          />
+
+          {/* Painel Admin — só admins */}
+          {isAdmin && (
+            <NavLink
+              href={l("/admin")}
+              label={c.nav.admin.value}
+              icon={Shield}
+              active={isActive("/admin")}
+              onClick={close}
+            />
           )}
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
-          >
-            <LogOut size={13} />
-            {c.signOut.value}
-          </button>
+
+          {/* User info + logout */}
+          <div className="pt-3 mt-1 border-t border-border space-y-2">
+            {userInfo && (
+              <div className="px-3 space-y-0.5">
+                <p className="text-xs font-semibold text-foreground truncate">
+                  {userInfo.name}
+                </p>
+                <p className="text-[10px] text-muted-foreground truncate">
+                  {userInfo.email}
+                </p>
+                <span
+                  className={cn(
+                    "inline-block text-[10px] px-1.5 py-0.5 rounded-md font-medium mt-0.5",
+                    isAdmin
+                      ? "bg-primary/15 text-primary"
+                      : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {isAdmin ? c.roles.admin.value : c.roles.user.value}
+                </span>
+              </div>
+            )}
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-2 px-3 text-xs text-muted-foreground hover:text-foreground transition-colors w-full py-1.5 rounded-lg hover:bg-accent"
+            >
+              <LogOut size={13} />
+              {c.signOut.value}
+            </button>
+          </div>
         </div>
       </aside>
     </>

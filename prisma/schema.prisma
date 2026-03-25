@@ -448,6 +448,9 @@ model Extra {
   description String?
   price       Float
   unit        String?
+  category       String?  @default("hardware")
+  quantity       Float    @default(0)
+  alertThreshold Float?
 
   user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   usages ProductExtra[]

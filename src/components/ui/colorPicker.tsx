@@ -46,13 +46,17 @@ const SWATCHES = [
   "#000000",
 ];
 
+interface ColorPickerProps {
+  value: string;
+  onChange: (color: string) => void;
+  disabled?: boolean; // O '?' indica que é opcional
+}
+
 export function ColorPicker({
   value,
   onChange,
-}: {
-  value: string;
-  onChange: (color: string) => void;
-}) {
+  disabled = false,
+}: ColorPickerProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -71,7 +75,9 @@ export function ColorPicker({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-10 h-10 rounded-lg border border-border shadow-sm hover:scale-105 hover:border-primary/40 transition-all"
+        className={`w-10 h-10 rounded-lg border border-border shadow-sm hover:scale-105 hover:border-primary/40 transition-all ${
+          disabled ? "opacity-50 cursor-not-allowed" : ""
+        }`}
         style={{ backgroundColor: value }}
         aria-label="Escolher cor"
       />

@@ -39,7 +39,11 @@ export function CustomersClient({
   const [saving, setSaving] = useState(false);
 
   const refresh = async () => {
-    const res = await fetch("/api/customers");
+    const res = await fetch("/api/customers", {
+      headers: {
+        "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      },
+    });
     if (res.ok) setCustomers(await res.json());
   };
 
@@ -66,7 +70,10 @@ export function CustomersClient({
     try {
       const res = await fetch(`/api/customers/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({
           name: editForm.name.trim(),
           email: editForm.email.trim() || null,
@@ -95,7 +102,12 @@ export function CustomersClient({
   const handleDelete = async (id: string) => {
     if (!confirm(c.confirmDelete.value)) return;
     try {
-      const res = await fetch(`/api/customers/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/customers/${id}`, {
+        method: "DELETE",
+        headers: {
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       toast({ title: c.toasts.deleted.value });

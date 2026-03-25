@@ -71,7 +71,10 @@ export function EditFilamentTypeDialog({
     try {
       const res = await fetch(`/api/filaments/types/${type.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({
           brand: form.brand,
           material: form.material,

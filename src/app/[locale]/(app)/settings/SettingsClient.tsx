@@ -88,7 +88,11 @@ export function SettingsClient({
   const [savingPreset, setSavingPreset] = useState(false);
 
   const loadPresets = async () => {
-    const res = await fetch("/api/filaments/presets");
+    const res = await fetch("/api/filaments/presets", {
+      headers: {
+        "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      },
+    });
     if (res.ok) setFilamentPresets(await res.json());
   };
 
@@ -109,7 +113,10 @@ export function SettingsClient({
     try {
       const res = await fetch("/api/filaments/presets", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify(newPreset),
       });
       const data = await res.json();
@@ -138,6 +145,9 @@ export function SettingsClient({
     try {
       const res = await fetch(`/api/filaments/presets/${id}`, {
         method: "DELETE",
+        headers: {
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
       });
       if (!res.ok) throw new Error();
       toast({ title: c.messages.presetDeleted.value });
@@ -151,12 +161,20 @@ export function SettingsClient({
   };
 
   const refreshCategories = async () => {
-    const res = await fetch("/api/categories");
+    const res = await fetch("/api/categories", {
+      headers: {
+        "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      },
+    });
     if (res.ok) setCategories(await res.json());
   };
 
   const refreshExtras = async () => {
-    const res = await fetch("/api/extras");
+    const res = await fetch("/api/extras", {
+      headers: {
+        "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      },
+    });
     if (res.ok) setExtras(await res.json());
   };
 
@@ -170,7 +188,10 @@ export function SettingsClient({
     try {
       const res = await fetch("/api/settings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({ key: "electricityPrice", value: String(value) }),
       });
       const data = await res.json();
@@ -200,7 +221,10 @@ export function SettingsClient({
     try {
       const res = await fetch("/api/settings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({ key: "uploadLimitMb", value: String(value) }),
       });
       const data = await res.json();
@@ -220,7 +244,12 @@ export function SettingsClient({
   const handleDeleteCategory = async (id: string) => {
     if (!confirm(c.categories.deleteConfirm.value)) return;
     try {
-      const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/categories/${id}`, {
+        method: "DELETE",
+        headers: {
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       toast({ title: c.categories.deleted.value });
@@ -237,7 +266,12 @@ export function SettingsClient({
   const handleDeleteExtra = async (id: string) => {
     if (!confirm(c.extras.deleteConfirm.value)) return;
     try {
-      const res = await fetch(`/api/extras/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/extras/${id}`, {
+        method: "DELETE",
+        headers: {
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       toast({ title: c.extras.deleted.value });
@@ -436,195 +470,6 @@ export function SettingsClient({
               </div>
             </CardContent>
           </Card>
-        </div>
-      )}
-
-      {/* ── Presets de Filamentos (admin) ── */}
-      {isAdmin && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Droplets size={14} className="text-muted-foreground" />
-            <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-              {c.filament.title.value}
-            </h2>
-            <Badge variant="secondary" className="text-[10px]">
-              Admin
-            </Badge>
-            <Badge variant="outline" className="text-[10px]">
-              {filamentPresets.length}
-            </Badge>
-          </div>
-          <p className="text-xs text-muted-foreground -mt-2">
-            {c.filament.description.value}
-          </p>
-
-          <Card>
-            <CardContent className="p-5 space-y-3">
-              <p className="text-xs font-semibold text-foreground">
-                {c.filament.add.value}
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">
-                    {c.filament.brand.value}
-                  </label>
-                  <input
-                    className="flex h-8 w-full rounded-lg border border-border bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    placeholder={c.filament.brandPlaceholder.value}
-                    value={newPreset.brand}
-                    onChange={(e) =>
-                      setNewPreset((p) => ({ ...p, brand: e.target.value }))
-                    }
-                    list="preset-brands"
-                  />
-                  <datalist id="preset-brands">
-                    {[...new Set(filamentPresets.map((p) => p.brand))].map(
-                      (b) => (
-                        <option key={b as string} value={b as string} />
-                      ),
-                    )}
-                  </datalist>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">
-                    {c.filament.material.value}
-                  </label>
-                  <input
-                    className="flex h-8 w-full rounded-lg border border-border bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    placeholder={c.filament.materialPlaceholder.value}
-                    value={newPreset.material}
-                    onChange={(e) =>
-                      setNewPreset((p) => ({ ...p, material: e.target.value }))
-                    }
-                    list="preset-materials"
-                  />
-                  <datalist id="preset-materials">
-                    {[...new Set(filamentPresets.map((p) => p.material))].map(
-                      (m) => (
-                        <option key={m as string} value={m as string} />
-                      ),
-                    )}
-                  </datalist>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">
-                    {c.filament.colorName.value}
-                  </label>
-                  <input
-                    className="flex h-8 w-full rounded-lg border border-border bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    placeholder={c.filament.colorNamePlaceholder.value}
-                    value={newPreset.colorName}
-                    onChange={(e) =>
-                      setNewPreset((p) => ({ ...p, colorName: e.target.value }))
-                    }
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">
-                    {c.filament.colorName.value}
-                  </label>
-                  <div className="flex gap-2">
-                    <ColorPicker
-                      value={newPreset.colorHex}
-                      onChange={(color) =>
-                        setNewPreset((p) => ({ ...p, colorHex: color }))
-                      }
-                    />
-                    <div
-                      className="flex-1 rounded-lg border flex items-center justify-center text-[10px] font-mono uppercase"
-                      style={{
-                        backgroundColor: newPreset.colorHex,
-                        boxShadow: `0 0 8px ${newPreset.colorHex}`,
-                        color: "#fff",
-                        textShadow: "0 0 2px #000",
-                      }}
-                    >
-                      {newPreset.colorHex}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <Button
-                size="sm"
-                onClick={handleAddPreset}
-                disabled={
-                  savingPreset ||
-                  !newPreset.brand.trim() ||
-                  !newPreset.material.trim() ||
-                  !newPreset.colorName.trim()
-                }
-              >
-                <Plus size={13} className="mr-1.5" />
-                {savingPreset ? c.filament.adding.value : c.filament.add.value}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {filamentPresets.length === 0 ? (
-            <div className="border border-dashed rounded-lg py-8 text-center">
-              <p className="text-sm text-muted-foreground">
-                {c.filament.noPresets.value}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {[...new Set(filamentPresets.map((p) => p.brand))]
-                .sort()
-                .map((brand) => {
-                  const brandPresets = filamentPresets.filter(
-                    (p) => p.brand === brand,
-                  );
-                  const materials = [
-                    ...new Set(brandPresets.map((p) => p.material)),
-                  ].sort();
-                  return (
-                    <div key={brand as string}>
-                      <p className="text-xs font-bold text-foreground mb-1">
-                        {brand as string}
-                      </p>
-                      <div className="space-y-1 pl-2">
-                        {materials.map((material) => (
-                          <div key={material as string}>
-                            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 mb-1">
-                              {material as string}
-                            </p>
-                            <div className="flex flex-wrap gap-1.5 pl-2">
-                              {brandPresets
-                                .filter((p) => p.material === material)
-                                .map((preset) => (
-                                  <div
-                                    key={preset.id}
-                                    className="group/preset flex items-center gap-1.5 px-2 py-1 rounded-md border border-border bg-card hover:border-primary/30 transition-colors"
-                                  >
-                                    <div
-                                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                                      style={{
-                                        backgroundColor: preset.colorHex,
-                                        boxShadow: `0 0 4px ${preset.colorHex}88`,
-                                      }}
-                                    />
-                                    <span className="text-xs text-foreground">
-                                      {preset.colorName}
-                                    </span>
-                                    <button
-                                      onClick={() =>
-                                        handleDeletePreset(preset.id)
-                                      }
-                                      className="ml-1 opacity-0 group-hover/preset:opacity-100 text-destructive/40 hover:text-destructive transition-all"
-                                    >
-                                      <Trash2 size={10} />
-                                    </button>
-                                  </div>
-                                ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          )}
         </div>
       )}
 

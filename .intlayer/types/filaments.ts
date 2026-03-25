@@ -65,6 +65,6 @@ export default {
     }
   },
   "localIds": [
-    "filaments::local::src/app/[locale]/(app)/filaments/inventory.content.ts"
+    "filaments::local::_trash/filaments/inventory.content.ts"
   ]
 } as const;

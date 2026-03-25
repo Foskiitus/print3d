@@ -106,7 +106,11 @@ export function NewFilamentTypeDialog({
 
   useEffect(() => {
     if (!open) return;
-    fetch("/api/filaments/presets")
+    fetch("/api/filaments/presets", {
+      headers: {
+        "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      },
+    })
       .then((r) => r.json())
       .then((data) => (Array.isArray(data) ? setPresets(data) : setPresets([])))
       .catch(() => setPresets([]));
@@ -134,7 +138,10 @@ export function NewFilamentTypeDialog({
     try {
       const res = await fetch("/api/filaments/types", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({
           brand: form.brand,
           material: form.material,

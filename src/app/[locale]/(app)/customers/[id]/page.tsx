@@ -31,33 +31,37 @@ export default async function CustomerDetailPage({
   if (!customer || customer.userId !== userId) notFound();
 
   const productIds = [...new Set(customer.sales.map((s) => s.productId))];
-  const productionCosts = await prisma.productionLog.groupBy({
-    by: ["productId"],
-    where: { userId, productId: { in: productIds } },
-    _avg: { totalCost: true },
-  });
+  // const productionCosts = await prisma.productionLog.groupBy({
+  //   by: ["productId"],
+  //   where: { userId, productId: { in: productIds } },
+  //   _avg: { totalCost: true },
+  // });
+
+  const productionCosts = [] as any;
 
   const products = await prisma.product.findMany({
     where: { id: { in: productIds } },
   });
 
-  const costMap = Object.fromEntries(
-    productionCosts.map((p) => [
-      p.productId,
-      (p._avg.totalCost ?? 0) /
-        (products.find((pr) => pr.id === p.productId)?.unitsPerPrint ?? 1),
-    ]),
-  );
+  // const costMap = Object.fromEntries(
+  //   productionCosts.map((p) => [
+  //     p.productId,
+  //     (p._avg.totalCost ?? 0) /
+  //       (products.find((pr) => pr.id === p.productId)?.unitsPerPrint ?? 1),
+  //   ]),
+  // );
 
   const totalSpent = customer.sales.reduce(
     (s, x) => s + x.salePrice * x.quantity,
     0,
   );
   const totalUnits = customer.sales.reduce((s, x) => s + x.quantity, 0);
-  const totalProfit = customer.sales.reduce((s, x) => {
-    const cost = costMap[x.productId] ?? 0;
-    return s + (x.salePrice - cost) * x.quantity;
-  }, 0);
+  // const totalProfit = customer.sales.reduce((s, x) => {
+  //   const cost = costMap[x.productId] ?? 0;
+  //   return s + (x.salePrice - cost) * x.quantity;
+  // }, 0);
+
+  const totalProfit = 0;
 
   const productTotals = customer.sales.reduce(
     (
@@ -108,7 +112,7 @@ export default async function CustomerDetailPage({
         sales={customer.sales.map((s) => ({
           ...s,
           date: s.date.toISOString(),
-          costPerUnit: costMap[s.productId] ?? null,
+          costPerUnit: null,
           product: {
             ...s.product,
             createdAt: s.product.createdAt.toISOString(),

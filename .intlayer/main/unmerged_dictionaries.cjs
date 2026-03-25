@@ -7,8 +7,11 @@ const _emso5ztL5LEtgAyVnAvX = require('../unmerged_dictionary/export-page.json')
 const _ps9ZFm9HFdRTLZAsvp6W = require('../unmerged_dictionary/faq.json');
 const _SapIhUOzfTvKnaVJbHAk = require('../unmerged_dictionary/features.json');
 const _zoCEzh5W13NlUtPwWDIE = require('../unmerged_dictionary/filaments.json');
+const _6f0e52vBrD2x6HB7d00f = require('../unmerged_dictionary/global-filaments.json');
+const _q85WVXhnvYrPPCYkQ5kS = require('../unmerged_dictionary/inventory.json');
 const _wY7zoIvUtBURrof12YWK = require('../unmerged_dictionary/landing.json');
 const _xHyXo3luDeD2aYl5OgBK = require('../unmerged_dictionary/pricing.json');
+const _2fIQTpZROmsTqbBdqnpb = require('../unmerged_dictionary/printer-presets.json');
 const _jo2RlwwBzcmTZc4WGasb = require('../unmerged_dictionary/printers.json');
 const _yxWLeeJWBaxzhncElcWh = require('../unmerged_dictionary/privacy.json');
 const _nqa3yirDkbYRTgkYjAP0 = require('../unmerged_dictionary/production.json');
@@ -19,7 +22,6 @@ const _l13highE9gXwoMiKb99P = require('../unmerged_dictionary/sidebar.json');
 const _OHlqXu0tqVI1CPFQfafY = require('../unmerged_dictionary/sign-in.json');
 const _jlude8tJPVJZh6cw9aNf = require('../unmerged_dictionary/sign-up.json');
 const _Z5BuJT1derbpFV2NUuQe = require('../unmerged_dictionary/spool.json');
-const _vBWmUT3ah5I0cmH2Uylp = require('../unmerged_dictionary/stock.json');
 const _Wn8zRpfg86k2ysdcOCYS = require('../unmerged_dictionary/terms.json');
 const _f3VwlaoBckANDpAyqpEZ = require('../unmerged_dictionary/users.json');
 
@@ -33,8 +35,11 @@ const dictionaries = {
   "faq": _ps9ZFm9HFdRTLZAsvp6W,
   "features": _SapIhUOzfTvKnaVJbHAk,
   "filaments": _zoCEzh5W13NlUtPwWDIE,
+  "global-filaments": _6f0e52vBrD2x6HB7d00f,
+  "inventory": _q85WVXhnvYrPPCYkQ5kS,
   "landing": _wY7zoIvUtBURrof12YWK,
   "pricing": _xHyXo3luDeD2aYl5OgBK,
+  "printer-presets": _2fIQTpZROmsTqbBdqnpb,
   "printers": _jo2RlwwBzcmTZc4WGasb,
   "privacy": _yxWLeeJWBaxzhncElcWh,
   "production": _nqa3yirDkbYRTgkYjAP0,
@@ -45,7 +50,6 @@ const dictionaries = {
   "sign-in": _OHlqXu0tqVI1CPFQfafY,
   "sign-up": _jlude8tJPVJZh6cw9aNf,
   "spool": _Z5BuJT1derbpFV2NUuQe,
-  "stock": _vBWmUT3ah5I0cmH2Uylp,
   "terms": _Wn8zRpfg86k2ysdcOCYS,
   "users": _f3VwlaoBckANDpAyqpEZ
 };

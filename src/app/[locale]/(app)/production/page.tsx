@@ -1,6 +1,5 @@
 import { getAuthUserId } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { ProductionClient } from "./ProductionClient";
 import { getIntlayer } from "intlayer";
 import type { LocalesValues } from "intlayer";
@@ -26,39 +25,42 @@ export default async function ProductionPage({
   const userId = await getAuthUserId();
   if (!userId) redirect("/sign-in");
 
-  const [logs, products, printers] = await Promise.all([
-    prisma.productionLog.findMany({
-      where: { userId },
-      include: { product: true, printer: true },
-      orderBy: { date: "desc" },
-      take: 100,
-    }),
-    prisma.product.findMany({
-      where: { userId },
-      include: { filamentUsage: { include: { filamentType: true } } },
-      orderBy: { name: "asc" },
-    }),
-    prisma.printer.findMany({
-      where: { userId },
-      orderBy: { name: "asc" },
-    }),
-  ]);
+  // --- DUMMY DATA ---
+  const dummyPrinters = [
+    { id: "p1", name: "Ender 3 V3", brand: "Creality", model: "V3" },
+    { id: "p2", name: "Bambu Lab P1S", brand: "Bambu", model: "P1S" },
+  ];
 
-  const serializedLogs = logs.map((l) => ({
-    ...l,
-    date: l.date.toISOString(),
-    product: {
-      ...l.product,
-      createdAt: l.product.createdAt.toISOString(),
-      updatedAt: l.product.updatedAt.toISOString(),
+  const dummyProducts = [
+    {
+      id: "prod1",
+      name: "Articulated Dragon",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      filamentUsage: [],
     },
-  }));
+    {
+      id: "prod2",
+      name: "Tool Organizer",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      filamentUsage: [],
+    },
+  ];
 
-  const serializedProducts = products.map((p) => ({
-    ...p,
-    createdAt: p.createdAt.toISOString(),
-    updatedAt: p.updatedAt.toISOString(),
-  }));
+  const dummyLogs = [
+    {
+      id: "log1",
+      date: new Date().toISOString(),
+      quantity: 2,
+      status: "COMPLETED",
+      userId,
+      productId: "prod1",
+      printerId: "p1",
+      product: dummyProducts[0],
+      printer: dummyPrinters[0],
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -71,9 +73,9 @@ export default async function ProductionPage({
         </p>
       </div>
       <ProductionClient
-        initialLogs={serializedLogs as any}
-        products={serializedProducts as any}
-        printers={printers as any}
+        initialLogs={dummyLogs as any}
+        products={dummyProducts as any}
+        printers={dummyPrinters as any}
       />
     </div>
   );

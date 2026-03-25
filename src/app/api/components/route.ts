@@ -14,12 +14,6 @@ export async function GET() {
     const components = await prisma.component.findMany({
       where: { userId },
       orderBy: { name: "asc" },
-      include: {
-        printProfiles: {
-          orderBy: { createdAt: "desc" },
-          take: 1,
-        },
-      },
     });
 
     return NextResponse.json(components);

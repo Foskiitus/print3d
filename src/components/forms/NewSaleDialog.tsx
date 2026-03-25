@@ -46,7 +46,11 @@ export function NewSaleDialog({
 
   useEffect(() => {
     if (!open) return;
-    fetch("/api/customers")
+    fetch("/api/customers", {
+      headers: {
+        "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      },
+    })
       .then((r) => r.json())
       .then(setCustomers)
       .catch(() => {});
@@ -85,7 +89,10 @@ export function NewSaleDialog({
     try {
       const res = await fetch("/api/sales", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({
           productId,
           quantity: Number(quantity),

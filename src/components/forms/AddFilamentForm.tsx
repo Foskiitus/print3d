@@ -112,7 +112,10 @@ function SupplierInlineCreate({
     setLoading(true);
     const res = await fetch("/api/suppliers", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      },
       body: JSON.stringify({ name, url }),
     });
     if (res.ok) {
@@ -222,6 +225,11 @@ export function AddFilamentForm({
     const timer = setTimeout(async () => {
       const res = await fetch(
         `/api/filaments/catalog?q=${encodeURIComponent(query)}`,
+        {
+          headers: {
+            "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+          },
+        },
       );
       if (res.ok) setCatalogResults(await res.json());
     }, 300);
@@ -230,7 +238,11 @@ export function AddFilamentForm({
 
   // Carrega fornecedores
   useEffect(() => {
-    fetch("/api/suppliers")
+    fetch("/api/suppliers", {
+      headers: {
+        "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      },
+    })
       .then((r) => r.json())
       .then(setSuppliers)
       .catch(() => {});
@@ -264,7 +276,10 @@ export function AddFilamentForm({
     setLoading(true);
     const res = await fetch("/api/inventory", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      },
       body: JSON.stringify({
         brand,
         material,

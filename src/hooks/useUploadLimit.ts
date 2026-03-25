@@ -12,7 +12,11 @@ export function useUploadLimit() {
   const [limitMb, setLimitMb] = useState(DEFAULT_LIMIT_MB);
 
   useEffect(() => {
-    fetch("/api/settings?key=uploadLimitMb")
+    fetch("/api/settings?key=uploadLimitMb", {
+      headers: {
+        "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      },
+    })
       .then((r) => r.json())
       .then((data) => {
         const value = Number(data.value);

@@ -8,8 +8,11 @@ import _MqAEI3GkKoORrtL85iZx from './export-page.ts';
 import _UdaKx3OTBVEViF8RNHoa from './faq.ts';
 import _bjN3HENE46LzeIVkvAG0 from './features.ts';
 import _xVADsO6rjRSUgwnqIjHP from './filaments.ts';
+import _BZyj7sGACsMmV8VgW4Ss from './global-filaments.ts';
+import _jxXvCrHW4dHAvfpkUbhl from './inventory.ts';
 import _43Q0z6ER3xuiib4Wnamg from './landing.ts';
 import _ojxMqzDlNSWw5GFwY8bk from './pricing.ts';
+import _wDYuineXa2lhfS7IRRPw from './printer-presets.ts';
 import _hXu81gFlk9GWMuent1Vi from './printers.ts';
 import _pQCFfXyIYLtSjuIMBru9 from './privacy.ts';
 import _47dPUZeshLExiCR6VHj0 from './production.ts';
@@ -20,7 +23,6 @@ import _CkHvRTaefkp9BFIKha5a from './sidebar.ts';
 import _jjRT7JCkdQh3Ub1iYVJ7 from './sign-in.ts';
 import _oiqNM2vfGqw5xhMWhLpV from './sign-up.ts';
 import _s0Cap7rcltTCgSKE636A from './spool.ts';
-import _s2cWw4kLMBZ88hwsk5A4 from './stock.ts';
 import _MPDyH1wsh2zuErDCqI9Q from './terms.ts';
 import _sFvPIK9NN2exznhGG7Wi from './users.ts';
 
@@ -35,8 +37,11 @@ declare module 'intlayer' {
     "faq": typeof _UdaKx3OTBVEViF8RNHoa;
     "features": typeof _bjN3HENE46LzeIVkvAG0;
     "filaments": typeof _xVADsO6rjRSUgwnqIjHP;
+    "global-filaments": typeof _BZyj7sGACsMmV8VgW4Ss;
+    "inventory": typeof _jxXvCrHW4dHAvfpkUbhl;
     "landing": typeof _43Q0z6ER3xuiib4Wnamg;
     "pricing": typeof _ojxMqzDlNSWw5GFwY8bk;
+    "printer-presets": typeof _wDYuineXa2lhfS7IRRPw;
     "printers": typeof _hXu81gFlk9GWMuent1Vi;
     "privacy": typeof _pQCFfXyIYLtSjuIMBru9;
     "production": typeof _47dPUZeshLExiCR6VHj0;
@@ -47,7 +52,6 @@ declare module 'intlayer' {
     "sign-in": typeof _jjRT7JCkdQh3Ub1iYVJ7;
     "sign-up": typeof _oiqNM2vfGqw5xhMWhLpV;
     "spool": typeof _s0Cap7rcltTCgSKE636A;
-    "stock": typeof _s2cWw4kLMBZ88hwsk5A4;
     "terms": typeof _MPDyH1wsh2zuErDCqI9Q;
     "users": typeof _sFvPIK9NN2exznhGG7Wi;
   }

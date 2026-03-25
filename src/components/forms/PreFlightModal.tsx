@@ -320,7 +320,11 @@ export function PreFlightModal({
   const [apiMessage, setApiMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/products?withProfiles=1")
+    fetch("/api/products?withProfiles=1", {
+      headers: {
+        "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      },
+    })
       .then((r) => r.json())
       .then((data) => {
         setProducts(data);
@@ -351,7 +355,10 @@ export function PreFlightModal({
 
       const res = await fetch(`/api/printers/${printerId}/preflight/analyze`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify(body),
       });
       const data = await res.json();
@@ -393,7 +400,10 @@ export function PreFlightModal({
 
       const res = await fetch(`/api/printers/${printerId}/preflight/dispatch`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({
           productId: selectedProduct?.id ?? null,
           profileId: selectedProfile?.id ?? null,

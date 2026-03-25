@@ -42,7 +42,10 @@ export function NewPresetDialog({ onCreated }: { onCreated: () => void }) {
     try {
       const res = await fetch("/api/printers/presets", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({
           name: form.name,
           hourlyCost: Number(form.hourlyCost),

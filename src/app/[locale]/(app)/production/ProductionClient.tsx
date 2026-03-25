@@ -50,7 +50,11 @@ export function ProductionClient({
   const [saving, setSaving] = useState(false);
 
   const refresh = useCallback(() => {
-    fetch("/api/production")
+    fetch("/api/production", {
+      headers: {
+        "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+      },
+    })
       .then((r) => r.json())
       .then(setLogs);
   }, []);
@@ -79,7 +83,10 @@ export function ProductionClient({
 
       const res = await fetch(`/api/production/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
         body: JSON.stringify({
           printTime: printTime > 0 ? printTime : null,
           notes: editForm.notes.trim() || null,
@@ -106,7 +113,12 @@ export function ProductionClient({
   const handleDelete = async (id: string) => {
     if (!confirm(c.toast.confirmDelete.value)) return;
     try {
-      const res = await fetch(`/api/production/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/production/${id}`, {
+        method: "DELETE",
+        headers: {
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       toast({ title: c.toast.deleted.value });
