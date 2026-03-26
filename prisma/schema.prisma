@@ -32,12 +32,13 @@ model User {
   categories        Category[]
   extras            Extra[]
   products          Product[]
-  components        Component[]         // peças reutilizáveis
-  productionOrders  ProductionOrder[]   // ordens de produção
+  components        Component[]
+  productionOrders  ProductionOrder[]
   printJobs         PrintJob[]
   sales             Sale[]
   printProfiles     PrintProfile[]
   settings          Settings[]
+  productStock      ProductStock[]      // ← novo: stock de produto acabado
 }
 
 //////////////////////////////////////////////////////////
@@ -150,7 +151,7 @@ model Printer {
   acquiredAt        DateTime?
   status            String    @default("idle")
 
-  apiType           String?   // "octoprint" | "moonraker" | "bambu"
+  apiType           String?
   apiUrl            String?
   apiKey            String?
 
@@ -290,7 +291,7 @@ model Category {
 }
 
 //////////////////////////////////////////////////////////
-// PRODUCTS (o que vendes — produto final)
+// PRODUCTS
 //////////////////////////////////////////////////////////
 
 model Product {
@@ -309,16 +310,35 @@ model Product {
   user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   category   Category?      @relation(fields: [categoryId], references: [id])
   extras     ProductExtra[]
-  bom        ProductBOM[]   // lista de materiais (componentes)
+  bom        ProductBOM[]
   orderItems OrderItem[]
   sales      Sale[]
+  stock      ProductStock?  // ← novo: stock de produto acabado (1:1)
+}
+
+//////////////////////////////////////////////////////////
+// PRODUCT STOCK (Produto Acabado)
+//
+// Stock de unidades de produto final prontas para venda.
+// Incrementado pela conclusão da OP; decrementado pelas vendas.
+//////////////////////////////////////////////////////////
+
+model ProductStock {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String   @unique
+  quantity  Int      @default(0)
+  reserved  Int      @default(0)  // unidades reservadas para vendas pendentes
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 //////////////////////////////////////////////////////////
 // COMPONENTS (peças reutilizáveis — semiacabados)
-//
-// Uma Component é uma peça física que pode ser usada em vários produtos.
-// Ex: "Base Redonda 10cm" usada em "Candeeiro A" e "Candeeiro B".
 //////////////////////////////////////////////////////////
 
 model Component {
@@ -329,11 +349,10 @@ model Component {
   imageUrl    String?
   imageKey    String?
 
-  // Flags de risco — lidas pelo Planeador para gerar avisos
-  requiresAdapter   Boolean  @default(false) // bobine não-standard, precisa de adaptador físico
-  specialHandling   String?  // nota livre: ex: "TPU — desligar o AMS retractor"
-  defaultMaterial   String?  // ex: "PLA", "PETG" — para sugestão no planeador
-  defaultColorHex   String?  // ex: "#000000"
+  requiresAdapter   Boolean  @default(false)
+  specialHandling   String?
+  defaultMaterial   String?
+  defaultColorHex   String?
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -341,24 +360,21 @@ model Component {
   user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   bom          ProductBOM[]
   profiles     ComponentPrintProfile[]
-  stock        ComponentStock?         // stock de unidades impressas (1:1)
+  stock        ComponentStock?
   jobItems     PrintJobItem[]
 
   @@index([userId])
 }
 
 //////////////////////////////////////////////////////////
-// PRODUCT BOM (Bill of Materials — tabela many-to-many)
-//
-// Liga Produtos a Componentes com quantidade.
-// Ex: "Estátua XPTO" = 1x Cabeça + 1x Corpo + 1x Base
+// PRODUCT BOM (Bill of Materials)
 //////////////////////////////////////////////////////////
 
 model ProductBOM {
   id          String @id @default(cuid())
   productId   String
   componentId String
-  quantity    Int    @default(1)   // quantas unidades deste componente por produto
+  quantity    Int    @default(1)
 
   product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
   component Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
@@ -370,25 +386,17 @@ model ProductBOM {
 
 //////////////////////////////////////////////////////////
 // COMPONENT PRINT PROFILES
-//
-// Cada componente pode ter um ou mais perfis de impressão (.3mf).
-// Ex: "Base Redonda 10cm" tem perfis para PLA Preto e PLA Branco.
 //////////////////////////////////////////////////////////
 
 model ComponentPrintProfile {
   id           String   @id @default(cuid())
   componentId  String
-  name         String                          // ex: "Vaso Single", "Vaso Multi-9"
+  name         String
   filePath     String
   slicer       String?
-  printTime    Int?                            // minutos para imprimir este lote
-  filamentUsed Float?                          // gramas totais para este lote
-
-  // Receita de produção — quantas unidades saem desta impressão
-  // batchSize=1 → individual; batchSize=9 → lote de 9
-  // Custo unitário real = filamentUsed / batchSize
+  printTime    Int?
+  filamentUsed Float?
   batchSize    Int      @default(1)
-
   createdAt    DateTime @default(now())
 
   component    Component              @relation(fields: [componentId], references: [id], onDelete: Cascade)
@@ -400,19 +408,15 @@ model ComponentPrintProfile {
 
 //////////////////////////////////////////////////////////
 // PROFILE FILAMENT REQUIREMENTS
-//
-// Os filamentos exigidos por um perfil de impressão.
-// Extraídos do .3mf ou inseridos manualmente.
-// Ex: "Base v2 - PLA Preto" precisa de 30g de PLA #000000
 //////////////////////////////////////////////////////////
 
 model ProfileFilamentReq {
   id          String  @id @default(cuid())
   profileId   String
-  material    String                  // ex: "PLA"
-  colorHex    String?                 // ex: "#000000"
-  colorName   String?                 // ex: "Black"
-  estimatedG  Float                   // gramas estimadas
+  material    String
+  colorHex    String?
+  colorName   String?
+  estimatedG  Float
 
   profile ComponentPrintProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
@@ -420,10 +424,7 @@ model ProfileFilamentReq {
 }
 
 //////////////////////////////////////////////////////////
-// COMPONENT STOCK
-//
-// Stock de unidades de componente já impressas (semiacabados).
-// Ex: 20 unidades de "Base Redonda 10cm" em prateleira.
+// COMPONENT STOCK (semiacabados)
 //////////////////////////////////////////////////////////
 
 model ComponentStock {
@@ -435,7 +436,7 @@ model ComponentStock {
 
   component Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
 
-  @@unique([componentId])  // um registo por componente
+  @@unique([componentId])
 }
 
 //////////////////////////////////////////////////////////
@@ -443,14 +444,14 @@ model ComponentStock {
 //////////////////////////////////////////////////////////
 
 model Extra {
-  id          String  @id @default(cuid())
-  userId      String
-  name        String
-  description String?
-  price       Float
-  unit        String?
-  category       String?  @default("hardware")
-  quantity       Float    @default(0)
+  id             String  @id @default(cuid())
+  userId         String
+  name           String
+  description    String?
+  price          Float
+  unit           String?
+  category       String? @default("hardware")
+  quantity       Float   @default(0)
   alertThreshold Float?
 
   user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -469,40 +470,39 @@ model ProductExtra {
 
 //////////////////////////////////////////////////////////
 // PRODUCTION ORDER (Ordem de Produção)
-//
-// Contentor de necessidades que agrega vários produtos.
-// A OP "explode" nos PrintJobs necessários para cada componente.
 //////////////////////////////////////////////////////////
 
 model ProductionOrder {
-  id         String   @id @default(cuid())
-  userId     String
-  reference  String                    // ex: "OP-2026-001" (gerado auto ou manual)
-  notes      String?
-  status     String   @default("draft")
-  // "draft"      → em criação
-  // "pending"    → aguarda impressão
-  // "in_progress"→ impressão a decorrer
-  // "assembly"   → peças prontas, a aguardar montagem
-  // "done"       → produto final pronto para stock
+  id           String   @id @default(cuid())
+  userId       String
+  reference    String
+  notes        String?
+  status       String   @default("draft")
+  // "draft"       → em criação
+  // "pending"     → aguarda impressão
+  // "in_progress" → impressão a decorrer
+  // "assembly"    → peças prontas, a aguardar montagem
+  // "done"        → produto final creditado no stock
   // "cancelled"
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  // ← novo: ligação à venda que originou esta OP (se aplicável)
+  salesOrderId String?  @unique
 
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items     OrderItem[] // produtos e quantidades nesta ordem
-  printJobs PrintJob[]  // trabalhos de impressão gerados
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  salesOrder Sale?       @relation(fields: [salesOrderId], references: [id], onDelete: SetNull)
+  items      OrderItem[]
+  printJobs  PrintJob[]
 
   @@index([userId])
   @@index([status])
+  @@index([salesOrderId])
 }
 
 //////////////////////////////////////////////////////////
 // ORDER ITEM
-//
-// Um produto (e quantidade) dentro de uma Ordem de Produção.
-// Ex: 3x "Estátua XPTO" + 2x "Porta-chaves"
 //////////////////////////////////////////////////////////
 
 model OrderItem {
@@ -510,8 +510,6 @@ model OrderItem {
   orderId   String
   productId String
   quantity  Int
-
-  // Estado de conclusão (quantas unidades deste produto já estão prontas)
   completed Int    @default(0)
 
   order   ProductionOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -521,37 +519,26 @@ model OrderItem {
 }
 
 //////////////////////////////////////////////////////////
-// PRINT JOB (Trabalho de Impressão)
-//
-// Um único trabalho de impressão para um componente específico.
-// Gerado pela explosão da Ordem de Produção.
-// Pode ser para qualquer impressora disponível.
+// PRINT JOB
 //////////////////////////////////////////////////////////
 
 model PrintJob {
   id        String   @id @default(cuid())
   userId    String
-  orderId   String?                     // OP de origem (null = job avulso)
+  orderId   String?
   printerId String
   status    String   @default("pending")
-  // "pending"   → na fila
-  // "printing"  → a imprimir agora
-  // "done"      → concluído com sucesso
-  // "failed"    → falhou (vai para re-fila)
-  // "cancelled"
+  // "pending" | "printing" | "done" | "failed" | "cancelled"
 
-  // Metadados
   notes            String?
   estimatedMinutes Int?
-  quantity         Int      @default(1)   // quantas unidades deste job
+  quantity         Int      @default(1)
 
-  // Custos calculados no dispatch
   filamentCost     Float?
   electricityCost  Float?
   printerCost      Float?
   totalCost        Float?
 
-  // Integração externa
   externalJobId    String?
   apiDispatched    Boolean  @default(false)
 
@@ -563,8 +550,8 @@ model PrintJob {
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   order     ProductionOrder? @relation(fields: [orderId], references: [id])
   printer   Printer          @relation(fields: [printerId], references: [id])
-  items     PrintJobItem[]   // componentes a imprimir neste job
-  materials PrintJobMaterial[] // rolos e slots usados
+  items     PrintJobItem[]
+  materials PrintJobMaterial[]
 
   @@index([userId])
   @@index([orderId])
@@ -574,26 +561,18 @@ model PrintJob {
 
 //////////////////////////////////////////////////////////
 // PRINT JOB ITEM
-//
-// Um componente dentro de um PrintJob.
-// Um job pode imprimir vários componentes na mesma bandeja.
-// Ex: "Mesa 1 (Corpo)" + "Mesa 1 (Base)" na mesma impressão.
 //////////////////////////////////////////////////////////
 
 model PrintJobItem {
   id          String  @id @default(cuid())
   jobId       String
   componentId String
-  profileId   String?  // perfil .3mf específico usado
+  profileId   String?
   quantity    Int      @default(1)
 
-  // Resultado
   status      String   @default("pending")
-  // "pending" | "done" | "failed"
-  failedUnits Int      @default(0)     // quantas falharam neste item
-
-  // Para rateio de custos entre componentes do mesmo job
-  costShare   Float?   // % do custo total imputado a este componente
+  failedUnits Int      @default(0)
+  costShare   Float?
 
   job       PrintJob               @relation(fields: [jobId], references: [id], onDelete: Cascade)
   component Component              @relation(fields: [componentId], references: [id])
@@ -605,10 +584,6 @@ model PrintJobItem {
 
 //////////////////////////////////////////////////////////
 // PRINT JOB MATERIAL
-//
-// Liga cada requisito de filamento ao slot e rolo usados.
-// Permite rateio: se 2 componentes partilham a mesma impressão,
-// o custo do filamento é dividido proporcionalmente.
 //////////////////////////////////////////////////////////
 
 model PrintJobMaterial {
@@ -617,11 +592,11 @@ model PrintJobMaterial {
   slotId     String?
   spoolId    String?
 
-  material   String          // ex: "PLA"
+  material   String
   colorHex   String?
   colorName  String?
   estimatedG Float
-  actualG    Float?          // preenchido no fim da impressão
+  actualG    Float?
   matchScore Int    @default(100)
 
   job   PrintJob           @relation(fields: [jobId], references: [id], onDelete: Cascade)
@@ -639,7 +614,7 @@ model GlobalFilament {
   brand       String
   material    String
   colorName   String
-  colorCode   String?  // ex: "11101" — código numérico/alfanumérico da cor
+  colorCode   String?
   colorHex    String
   spoolWeight Float
   density     Float?
@@ -651,7 +626,7 @@ model GlobalFilament {
 }
 
 //////////////////////////////////////////////////////////
-// SALES
+// SALES (Encomenda de Cliente / Sales Order)
 //////////////////////////////////////////////////////////
 
 model Sale {
@@ -665,9 +640,21 @@ model Sale {
   date         DateTime @default(now())
   customerId   String?
 
-  customer Customer? @relation(fields: [customerId], references: [id])
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product  Product   @relation(fields: [productId], references: [id])
+  // ← novo: estado da encomenda
+  status       String   @default("pending")
+  // "pending"          → aguarda produção (stock insuficiente, OP gerada)
+  // "ready_to_ship"    → stock reservado, pronta a enviar
+  // "shipped"          → enviada
+  // "fulfilled"        → concluída
+  // "cancelled"
+
+  customer Customer?       @relation(fields: [customerId], references: [id])
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product  Product         @relation(fields: [productId], references: [id])
+  productionOrder ProductionOrder? // ← novo: OP vinculada (via salesOrderId na OP)
+
+  @@index([userId])
+  @@index([status])
 }
 
 //////////////////////////////////////////////////////////
@@ -705,8 +692,7 @@ model Settings {
 }
 
 //////////////////////////////////////////////////////////
-// PRINT PROFILES (legado — mantido para compatibilidade)
-// Para novos componentes usa ComponentPrintProfile
+// PRINT PROFILES (legado)
 //////////////////////////////////////////////////////////
 
 model PrintProfile {

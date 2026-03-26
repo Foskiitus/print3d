@@ -63,8 +63,11 @@ export interface FinishedGood {
   name: string;
   imageUrl: string | null;
   category: { id: string; name: string } | null;
-  stockQty: number;
   margin: number;
+  alertThreshold: number | null; // nível de stock para aviso de reposição
+  stockQty: number; // ProductStock.quantity (0 se sem registo)
+  reserved: number; // unidades reservadas para encomendas pendentes
+  available: number; // calculado: stockQty - reserved (nunca negativo)
 }
 
 interface InventoryPageClientProps {
@@ -133,7 +136,8 @@ export function InventoryPageClient({
       key: "finishedGoods",
       label: c.tabs.finishedGoods.value,
       icon: Package,
-      count: finishedGoods.length,
+      // Mostra unidades disponíveis (livres) em vez de número de produtos
+      count: finishedGoods.reduce((sum, g) => sum + g.available, 0),
     },
   ];
 

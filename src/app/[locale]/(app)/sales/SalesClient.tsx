@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { SearchableSelect } from "@/components/ui/searchableSelect";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -25,6 +26,9 @@ import {
   ShoppingCart,
   TrendingUp,
   Receipt,
+  ClipboardList,
+  PackageCheck,
+  Clock,
 } from "lucide-react";
 import { toast } from "@/components/ui/toaster";
 import { refreshAlerts } from "@/lib/refreshAlerts";
@@ -49,6 +53,64 @@ function formatDate(date: string | Date) {
     year: "numeric",
   });
 }
+
+// ─── Sale status badge ────────────────────────────────────────────────────────
+
+const SALE_STATUS_CONFIG: Record<
+  string,
+  { label: string; color: string; bg: string; icon: React.ElementType }
+> = {
+  pending: {
+    label: "Aguarda Produção",
+    color: "text-amber-600",
+    bg: "bg-amber-500/10 border-amber-500/20",
+    icon: Clock,
+  },
+  ready_to_ship: {
+    label: "Pronta a Enviar",
+    color: "text-emerald-600",
+    bg: "bg-emerald-500/10 border-emerald-500/20",
+    icon: PackageCheck,
+  },
+  shipped: {
+    label: "Enviada",
+    color: "text-blue-600",
+    bg: "bg-blue-500/10 border-blue-500/20",
+    icon: ShoppingCart,
+  },
+  fulfilled: {
+    label: "Concluída",
+    color: "text-muted-foreground",
+    bg: "bg-muted/40 border-border",
+    icon: Check,
+  },
+  cancelled: {
+    label: "Cancelada",
+    color: "text-destructive",
+    bg: "bg-destructive/10 border-destructive/20",
+    icon: X,
+  },
+};
+
+function SaleStatusBadge({ status }: { status: string }) {
+  const cfg = SALE_STATUS_CONFIG[status];
+  if (!cfg) return null;
+  const Icon = cfg.icon;
+  return (
+    <Badge
+      className={cn(
+        "text-[10px] px-2 py-0 border flex items-center gap-1 w-fit",
+        cfg.bg,
+        cfg.color,
+      )}
+    >
+      <Icon size={9} />
+      {cfg.label}
+    </Badge>
+  );
+}
+
+// ─── SalesClient ──────────────────────────────────────────────────────────────
 
 export function SalesClient({
   initialSales,
@@ -216,6 +278,9 @@ export function SalesClient({
     return s + (x.salePrice - costPerUnit) * x.quantity;
   }, 0);
 
+  // Contagem de vendas pendentes (aguardam produção)
+  const pendingCount = sales.filter((s) => s.status === "pending").length;
+
   function SortButton({ col }: { col: SortKey }) {
     return (
       <button
@@ -277,6 +342,25 @@ export function SalesClient({
         ))}
       </div>
 
+      {/* Aviso de encomendas a aguardar produção */}
+      {pendingCount > 0 && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-amber-500/30 bg-amber-500/5 text-amber-700">
+          <ClipboardList size={15} className="flex-shrink-0" />
+          <p className="text-sm">
+            <span className="font-semibold">{pendingCount}</span>{" "}
+            {pendingCount === 1
+              ? "encomenda aguarda produção — uma OP foi gerada automaticamente."
+              : "encomendas aguardam produção — OPs foram geradas automaticamente."}
+          </p>
+          <a
+            href="../production"
+            className="ml-auto text-xs font-medium underline underline-offset-2 flex-shrink-0"
+          >
+            Ver produção →
+          </a>
+        </div>
+      )}
+
       {/* ── Search + button ── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-xs">
@@ -323,6 +407,21 @@ export function SalesClient({
                           <> · {sale.customer?.name ?? sale.customerName}</>
                         )}
                       </p>
+                      {/* Status badge no mobile */}
+                      {sale.status && sale.status !== "fulfilled" && (
+                        <div className="mt-1">
+                          <SaleStatusBadge status={sale.status} />
+                        </div>
+                      )}
+                      {/* Link para a OP gerada (se existir) */}
+                      {sale.productionOrder && (
+                        <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                          <ClipboardList size={9} />
+                          OP {sale.productionOrder.reference}
+                          {" · "}
+                          {sale.productionOrder.status}
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0 ml-auto">
                       <Button
@@ -406,6 +505,9 @@ export function SalesClient({
                   <p className="text-xs text-muted-foreground">
                     {formatDate(mobileEditSale.date)}
                   </p>
+                  {mobileEditSale.status && (
+                    <SaleStatusBadge status={mobileEditSale.status} />
+                  )}
                   {(() => {
                     const p = productsList.find(
                       (p) => p.id === mobileEditSale.productId,
@@ -544,6 +646,10 @@ export function SalesClient({
                       {c.table.customer.value} <SortButton col="customerName" />
                     </span>
                   </th>
+                  {/* Coluna Estado — nova */}
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+                    Estado
+                  </th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-widest">
                     {c.table.qty.value}
                   </th>
@@ -624,6 +730,21 @@ export function SalesClient({
                             {sale.customer?.name ?? sale.customerName ?? "—"}
                           </span>
                         )}
+                      </td>
+
+                      {/* Estado + link para OP */}
+                      <td className="px-4 py-3">
+                        <div className="space-y-1">
+                          <SaleStatusBadge
+                            status={sale.status ?? "fulfilled"}
+                          />
+                          {sale.productionOrder && (
+                            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                              <ClipboardList size={9} />
+                              {sale.productionOrder.reference}
+                            </p>
+                          )}
+                        </div>
                       </td>
 
                       {/* Quantity */}
@@ -763,7 +884,7 @@ export function SalesClient({
                 {filtered.length === 0 && (
                   <tr>
                     <td
-                      colSpan={9}
+                      colSpan={10}
                       className="px-4 py-12 text-center text-muted-foreground text-sm"
                     >
                       {search

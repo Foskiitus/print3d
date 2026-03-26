@@ -10,7 +10,7 @@ import { PlannerTab } from "./tabs/PlannerTab";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-// ─── Types (partilhados entre tabs) ──────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface FilamentReq {
   id: string;
@@ -114,6 +114,17 @@ export interface ProductionOrder {
   notes: string | null;
   createdAt: string;
   updatedAt: string;
+  // ← novo: se a OP foi gerada automaticamente a partir de uma venda
+  salesOrderId: string | null;
+  salesOrder?: {
+    id: string;
+    status: string;
+    quantity: number;
+    salePrice: number;
+    product: { name: string };
+    customer: { name: string } | null;
+    customerName: string | null;
+  } | null;
   items: OrderItem[];
   printJobs: PrintJob[];
 }
@@ -190,27 +201,32 @@ export function ProductionPageClient({
     if (res.ok) setOrders(await res.json());
   };
 
-  // Ordens ativas (não concluídas nem canceladas) para o planeador
+  // Ordens ativas (não concluídas nem canceladas) → tab Ordens e Planeador
   const activeOrders = orders.filter(
     (o) => !["done", "cancelled"].includes(o.status),
   );
 
-  // Histórico (concluídas + canceladas)
+  // Histórico: OPs done ou cancelled — preservadas no sistema
   const historyOrders = orders.filter((o) =>
     ["done", "cancelled"].includes(o.status),
   );
+
+  // Contagem de OPs vinculadas a encomendas de cliente (urgentes)
+  const linkedToSaleCount = activeOrders.filter((o) => o.salesOrderId).length;
 
   const tabs: {
     key: Tab;
     label: string;
     icon: React.ElementType;
     count?: number;
+    urgent?: boolean;
   }[] = [
     {
       key: "orders",
       label: c.tabs.orders.value,
       icon: ClipboardList,
       count: activeOrders.length,
+      urgent: linkedToSaleCount > 0,
     },
     {
       key: "planner",
@@ -239,7 +255,7 @@ export function ProductionPageClient({
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-border">
-        {tabs.map(({ key, label, icon: Icon, count }) => (
+        {tabs.map(({ key, label, icon: Icon, count, urgent }) => (
           <button
             key={key}
             onClick={() => setActiveTab(key)}
@@ -263,6 +279,10 @@ export function ProductionPageClient({
               >
                 {count}
               </span>
+            )}
+            {/* Ponto laranja se há OPs de encomenda de cliente */}
+            {urgent && activeTab !== key && (
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
             )}
           </button>
         ))}

@@ -44,6 +44,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
     "dotenv": "^16.6.1",
+    "html5-qrcode": "^2.3.8",
     "intlayer": "^8.4.6",
     "jszip": "^3.10.1",
     "lucide-react": "^0.577.0",
