@@ -230,12 +230,11 @@ function SlotConfigModal({
   // Ref do elemento de vídeo para BarcodeDetector nativo
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  if (!part || !printer) return null;
+  // NOTE: early return moved AFTER all hooks (Rules of Hooks)
+  const batchSize = part?.profile?.batchSize ?? 1;
+  const requirements: FilamentReq[] = part?.profile?.filaments ?? [];
 
-  const batchSize = part.profile?.batchSize ?? 1;
-  const requirements: FilamentReq[] = part.profile?.filaments ?? [];
-
-  const allSlots = printer.units.flatMap((u: PrinterUnit) =>
+  const allSlots = (printer?.units ?? []).flatMap((u: PrinterUnit) =>
     u.slots.map((s: PrinterSlot) => ({ ...s, unitName: u.name })),
   );
 
@@ -283,7 +282,7 @@ function SlotConfigModal({
     setPersisting((prev) => ({ ...prev, [slotId]: true }));
     if (!printer) return;
     try {
-      const res = await fetch(`${SITE_URL}/api/printers/${printer.id}/slots`, {
+      const res = await fetch(`${SITE_URL}/api/printers/${printer?.id}/slots`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -418,6 +417,8 @@ function SlotConfigModal({
     }
   }
 
+  // All hooks have been called — now safe to do conditional returns
+  if (!part || !printer) return null;
   if (!open) return null;
 
   return (
@@ -856,7 +857,7 @@ function PendingPartCard({
               {profile.filamentUsed}g
             </span>
           )}
-          {profile.filaments.slice(0, 3).map((f, i) => (
+          {profile.filaments.slice(0, 6).map((f, i) => (
             <span key={i} className="flex items-center gap-0.5">
               <div
                 className="w-2 h-2 rounded-full"

@@ -69,6 +69,7 @@ model InventoryItem {
   brand            String
   material         String
   colorName        String
+  colorCode        String?
   colorHex         String   @default("#3b82f6")
   globalFilamentId String?
   alertThreshold   Float?

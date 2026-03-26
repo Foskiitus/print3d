@@ -122,6 +122,7 @@ function SpoolCard({
               )}
             </div>
             <p className="text-xs text-muted-foreground truncate">
+              {purchase.item.colorCode ? ` ${purchase.item.colorCode}` : ""}{" "}
               {purchase.item.colorName}
             </p>
             <p className="text-[10px] text-muted-foreground/60 font-mono mt-0.5">
@@ -194,6 +195,7 @@ export function FilamentsTab({
         p.item.brand.toLowerCase().includes(q) ||
         p.item.material.toLowerCase().includes(q) ||
         p.item.colorName.toLowerCase().includes(q) ||
+        p.item.colorCode?.toLowerCase().includes(q) ||
         p.qrCodeId.toLowerCase().includes(q);
       const matchMaterial =
         !filterMaterial || p.item.material === filterMaterial;

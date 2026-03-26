@@ -18,6 +18,7 @@ export interface InventoryItem {
   material: string;
   colorName: string;
   colorHex: string;
+  colorCode: string | null;
   globalFilamentId: string | null;
   alertThreshold: number | null;
 }

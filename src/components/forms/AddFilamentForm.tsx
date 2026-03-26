@@ -308,6 +308,7 @@ export function AddFilamentForm({
         material,
         colorName,
         colorHex,
+        colorCode,
         globalFilamentId: selectedGlobal?.id ?? null,
         supplierId: supplierId || null,
         initialWeight: Number(initialWeight),
