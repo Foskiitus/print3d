@@ -321,32 +321,12 @@ function SlotConfigModal({
       if (!activeScanSlotId) return;
       const slotId = activeScanSlotId;
 
+      alert("Câmara leu: [" + spoolId + "]");
+
       // Procurar a bobine pelo qrCodeId (o ID extraído do QR)
       const spool = availableSpools.find(
         (s) => s.qrCodeId.toUpperCase() === spoolId.toUpperCase(),
       );
-
-      if (spool) {
-        handleSlotChange(slotId, spool.id);
-
-        // CORREÇÃO AQUI: Em vez de true, passamos o objeto que o TS espera
-        setScanFlash((prev) => ({ ...prev, [slotId]: "ok" }));
-
-        setTimeout(() => {
-          setScanFlash((prev) => ({ ...prev, [slotId]: null }));
-        }, 500);
-
-        toast({
-          title: "Sucesso",
-          description: `Spool encontrado e atribuído!`,
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Erro na leitura",
-          description: `Lido: "${spoolId}". Verifique se o QR Code existe no inventário.`,
-        });
-      }
 
       if (!spool) {
         setScanFlash((prev) => ({ ...prev, [slotId]: "error" }));
