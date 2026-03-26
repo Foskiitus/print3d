@@ -9,6 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ColorPicker } from "@/components/ui/colorPicker";
 import QRCode from "qrcode";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import { Label } from "../ui/label";
+import { SearchableSelect } from "@/components/ui/searchableSelect";
+import { getUniqueMaterials } from "@/app/actions/filaments";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -44,6 +54,9 @@ interface CreatedPurchase {
 
 const MATERIALS = [
   "PLA",
+  "PLA+",
+  "PETG Basic",
+  "PLA-CF",
   "PETG",
   "ABS",
   "ASA",
@@ -145,7 +158,7 @@ function SupplierInlineCreate({
   return (
     <form
       onSubmit={handleSubmit}
-      className="mt-2 p-3 rounded-lg border border-theme/40 bg-dark-surface space-y-2"
+      className="mt-2 p-3 rounded-lg border border-theme/40 dark:bg-dark-surface space-y-2"
     >
       <div className="flex items-center justify-between mb-1">
         <span className="text-xs font-medium text-theme">Novo fornecedor</span>
@@ -202,6 +215,7 @@ export function AddFilamentForm({
   const [colorName, setColorName] = useState("");
   const [colorCode, setColorCode] = useState<string | null>(null);
   const [colorHex, setColorHex] = useState("#3b82f6");
+  const [dynamicMaterials, setDynamicMaterials] = useState<string[]>([]);
 
   // Step 2 — Compra
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -248,6 +262,13 @@ export function AddFilamentForm({
       .then((r) => r.json())
       .then(setSuppliers)
       .catch(() => {});
+
+    const fetchMaterials = async () => {
+      const data = await getUniqueMaterials();
+      // Se a lista estiver vazia, podes definir um fallback ou manter vazio
+      setDynamicMaterials(data.length > 0 ? data : ["PLA", "PETG", "ABS"]);
+    };
+    fetchMaterials();
   }, []);
 
   const selectFromCatalog = (item: GlobalFilament) => {
@@ -422,14 +443,14 @@ export function AddFilamentForm({
             </label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-navy-400 pointer-events-none" />
-              <input
+              <Input
                 value={query}
                 onChange={(e) => {
                   setQuery(e.target.value);
                   if (selectedGlobal) clearCatalog();
                 }}
                 placeholder={c.searchPlaceholder}
-                className="w-full pl-9 pr-9 py-2.5 rounded-lg border border-theme/40 bg-dark-surface text-sm text-theme placeholder:text-dark-subtle focus:outline-none focus:border-brand-500/60 transition-colors"
+                className="w-full pl-9 pr-9 py-2.5 rounded-lg border border-theme/40 text-sm  placeholder:text-dark-subtle focus:outline-none focus:border-brand-500/60 transition-colors"
               />
               {query && (
                 <button
@@ -442,7 +463,7 @@ export function AddFilamentForm({
               )}
             </div>
             {catalogResults.length > 0 && (
-              <div className="rounded-lg border border-theme/40 bg-dark-surface overflow-hidden shadow-lg">
+              <div className="rounded-lg border border-theme/40  overflow-hidden shadow-lg">
                 {catalogResults.map((item) => (
                   <button
                     key={item.id}
@@ -498,31 +519,30 @@ export function AddFilamentForm({
               <label className="text-sm font-medium text-navy-300">
                 {c.brand}
               </label>
-              <input
+              <Input
                 value={brand}
                 onChange={(e) => setBrand(e.target.value)}
                 disabled={!!selectedGlobal}
                 placeholder="Bambu Lab"
                 required
-                className="w-full px-3 py-2 rounded-lg border border-theme/40 bg-dark-surface text-sm text-theme placeholder:text-dark-subtle focus:outline-none focus:border-brand-500/60 disabled:opacity-50 transition-colors"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-navy-300">
+              <Label className="text-sm font-medium text-navy-300">
                 {c.material}
-              </label>
-              <select
+              </Label>
+              <SearchableSelect
+                options={dynamicMaterials.map((m) => ({
+                  value: m,
+                  label: m,
+                }))}
                 value={material}
-                onChange={(e) => setMaterial(e.target.value)}
+                onValueChange={(val) => setMaterial(val)}
                 disabled={!!selectedGlobal}
-                className="w-full px-3 py-2 rounded-lg border border-theme/40 bg-dark-surface text-sm text-theme focus:outline-none focus:border-brand-500/60 disabled:opacity-50 transition-colors"
-              >
-                {MATERIALS.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
+                placeholder="Selecionar material..."
+                searchPlaceholder="Procurar material (ex: PLA, PETG...)"
+                emptyText="Material não encontrado."
+              />
             </div>
           </div>
 
@@ -531,13 +551,13 @@ export function AddFilamentForm({
               <label className="text-sm font-medium text-navy-300">
                 {c.colorName}
               </label>
-              <input
+              <Input
                 value={colorName}
                 onChange={(e) => setColorName(e.target.value)}
                 disabled={!!selectedGlobal}
                 placeholder="White"
                 required
-                className="w-full px-3 py-2 rounded-lg border border-theme/40 bg-dark-surface text-sm text-theme placeholder:text-dark-subtle focus:outline-none focus:border-brand-500/60 disabled:opacity-50 transition-colors"
+                className="w-full px-3 py-2 rounded-lg border border-theme/40  text-sm placeholder:text-dark-subtle focus:outline-none focus:border-brand-500/60 disabled:opacity-50 transition-colors"
               />
             </div>
             <div className="space-y-1.5">
@@ -545,12 +565,12 @@ export function AddFilamentForm({
                 Código da cor{" "}
                 <span className="text-dark-subtle font-normal">(opcional)</span>
               </label>
-              <input
+              <Input
                 value={colorCode ?? ""}
                 onChange={(e) => setColorCode(e.target.value || null)}
                 disabled={!!selectedGlobal}
                 placeholder="ex: 11101"
-                className="w-full px-3 py-2 rounded-lg border border-theme/40 bg-dark-surface text-sm text-theme placeholder:text-dark-subtle focus:outline-none focus:border-brand-500/60 disabled:opacity-50 transition-colors font-mono"
+                className="w-full px-3 py-2 rounded-lg border border-theme/40  text-sm placeholder:text-dark-subtle focus:outline-none focus:border-brand-500/60 disabled:opacity-50 transition-colors font-mono"
               />
             </div>
             <div className="space-y-1.5">
@@ -605,18 +625,24 @@ export function AddFilamentForm({
             <label className="text-sm font-medium text-navy-300">
               {c.supplier}
             </label>
-            <select
-              value={supplierId}
-              onChange={(e) => setSupplierId(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-theme/40 bg-dark-surface text-sm text-theme focus:outline-none focus:border-brand-500/60 transition-colors"
-            >
-              <option value="">{c.noSupplier}</option>
-              {suppliers.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+
+            <SearchableSelect
+              options={[
+                // Opção para "Sem fornecedor"
+                { value: "none", label: c.noSupplier },
+                // Mapeamento dos fornecedores da API
+                ...suppliers.map((s) => ({
+                  value: s.id,
+                  label: s.name,
+                })),
+              ]}
+              value={supplierId || "none"}
+              onValueChange={(val) => setSupplierId(val === "none" ? "" : val)}
+              placeholder={c.noSupplier}
+              searchPlaceholder="Procurar fornecedor..."
+              emptyText="Nenhum fornecedor encontrado."
+            />
+
             <SupplierInlineCreate
               onCreated={(s) => {
                 setSuppliers((prev) => [...prev, s]);
@@ -630,52 +656,52 @@ export function AddFilamentForm({
               <label className="text-sm font-medium text-navy-300">
                 {c.weight}
               </label>
-              <input
+              <Input
                 type="number"
                 value={initialWeight}
                 onChange={(e) => setInitialWeight(e.target.value)}
                 min="1"
                 required
-                className="w-full px-3 py-2 rounded-lg border border-theme/40 bg-dark-surface text-sm text-theme focus:outline-none focus:border-brand-500/60 transition-colors"
+                className="w-full px-3 py-2 rounded-lg border border-theme/40 dark:bg-dark-surface text-sm text-theme focus:outline-none focus:border-brand-500/60 transition-colors"
               />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-navy-300">
                 {c.tare}
               </label>
-              <input
+              <Input
                 type="number"
                 value={tareWeight}
                 onChange={(e) => setTareWeight(e.target.value)}
                 min="0"
-                className="w-full px-3 py-2 rounded-lg border border-theme/40 bg-dark-surface text-sm text-theme focus:outline-none focus:border-brand-500/60 transition-colors"
+                className="w-full px-3 py-2 rounded-lg border border-theme/40 dark:bg-dark-surface text-sm text-theme focus:outline-none focus:border-brand-500/60 transition-colors"
               />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-navy-300">
                 {c.price}
               </label>
-              <input
+              <Input
                 type="number"
                 step="0.01"
                 value={priceCents}
                 onChange={(e) => setPriceCents(e.target.value)}
                 placeholder="19.99"
                 required
-                className="w-full px-3 py-2 rounded-lg border border-theme/40 bg-dark-surface text-sm text-theme placeholder:text-dark-subtle focus:outline-none focus:border-brand-500/60 transition-colors"
+                className="w-full px-3 py-2 rounded-lg border border-theme/40 dark:bg-dark-surface text-sm text-theme placeholder:text-dark-subtle focus:outline-none focus:border-brand-500/60 transition-colors"
               />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-navy-300">
                 {c.qty}
               </label>
-              <input
+              <Input
                 type="number"
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
                 min="1"
                 max="100"
-                className="w-full px-3 py-2 rounded-lg border border-theme/40 bg-dark-surface text-sm text-theme focus:outline-none focus:border-brand-500/60 transition-colors"
+                className="w-full px-3 py-2 rounded-lg border border-theme/40 dark:bg-dark-surface text-sm text-theme focus:outline-none focus:border-brand-500/60 transition-colors"
               />
             </div>
           </div>
@@ -684,12 +710,12 @@ export function AddFilamentForm({
             <label className="text-sm font-medium text-navy-300">
               {c.date}
             </label>
-            <input
+            <Input
               type="date"
               value={boughtAt}
               onChange={(e) => setBoughtAt(e.target.value)}
               max={new Date().toISOString().split("T")[0]}
-              className="w-full px-3 py-2 rounded-lg border border-theme/40 bg-dark-surface text-sm text-theme focus:outline-none focus:border-brand-500/60 transition-colors"
+              className="w-full px-3 py-2 rounded-lg border border-theme/40 dark:bg-dark-surface text-sm text-theme focus:outline-none focus:border-brand-500/60 transition-colors"
             />
           </div>
 
@@ -701,7 +727,7 @@ export function AddFilamentForm({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              className="w-full px-3 py-2 rounded-lg border border-theme/40 bg-dark-surface text-sm text-theme placeholder:text-dark-subtle focus:outline-none focus:border-brand-500/60 resize-none transition-colors"
+              className="w-full px-3 py-2 rounded-lg border border-theme/40 dark:bg-dark-surface text-sm text-theme placeholder:text-dark-subtle focus:outline-none focus:border-brand-500/60 resize-none transition-colors"
             />
           </div>
 

@@ -19,6 +19,7 @@
   :root {
     /* Backgrounds */
     --background: 216 100% 97%; /* #f0f6ff — Page BG */
+    --bg: 216 100% 97%;
     --card: 0 0% 100%; /* #ffffff */
 
     /* Foregrounds */
@@ -27,6 +28,7 @@
 
     /* Brand primary — Ocean Blue (darker for light mode contrast) */
     --primary: 200 98% 39%; /* #0284c7 */
+    --text-primary: 200 98% 39%; /* #0284c7 — Primary text */
     --primary-foreground: 0 0% 100%; /* white text on primary btn */
 
     /* Secondary */
@@ -79,6 +81,7 @@
   .dark {
     /* Backgrounds */
     --background: 220 50% 4%; /* #060c18 — Deep Navy */
+    --bg: 220 50% 4%;
     --card: 222 45% 7%; /* #0a1020 — Card surface */
 
     /* Foregrounds */
@@ -88,6 +91,7 @@
     /* Brand primary — Sky Blue */
     --primary: 199 89% 48%; /* #0ea5e9 */
     --primary-foreground: 222 50% 4%; /* #060c18 — text on primary btn */
+    --text-primary: 199 89% 48%; /* #0ea5e9 — Primary text */
 
     /* Secondary surface */
     --secondary: 222 47% 11%; /* #0f172a — Navy */
