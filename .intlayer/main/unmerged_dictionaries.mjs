@@ -1,63 +1,63 @@
-import _nkp7GhghJTUz7ayUInYS from '../unmerged_dictionary/admin.json' with { type: 'json' };
-import _Z5slJGG8C3Vs4QWXuNHU from '../unmerged_dictionary/alerts.json' with { type: 'json' };
-import _2eWU9B47gS2TwQMyF2S1 from '../unmerged_dictionary/components.json' with { type: 'json' };
-import _wtylXZfNiBi5kDnVhK2t from '../unmerged_dictionary/contact.json' with { type: 'json' };
-import _UW9e2dgaGTR8hU2jPLGV from '../unmerged_dictionary/customers.json' with { type: 'json' };
-import _qnTAI9MaFGeXxlP004XS from '../unmerged_dictionary/dashboard.json' with { type: 'json' };
-import _3rs4MKUCU1ZPtxx3zKk1 from '../unmerged_dictionary/dialogs.json' with { type: 'json' };
-import _emso5ztL5LEtgAyVnAvX from '../unmerged_dictionary/export-page.json' with { type: 'json' };
-import _ps9ZFm9HFdRTLZAsvp6W from '../unmerged_dictionary/faq.json' with { type: 'json' };
-import _SapIhUOzfTvKnaVJbHAk from '../unmerged_dictionary/features.json' with { type: 'json' };
-import _zoCEzh5W13NlUtPwWDIE from '../unmerged_dictionary/filaments.json' with { type: 'json' };
-import _6f0e52vBrD2x6HB7d00f from '../unmerged_dictionary/global-filaments.json' with { type: 'json' };
-import _q85WVXhnvYrPPCYkQ5kS from '../unmerged_dictionary/inventory.json' with { type: 'json' };
-import _wY7zoIvUtBURrof12YWK from '../unmerged_dictionary/landing.json' with { type: 'json' };
-import _xHyXo3luDeD2aYl5OgBK from '../unmerged_dictionary/pricing.json' with { type: 'json' };
-import _2fIQTpZROmsTqbBdqnpb from '../unmerged_dictionary/printer-presets.json' with { type: 'json' };
-import _jo2RlwwBzcmTZc4WGasb from '../unmerged_dictionary/printers.json' with { type: 'json' };
-import _yxWLeeJWBaxzhncElcWh from '../unmerged_dictionary/privacy.json' with { type: 'json' };
-import _nqa3yirDkbYRTgkYjAP0 from '../unmerged_dictionary/production.json' with { type: 'json' };
-import _lzfN07QuLHUaT8WejQ2p from '../unmerged_dictionary/products.json' with { type: 'json' };
-import _vLjzkvo3ktUiH1I3tdDJ from '../unmerged_dictionary/sales.json' with { type: 'json' };
-import _Al4Ns50lqtPpey85S0qa from '../unmerged_dictionary/settings.json' with { type: 'json' };
-import _l13highE9gXwoMiKb99P from '../unmerged_dictionary/sidebar.json' with { type: 'json' };
-import _OHlqXu0tqVI1CPFQfafY from '../unmerged_dictionary/sign-in.json' with { type: 'json' };
-import _jlude8tJPVJZh6cw9aNf from '../unmerged_dictionary/sign-up.json' with { type: 'json' };
-import _Z5BuJT1derbpFV2NUuQe from '../unmerged_dictionary/spool.json' with { type: 'json' };
-import _iMcD6Y7Vv00lX7AaKDGS from '../unmerged_dictionary/tabs.json' with { type: 'json' };
-import _Wn8zRpfg86k2ysdcOCYS from '../unmerged_dictionary/terms.json' with { type: 'json' };
-import _f3VwlaoBckANDpAyqpEZ from '../unmerged_dictionary/users.json' with { type: 'json' };
+import _z8QkaRRSdiLOBGLxqig6 from '../unmerged_dictionary/admin.json' with { type: 'json' };
+import _IAdX9Tt28JXc6MfI7vBt from '../unmerged_dictionary/alerts.json' with { type: 'json' };
+import _aAXDt1e5KKf1dbq3r9G7 from '../unmerged_dictionary/components.json' with { type: 'json' };
+import _iAvyotVdPV1GlHfHs7Rp from '../unmerged_dictionary/contact.json' with { type: 'json' };
+import _FltTzJSkWHGkUZ1rq7dV from '../unmerged_dictionary/customers.json' with { type: 'json' };
+import _eB0Wldt1Ux9eyMX64T0l from '../unmerged_dictionary/dashboard.json' with { type: 'json' };
+import _74g3SFZNGzdoyputkgrn from '../unmerged_dictionary/dialogs.json' with { type: 'json' };
+import _sP1L0Lcf4d6n3gUhV2Z9 from '../unmerged_dictionary/export-page.json' with { type: 'json' };
+import _OpKf7qiEpAbI2Gk26CJk from '../unmerged_dictionary/faq.json' with { type: 'json' };
+import _ISeW3MfxH0HnLtg7xiJi from '../unmerged_dictionary/features.json' with { type: 'json' };
+import _HVI8Dbfi88P0viLHVYCq from '../unmerged_dictionary/filaments.json' with { type: 'json' };
+import _Y3ypaoW0TPKxsOUlNUwq from '../unmerged_dictionary/global-filaments.json' with { type: 'json' };
+import _MaQTUezY53t3n1AJ6CTn from '../unmerged_dictionary/inventory.json' with { type: 'json' };
+import _w6HZKmm4xU8hpN5hhvim from '../unmerged_dictionary/landing.json' with { type: 'json' };
+import _iwY8jCzFh2i1R4jyNAAK from '../unmerged_dictionary/pricing.json' with { type: 'json' };
+import _sSCc9wOUvCxDBYTnXhqR from '../unmerged_dictionary/printer-presets.json' with { type: 'json' };
+import _G5sW9L3eHIbMM4qbVrdX from '../unmerged_dictionary/printers.json' with { type: 'json' };
+import _Wc3c8yjMUWyFc54egTJb from '../unmerged_dictionary/privacy.json' with { type: 'json' };
+import _qP0SJVzdjQItY5XMKm6I from '../unmerged_dictionary/production.json' with { type: 'json' };
+import _TsmesVGuJ0cfG8ci5sWG from '../unmerged_dictionary/products.json' with { type: 'json' };
+import _VFEJnGmJ5BkUqYMGj186 from '../unmerged_dictionary/sales.json' with { type: 'json' };
+import _caifYPk7RenSCFmZMuHb from '../unmerged_dictionary/settings.json' with { type: 'json' };
+import _s1cmGE0C3j4tOkmNJEo5 from '../unmerged_dictionary/sidebar.json' with { type: 'json' };
+import _8glsA0kt4ZfNekZi1t5W from '../unmerged_dictionary/sign-in.json' with { type: 'json' };
+import _6tecDvNBaj0iOIKNjfyA from '../unmerged_dictionary/sign-up.json' with { type: 'json' };
+import _XGI5MeuAw8f62hJDyHBG from '../unmerged_dictionary/spool.json' with { type: 'json' };
+import _zYe1R7A2ZBZI7jl0Tecs from '../unmerged_dictionary/tabs.json' with { type: 'json' };
+import _8fYQrSm6F52RMC4l45pU from '../unmerged_dictionary/terms.json' with { type: 'json' };
+import _h2iPr8LraBuZks3r6NWu from '../unmerged_dictionary/users.json' with { type: 'json' };
 
 const dictionaries = {
-  "admin": _nkp7GhghJTUz7ayUInYS,
-  "alerts": _Z5slJGG8C3Vs4QWXuNHU,
-  "components": _2eWU9B47gS2TwQMyF2S1,
-  "contact": _wtylXZfNiBi5kDnVhK2t,
-  "customers": _UW9e2dgaGTR8hU2jPLGV,
-  "dashboard": _qnTAI9MaFGeXxlP004XS,
-  "dialogs": _3rs4MKUCU1ZPtxx3zKk1,
-  "export-page": _emso5ztL5LEtgAyVnAvX,
-  "faq": _ps9ZFm9HFdRTLZAsvp6W,
-  "features": _SapIhUOzfTvKnaVJbHAk,
-  "filaments": _zoCEzh5W13NlUtPwWDIE,
-  "global-filaments": _6f0e52vBrD2x6HB7d00f,
-  "inventory": _q85WVXhnvYrPPCYkQ5kS,
-  "landing": _wY7zoIvUtBURrof12YWK,
-  "pricing": _xHyXo3luDeD2aYl5OgBK,
-  "printer-presets": _2fIQTpZROmsTqbBdqnpb,
-  "printers": _jo2RlwwBzcmTZc4WGasb,
-  "privacy": _yxWLeeJWBaxzhncElcWh,
-  "production": _nqa3yirDkbYRTgkYjAP0,
-  "products": _lzfN07QuLHUaT8WejQ2p,
-  "sales": _vLjzkvo3ktUiH1I3tdDJ,
-  "settings": _Al4Ns50lqtPpey85S0qa,
-  "sidebar": _l13highE9gXwoMiKb99P,
-  "sign-in": _OHlqXu0tqVI1CPFQfafY,
-  "sign-up": _jlude8tJPVJZh6cw9aNf,
-  "spool": _Z5BuJT1derbpFV2NUuQe,
-  "tabs": _iMcD6Y7Vv00lX7AaKDGS,
-  "terms": _Wn8zRpfg86k2ysdcOCYS,
-  "users": _f3VwlaoBckANDpAyqpEZ
+  "admin": _z8QkaRRSdiLOBGLxqig6,
+  "alerts": _IAdX9Tt28JXc6MfI7vBt,
+  "components": _aAXDt1e5KKf1dbq3r9G7,
+  "contact": _iAvyotVdPV1GlHfHs7Rp,
+  "customers": _FltTzJSkWHGkUZ1rq7dV,
+  "dashboard": _eB0Wldt1Ux9eyMX64T0l,
+  "dialogs": _74g3SFZNGzdoyputkgrn,
+  "export-page": _sP1L0Lcf4d6n3gUhV2Z9,
+  "faq": _OpKf7qiEpAbI2Gk26CJk,
+  "features": _ISeW3MfxH0HnLtg7xiJi,
+  "filaments": _HVI8Dbfi88P0viLHVYCq,
+  "global-filaments": _Y3ypaoW0TPKxsOUlNUwq,
+  "inventory": _MaQTUezY53t3n1AJ6CTn,
+  "landing": _w6HZKmm4xU8hpN5hhvim,
+  "pricing": _iwY8jCzFh2i1R4jyNAAK,
+  "printer-presets": _sSCc9wOUvCxDBYTnXhqR,
+  "printers": _G5sW9L3eHIbMM4qbVrdX,
+  "privacy": _Wc3c8yjMUWyFc54egTJb,
+  "production": _qP0SJVzdjQItY5XMKm6I,
+  "products": _TsmesVGuJ0cfG8ci5sWG,
+  "sales": _VFEJnGmJ5BkUqYMGj186,
+  "settings": _caifYPk7RenSCFmZMuHb,
+  "sidebar": _s1cmGE0C3j4tOkmNJEo5,
+  "sign-in": _8glsA0kt4ZfNekZi1t5W,
+  "sign-up": _6tecDvNBaj0iOIKNjfyA,
+  "spool": _XGI5MeuAw8f62hJDyHBG,
+  "tabs": _zYe1R7A2ZBZI7jl0Tecs,
+  "terms": _8fYQrSm6F52RMC4l45pU,
+  "users": _h2iPr8LraBuZks3r6NWu
 };
 const getUnmergedDictionaries = () => dictionaries;
 

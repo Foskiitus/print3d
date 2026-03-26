@@ -15,7 +15,8 @@ export default {
           "licensing": "Licenciamento",
           "company": "Identidade da Empresa",
           "locations": "Armazém",
-          "privacy": "Privacidade & Dados"
+          "privacy": "Privacidade & Dados",
+          "appearance": "Aparência"
         },
         "financial": {
           "heading": "Financeiro & Custos",
@@ -105,6 +106,13 @@ export default {
           "privacy": "Política de Privacidade",
           "terms": "Termos de Serviço"
         },
+        "appearance": {
+          "heading": "Aparência",
+          "themeLabel": "Tema da interface",
+          "themeDescription": "Escolhe entre o modo escuro e claro. A preferência é guardada no browser.",
+          "dark": "Escuro",
+          "light": "Claro"
+        },
         "toast": {
           "error": "Erro"
         }
@@ -120,7 +128,8 @@ export default {
           "licensing": "Licensing",
           "company": "Company Identity",
           "locations": "Warehouse",
-          "privacy": "Privacy & Data"
+          "privacy": "Privacy & Data",
+          "appearance": "Appearance"
         },
         "financial": {
           "heading": "Financial & Costs",
@@ -209,6 +218,13 @@ export default {
           "linksTitle": "Legal Documents",
           "privacy": "Privacy Policy",
           "terms": "Terms of Service"
+        },
+        "appearance": {
+          "heading": "Appearance",
+          "themeLabel": "Interface theme",
+          "themeDescription": "Choose between dark and light mode. The preference is saved in your browser.",
+          "dark": "Dark",
+          "light": "Light"
         },
         "toast": {
           "error": "Error"

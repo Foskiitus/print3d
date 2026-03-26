@@ -10,6 +10,7 @@ import {
   Building2,
   Warehouse,
   Shield,
+  Palette,
 } from "lucide-react";
 import { FinancialSection } from "./sections/FinancialSection";
 import { LicensingSection } from "./sections/LicensingSection";
@@ -17,6 +18,7 @@ import { CompanySection } from "./sections/CompanySection";
 import { LocationsSection } from "./sections/LocationsSection";
 import { PrivacySection } from "./sections/PrivacySection";
 import { PlatformsSection } from "./sections/PlatformsSection";
+import { AppearanceSection } from "./sections/AppearanceSection";
 
 type Section =
   | "financial"
@@ -24,7 +26,8 @@ type Section =
   | "licensing"
   | "company"
   | "locations"
-  | "privacy";
+  | "privacy"
+  | "appearance";
 
 export interface FinancialSettings {
   kwhPrice: number;
@@ -91,6 +94,7 @@ export function SettingsPageClient({
     { key: "company", label: c.nav.company.value, icon: Building2 },
     { key: "locations", label: c.nav.locations.value, icon: Warehouse },
     { key: "privacy", label: c.nav.privacy.value, icon: Shield },
+    { key: "appearance", label: c.nav.appearance.value, icon: Palette },
   ];
 
   return (
@@ -150,6 +154,7 @@ export function SettingsPageClient({
             />
           )}
           {activeSection === "privacy" && <PrivacySection userId={userId} />}
+          {activeSection === "appearance" && <AppearanceSection />}
         </div>
       </div>
     </div>
