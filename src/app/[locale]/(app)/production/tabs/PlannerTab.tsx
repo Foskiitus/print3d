@@ -318,10 +318,9 @@ function SlotConfigModal({
     stopScanner,
   } = useQrScanner({
     onScan: (spoolId, rawText) => {
+      window.alert("Lido: " + spoolId);
       if (!activeScanSlotId) return;
       const slotId = activeScanSlotId;
-
-      alert("Câmara leu: [" + spoolId + "]");
 
       // Procurar a bobine pelo qrCodeId (o ID extraído do QR)
       const spool = availableSpools.find(
