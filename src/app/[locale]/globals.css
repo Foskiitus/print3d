@@ -1,3 +1,6 @@
+/* ─── Google Fonts ─── */
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -17,6 +20,11 @@
      Light mode (default :root)
   ───────────────────────────────────── */
   :root {
+    /* Fontes */
+    --font-display: "Space Grotesk", sans-serif;
+    --font-sans: "DM Sans", sans-serif;
+    --font-mono: "JetBrains Mono", monospace;
+
     /* Backgrounds */
     --background: 216 100% 97%; /* #f0f6ff — Page BG */
     --bg: 216 100% 97%;
@@ -49,7 +57,7 @@
     --ring: 200 98% 39%; /* #0284c7 */
 
     /* Semantic */
-    --destructive: 0 72% 51%;
+    --destructive: 0 84% 60%; /* #ef4444 */
     --destructive-foreground: 0 0% 98%;
 
     /* Radius */
@@ -57,9 +65,11 @@
 
     /* ── SpoolIQ extended tokens (light) ── */
     --success: 158 64% 36%; /* #059669 */
-    --success-foreground: 152 76% 10%; /* #065f46 */
+    --success-foreground: 160 91% 23%; /* #047857 — alinhado com brand guide */
+    --success-bg: 152 76% 93%; /* #d1fae5 */
     --warning: 32 95% 44%; /* #d97706 */
     --warning-foreground: 26 83% 14%; /* #92400e */
+    --warning-bg: 48 96% 89%; /* #fef3c7 */
     --info: 200 98% 39%; /* #0284c7 */
     --info-foreground: 201 96% 32%; /* #0369a1 */
 
@@ -99,7 +109,7 @@
 
     /* Muted */
     --muted: 220 40% 9%; /* #0a1020 */
-    --muted-foreground: 215 20% 40%; /* #3d5a80 */
+    --muted-foreground: 215 16% 47%; /* #64748b — alinhado com brand guide dark */
 
     /* Accent */
     --accent: 222 47% 11%; /* #0f172a */
@@ -111,14 +121,17 @@
     --ring: 199 89% 48%; /* #0ea5e9 */
 
     /* Semantic */
-    --destructive: 0 90% 60%; /* #f84848 — vermelho mais intenso */
+    --destructive: 0 84% 60%; /* #ef4444 — alinhado com brand guide */
     --destructive-foreground: 0 0% 98%;
 
     /* ── SpoolIQ extended tokens (dark) ── */
     --success: 160 84% 39%; /* #10b981 */
-    --success-foreground: 160 60% 90%; /* #d1fae5 */
+    --success-foreground: 152 55% 91%; /* #d1fae5 */
+    --success-bg: 160 84% 39%; /* #10b981 — fundo sólido no dark (brand guide) */
     --warning: 38 92% 50%; /* #f59e0b */
-    --warning-foreground: 38 80% 10%;
+    --warning-foreground: 45 97% 58%; /* #fcd34d — texto amber claro no dark */
+    --warning-bg: 20 100% 8%; /* #1c1500 — fundo escuro amber (brand guide) */
+    --warning-border: 35 100% 12%; /* #3d2e00 — borda amber (brand guide) */
     --info: 199 89% 48%; /* #0ea5e9 */
     --info-foreground: 199 93% 73%; /* #7dd3fc */
 
@@ -228,6 +241,7 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
     font-feature-settings:
       "rlig" 1,
       "calt" 1;
@@ -291,7 +305,7 @@ input[type="number"] {
 
   .card {
     @apply rounded-xl p-5 border;
-    background-color: var(--bg-surface);
+    background-color: hsl(var(--card));
     border-color: var(--border);
     transition:
       background-color 0.2s ease,
@@ -300,7 +314,7 @@ input[type="number"] {
 
   .card-glow {
     @apply rounded-xl p-5 border relative overflow-hidden;
-    background-color: var(--bg-surface);
+    background-color: hsl(var(--card));
     border-color: var(--border);
     background-image: radial-gradient(
       ellipse 60% 40% at 50% 0%,
@@ -310,13 +324,17 @@ input[type="number"] {
   }
 
   .badge-success {
-    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full
-           bg-success-light text-success-dark text-xs font-medium;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium;
+    /* Light: #d1fae5 bg / #047857 text — Dark: #10b981 bg / #d1fae5 text (brand guide) */
+    background-color: hsl(var(--success-bg));
+    color: hsl(var(--success-foreground));
   }
 
   .badge-warning {
-    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full
-           bg-warning-light text-warning-dark text-xs font-medium;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium;
+    /* Light: #fef3c7 bg / #92400e text — Dark: #1c1500 bg / #fcd34d text (brand guide) */
+    background-color: hsl(var(--warning-bg));
+    color: hsl(var(--warning-foreground));
   }
 
   .badge-brand {
@@ -366,6 +384,11 @@ input[type="number"] {
     @apply text-xs font-semibold uppercase tracking-widest pb-2.5 mb-5 border-b;
     color: var(--text-muted);
     border-color: var(--border);
+  }
+
+  .feature-card:hover {
+    border-color: rgba(14, 165, 233, 0.3);
+    background-color: rgba(14, 165, 233, 0.04);
   }
 
   .animate-delay-100 {
@@ -438,4 +461,13 @@ input[type="number"] {
   .text-theme-subtle {
     color: var(--text-muted);
   }
+}
+
+/* No teu globals.css */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3); /* cor navy-400 com transparência */
+  border-radius: 10px;
 }

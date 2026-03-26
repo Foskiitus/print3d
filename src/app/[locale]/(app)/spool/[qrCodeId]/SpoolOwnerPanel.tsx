@@ -227,7 +227,7 @@ export function SpoolOwnerPanel({
         </div>
 
         {/* Identificação */}
-        <div className="card space-y-4">
+        <div className="card space-y-4 ">
           <div className="flex items-start gap-4">
             <div
               className="w-14 h-14 rounded-xl flex-shrink-0 border border-white/10"
@@ -269,7 +269,7 @@ export function SpoolOwnerPanel({
               className="card flex flex-col items-center gap-2 py-4 w-full hover:border-brand-500/30 hover:bg-brand-500/5 transition-all"
             >
               <Printer className="w-6 h-6 text-brand-400" />
-              <span className="text-xs text-navy-300 text-center leading-tight">
+              <span className="text-xs text-center leading-tight">
                 {c.buttons.loadInPrinter.value}
               </span>
             </button>
@@ -296,7 +296,7 @@ export function SpoolOwnerPanel({
             className="card flex flex-col items-center gap-2 py-4 hover:border-brand-500/30 hover:bg-brand-500/5 transition-all"
           >
             <Scale className="w-6 h-6 text-brand-400" />
-            <span className="text-xs text-navy-300 text-center leading-tight">
+            <span className="text-xs  text-center leading-tight">
               {c.buttons.updateWeight.value}
             </span>
           </button>
@@ -307,7 +307,7 @@ export function SpoolOwnerPanel({
             className="card flex flex-col items-center gap-2 py-4 hover:border-red-500/30 hover:bg-red-500/5 transition-all disabled:opacity-50"
           >
             <Archive className="w-6 h-6 text-red-400" />
-            <span className="text-xs text-navy-300 text-center leading-tight">
+            <span className="text-xs text-center leading-tight">
               {c.buttons.finishSpool.value}
             </span>
           </button>

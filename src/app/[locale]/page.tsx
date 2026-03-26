@@ -110,7 +110,13 @@ export default async function HomePage({
   return (
     <div className="lp-theme bg-[#060c18] text-foreground min-h-screen">
       {/* Navbar */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-theme/60 bg-dark-bg/80 backdrop-blur-xl">
+      <header
+        className="fixed top-0 left-0 right-0 z-50 border-b backdrop-blur-xl"
+        style={{
+          borderColor: "rgba(15,28,48,0.8)",
+          backgroundColor: "rgba(6,12,24,0.85)",
+        }}
+      >
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <SpoolIQLogo />
           <nav className="hidden md:flex items-center gap-1">
@@ -159,22 +165,32 @@ export default async function HomePage({
               {t.badge}
             </div>
             <h1
-              className="font-display font-bold leading-[1.05] mb-6"
+              className="font-bold leading-[1.05] mb-6"
               style={{
+                fontFamily: "var(--font-display)",
                 fontSize: "clamp(2.5rem, 7vw, 5rem)",
                 letterSpacing: "-0.04em",
               }}
             >
-              <span className="text-theme">{t.headline1}</span>
+              <span style={{ color: "var(--text-primary)" }}>
+                {t.headline1}
+              </span>
               <br />
               <span className="text-gradient">{t.headline2}</span>
             </h1>
-            <p className="text-navy-400 text-lg md:text-xl max-w-2xl leading-relaxed mb-4">
+            <p
+              className="text-lg md:text-xl max-w-2xl leading-relaxed mb-4"
+              style={{ color: "var(--text-secondary)" }}
+            >
               {t.subheadline}
             </p>
             <p
-              className="font-display font-medium text-brand-400 text-base mb-10"
-              style={{ letterSpacing: "-0.01em" }}
+              className="font-medium text-base mb-10"
+              style={{
+                fontFamily: "var(--font-display)",
+                color: "#38bdf8",
+                letterSpacing: "-0.01em",
+              }}
             >
               {t.tagline}
             </p>
@@ -193,13 +209,21 @@ export default async function HomePage({
                 {t.cta_login}
               </Link>
             </div>
-            <div className="flex items-center gap-6 text-sm text-dark-subtle">
+            <div
+              className="flex items-center gap-6 text-sm"
+              style={{ color: "var(--text-muted)" }}
+            >
               <div className="flex items-center gap-1.5">
                 <div className="flex -space-x-1">
                   {[...Array(4)].map((_, i) => (
                     <div
                       key={i}
-                      className="w-6 h-6 rounded-full border-2 border-dark-bg bg-gradient-to-br from-brand-500 to-brand-800"
+                      className="w-6 h-6 rounded-full border-2"
+                      style={{
+                        borderColor: "#060c18",
+                        background:
+                          "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
+                      }}
                     />
                   ))}
                 </div>
@@ -209,13 +233,14 @@ export default async function HomePage({
                 {[...Array(5)].map((_, i) => (
                   <Star
                     key={i}
-                    className="w-3.5 h-3.5 fill-warning text-warning"
+                    className="w-3.5 h-3.5"
+                    style={{ fill: "#f59e0b", color: "#f59e0b" }}
                   />
                 ))}
                 <span className="ml-1">{t.social_rating}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <Shield className="w-3.5 h-3.5 text-success" />
+                <Shield className="w-3.5 h-3.5" style={{ color: "#10b981" }} />
                 <span>{t.social_no_card}</span>
               </div>
             </div>
@@ -230,8 +255,10 @@ export default async function HomePage({
                 {t.features_badge}
               </div>
               <h2
-                className="font-display font-bold text-theme mb-4"
+                className="font-bold mb-4"
                 style={{
+                  fontFamily: "var(--font-display)",
+                  color: "var(--text-primary)",
                   fontSize: "clamp(1.8rem, 4vw, 3rem)",
                   letterSpacing: "-0.04em",
                 }}
@@ -240,7 +267,10 @@ export default async function HomePage({
                 <br />
                 <span className="text-gradient">{t.features_title2}</span>
               </h2>
-              <p className="text-navy-400 text-lg max-w-xl mx-auto">
+              <p
+                className="text-lg max-w-xl mx-auto"
+                style={{ color: "var(--text-secondary)" }}
+              >
                 {t.features_subtitle}
               </p>
             </div>
@@ -250,23 +280,42 @@ export default async function HomePage({
                 return (
                   <div
                     key={String(feat.title)}
-                    className="card group hover:border-brand-500/30 hover:bg-brand-500/[0.04] transition-all duration-200"
+                    className="card feature-card transition-all duration-200"
                   >
                     <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-brand-500/10 border border-brand-500/20 flex items-center justify-center shrink-0 group-hover:bg-brand-500/20 transition-colors">
-                        <Icon className="w-5 h-5 text-brand-400" />
+                      <div
+                        className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-colors"
+                        style={{
+                          background: "rgba(14,165,233,0.1)",
+                          border: "1px solid rgba(14,165,233,0.2)",
+                        }}
+                      >
+                        <Icon
+                          className="w-5 h-5"
+                          style={{ color: "#38bdf8" }}
+                        />
                       </div>
                       <div>
-                        <div className="text-xs font-medium text-dark-subtle uppercase tracking-widest mb-1">
+                        <div
+                          className="text-xs font-medium uppercase tracking-widest mb-1"
+                          style={{ color: "var(--text-subtle)" }}
+                        >
                           {feat.tag}
                         </div>
                         <h3
-                          className="font-display font-semibold text-theme mb-1.5"
-                          style={{ letterSpacing: "-0.02em" }}
+                          className="font-semibold mb-1.5"
+                          style={{
+                            fontFamily: "var(--font-display)",
+                            color: "var(--text-primary)",
+                            letterSpacing: "-0.02em",
+                          }}
                         >
                           {feat.title}
                         </h3>
-                        <p className="text-sm text-navy-400 leading-relaxed">
+                        <p
+                          className="text-sm leading-relaxed"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
                           {feat.desc}
                         </p>
                       </div>
@@ -293,8 +342,10 @@ export default async function HomePage({
                 {t.pricing_badge}
               </div>
               <h2
-                className="font-display font-bold text-theme mb-4"
+                className="font-bold mb-4"
                 style={{
+                  fontFamily: "var(--font-display)",
+                  color: "var(--text-primary)",
                   fontSize: "clamp(1.8rem, 4vw, 3rem)",
                   letterSpacing: "-0.04em",
                 }}
@@ -302,19 +353,26 @@ export default async function HomePage({
                 {t.pricing_title1}
                 <span className="text-gradient">{t.pricing_title2}</span>
               </h2>
-              <p className="text-navy-400 text-lg">{t.pricing_subtitle}</p>
+              <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
+                {t.pricing_subtitle}
+              </p>
             </div>
             <div className="grid md:grid-cols-2 gap-6 items-stretch">
               {/* Hobby */}
               <div className="card flex flex-col">
                 <div className="mb-6">
-                  <div className="text-xs font-semibold uppercase tracking-widest text-dark-subtle mb-2">
+                  <div
+                    className="text-xs font-semibold uppercase tracking-widest mb-2"
+                    style={{ color: "var(--text-subtle)" }}
+                  >
                     {tp.hobby_name}
                   </div>
                   <div className="flex items-end gap-2 mb-1">
                     <span
-                      className="font-display font-bold text-theme"
+                      className="font-bold"
                       style={{
+                        fontFamily: "var(--font-display)",
+                        color: "var(--text-primary)",
                         fontSize: "3rem",
                         letterSpacing: "-0.04em",
                         lineHeight: 1,
@@ -322,19 +380,31 @@ export default async function HomePage({
                     >
                       €0
                     </span>
-                    <span className="text-dark-subtle text-sm mb-1">
+                    <span
+                      className="text-sm mb-1"
+                      style={{ color: "var(--text-subtle)" }}
+                    >
                       {tp.per_month}
                     </span>
                   </div>
-                  <p className="text-sm text-navy-400">{tp.hobby_desc}</p>
+                  <p
+                    className="text-sm"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    {tp.hobby_desc}
+                  </p>
                 </div>
                 <ul className="space-y-2.5 mb-8 flex-1">
                   {hobbyFeatures.map((label, i) => (
                     <li
                       key={i}
-                      className="flex items-start gap-2.5 text-sm text-navy-300"
+                      className="flex items-start gap-2.5 text-sm"
+                      style={{ color: "var(--text-primary)" }}
                     >
-                      <Check className="w-4 h-4 text-success mt-0.5 shrink-0" />
+                      <Check
+                        className="w-4 h-4 mt-0.5 shrink-0"
+                        style={{ color: "#10b981" }}
+                      />
                       {label}
                     </li>
                   ))}
@@ -349,31 +419,37 @@ export default async function HomePage({
 
               {/* Pro */}
               <div className="relative rounded-xl overflow-hidden">
+                {/* Gradient border via pseudo-wrapper */}
                 <div
                   className="absolute inset-0 rounded-xl"
                   style={{
                     background:
                       "linear-gradient(135deg, #0ea5e9 0%, #0284c7 50%, #075985 100%)",
-                    padding: "1px",
                   }}
-                >
-                  <div className="h-full w-full rounded-xl bg-theme-surface" />
-                </div>
+                />
+                <div
+                  className="absolute inset-[1px] rounded-[11px]"
+                  style={{ background: "#0a1020" }}
+                />
                 <div className="relative z-10 p-5 flex flex-col h-full">
                   <div className="absolute top-4 right-4">
                     <span className="badge-brand text-xs">
-                      <Star className="w-3 h-3 fill-brand-400" />
+                      <Star className="w-3 h-3" style={{ fill: "#38bdf8" }} />
                       {tp.pro_badge}
                     </span>
                   </div>
                   <div className="mb-6">
-                    <div className="text-xs font-semibold uppercase tracking-widest text-brand-400 mb-2">
+                    <div
+                      className="text-xs font-semibold uppercase tracking-widest mb-2"
+                      style={{ color: "#38bdf8" }}
+                    >
                       {tp.pro_name}
                     </div>
                     <div className="flex items-end gap-2 mb-1">
                       <span
-                        className="font-display font-bold text-gradient"
+                        className="font-bold text-gradient"
                         style={{
+                          fontFamily: "var(--font-display)",
                           fontSize: "3rem",
                           letterSpacing: "-0.04em",
                           lineHeight: 1,
@@ -381,19 +457,31 @@ export default async function HomePage({
                       >
                         €5
                       </span>
-                      <span className="text-dark-subtle text-sm mb-1">
+                      <span
+                        className="text-sm mb-1"
+                        style={{ color: "var(--text-subtle)" }}
+                      >
                         {tp.per_month}
                       </span>
                     </div>
-                    <p className="text-sm text-navy-400">{tp.pro_desc}</p>
+                    <p
+                      className="text-sm"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      {tp.pro_desc}
+                    </p>
                   </div>
                   <ul className="space-y-2.5 mb-8 flex-1">
                     {proFeatures.map((label, i) => (
                       <li
                         key={i}
-                        className="flex items-start gap-2.5 text-sm text-navy-200"
+                        className="flex items-start gap-2.5 text-sm"
+                        style={{ color: "#e2e8f0" }}
                       >
-                        <Check className="w-4 h-4 text-brand-400 mt-0.5 shrink-0" />
+                        <Check
+                          className="w-4 h-4 mt-0.5 shrink-0"
+                          style={{ color: "#38bdf8" }}
+                        />
                         {label}
                       </li>
                     ))}
@@ -408,7 +496,10 @@ export default async function HomePage({
                 </div>
               </div>
             </div>
-            <p className="text-center text-sm text-dark-subtle mt-8">
+            <p
+              className="text-center text-sm mt-8"
+              style={{ color: "var(--text-muted)" }}
+            >
               {tp.stripe_note}
             </p>
           </div>
@@ -419,8 +510,10 @@ export default async function HomePage({
           <div className="max-w-2xl mx-auto">
             <div className="text-center mb-12">
               <h2
-                className="font-display font-bold text-theme mb-3"
+                className="font-bold mb-3"
                 style={{
+                  fontFamily: "var(--font-display)",
+                  color: "var(--text-primary)",
                   fontSize: "clamp(1.6rem, 3.5vw, 2.4rem)",
                   letterSpacing: "-0.04em",
                 }}
@@ -432,12 +525,19 @@ export default async function HomePage({
               {faqs.map((faq, i) => (
                 <div key={i} className="card">
                   <div
-                    className="font-display font-semibold text-theme mb-2"
-                    style={{ letterSpacing: "-0.02em" }}
+                    className="font-semibold mb-2"
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      color: "var(--text-primary)",
+                      letterSpacing: "-0.02em",
+                    }}
                   >
                     {faq.q}
                   </div>
-                  <p className="text-sm text-navy-400 leading-relaxed">
+                  <p
+                    className="text-sm leading-relaxed"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
                     {faq.a}
                   </p>
                 </div>
@@ -459,15 +559,20 @@ export default async function HomePage({
             >
               <SpoolIQLogo className="justify-center mb-6" />
               <h2
-                className="font-display font-bold text-theme mb-4"
+                className="font-bold mb-4"
                 style={{
+                  fontFamily: "var(--font-display)",
+                  color: "var(--text-primary)",
                   fontSize: "clamp(1.6rem, 3.5vw, 2.4rem)",
                   letterSpacing: "-0.04em",
                 }}
               >
                 {t.cta_final_title}
               </h2>
-              <p className="text-navy-400 text-lg mb-8 max-w-md mx-auto">
+              <p
+                className="text-lg mb-8 max-w-md mx-auto"
+                style={{ color: "var(--text-secondary)" }}
+              >
                 {t.cta_final_sub}
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">

@@ -97,7 +97,7 @@ export function SearchableSelect({
           avoidCollisions={true}
           collisionPadding={16}
           className={cn(
-            "z-50 rounded-xl border border-border bg-card text-foreground shadow-lg",
+            "z-50 rounded-lg border border-border bg-card text-foreground shadow-lg",
             "w-[var(--radix-popover-trigger-width)]",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
@@ -105,7 +105,7 @@ export function SearchableSelect({
           )}
         >
           {/* Input de pesquisa — sticky para ficar sempre visível */}
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-border sticky top-0 bg-card z-10">
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-border sticky top-0 bg-card z-10 rounded-lg ">
             <Search size={13} className="text-muted-foreground flex-shrink-0" />
             <input
               ref={inputRef}
@@ -117,7 +117,7 @@ export function SearchableSelect({
           </div>
 
           {/* Lista de opções */}
-          <div className="max-h-56 overflow-y-auto p-1">
+          <div className="max-h-64 overflow-y-auto p-1 custom-scrollbar">
             {filtered.length === 0 ? (
               <p className="px-3 py-4 text-center text-xs text-muted-foreground">
                 {emptyText}
