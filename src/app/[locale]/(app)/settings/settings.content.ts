@@ -14,6 +14,7 @@ const settingsContent = {
       company: t({ pt: "Identidade da Empresa", en: "Company Identity" }),
       locations: t({ pt: "Armazém", en: "Warehouse" }),
       privacy: t({ pt: "Privacidade & Dados", en: "Privacy & Data" }),
+      appearance: t({ pt: "Aparência", en: "Appearance" }),
     },
     financial: {
       heading: t({ pt: "Financeiro & Custos", en: "Financial & Costs" }),
@@ -146,6 +147,16 @@ const settingsContent = {
         deleted: t({ pt: "Localização eliminada.", en: "Location deleted." }),
         error: t({ pt: "Erro", en: "Error" }),
       },
+    },
+    appearance: {
+      heading: t({ pt: "Aparência", en: "Appearance" }),
+      themeLabel: t({ pt: "Tema da interface", en: "Interface theme" }),
+      themeDescription: t({
+        pt: "Escolhe entre o modo escuro e claro. A preferência é guardada no browser.",
+        en: "Choose between dark and light mode. The preference is saved in your browser.",
+      }),
+      dark: t({ pt: "Escuro", en: "Dark" }),
+      light: t({ pt: "Claro", en: "Light" }),
     },
     privacy: {
       heading: t({ pt: "Privacidade & Dados", en: "Privacy & Data" }),

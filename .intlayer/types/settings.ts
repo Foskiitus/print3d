@@ -15,7 +15,8 @@ export default {
           "licensing": "Licenciamento",
           "company": "Identidade da Empresa",
           "locations": "Armazém",
-          "privacy": "Privacidade & Dados"
+          "privacy": "Privacidade & Dados",
+          "appearance": "Aparência"
         },
         "financial": {
           "heading": "Financeiro & Custos",
@@ -95,6 +96,13 @@ export default {
             "error": "Erro"
           }
         },
+        "appearance": {
+          "heading": "Aparência",
+          "themeLabel": "Tema da interface",
+          "themeDescription": "Escolhe entre o modo escuro e claro. A preferência é guardada no browser.",
+          "dark": "Escuro",
+          "light": "Claro"
+        },
         "privacy": {
           "heading": "Privacidade & Dados",
           "exportTitle": "Exportar os meus dados",
@@ -120,7 +128,8 @@ export default {
           "licensing": "Licensing",
           "company": "Company Identity",
           "locations": "Warehouse",
-          "privacy": "Privacy & Data"
+          "privacy": "Privacy & Data",
+          "appearance": "Appearance"
         },
         "financial": {
           "heading": "Financial & Costs",
@@ -199,6 +208,13 @@ export default {
             "deleted": "Location deleted.",
             "error": "Error"
           }
+        },
+        "appearance": {
+          "heading": "Appearance",
+          "themeLabel": "Interface theme",
+          "themeDescription": "Choose between dark and light mode. The preference is saved in your browser.",
+          "dark": "Dark",
+          "light": "Light"
         },
         "privacy": {
           "heading": "Privacy & Data",
