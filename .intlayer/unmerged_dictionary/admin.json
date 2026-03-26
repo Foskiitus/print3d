@@ -1,1 +1,355 @@
-[{"key":"admin","content":{"page":{"title":{"nodeType":"translation","translation":{"pt":"Painel Admin","en":"Admin Panel"}},"heading":{"nodeType":"translation","translation":{"pt":"Painel Admin","en":"Admin Panel"}},"description":{"nodeType":"translation","translation":{"pt":"Gestão de presets globais e utilizadores do sistema.","en":"Manage global presets and system users."}}},"tabs":{"hardware":{"nodeType":"translation","translation":{"pt":"Presets de Hardware","en":"Hardware Presets"}},"materials":{"nodeType":"translation","translation":{"pt":"Presets de Materiais","en":"Material Presets"}},"users":{"nodeType":"translation","translation":{"pt":"Utilizadores","en":"Users"}}},"printerPresets":{"addButton":{"nodeType":"translation","translation":{"pt":"Nova Impressora","en":"New Printer"}},"dialogTitle":{"nodeType":"translation","translation":{"pt":"Adicionar Impressora Global","en":"Add Global Printer"}},"brand":{"nodeType":"translation","translation":{"pt":"Marca","en":"Brand"}},"model":{"nodeType":"translation","translation":{"pt":"Modelo","en":"Model"}},"powerWatts":{"nodeType":"translation","translation":{"pt":"Potência (W)","en":"Power (W)"}},"hourlyCost":{"nodeType":"translation","translation":{"pt":"Custo/hora (€)","en":"Cost/hour (€)"}},"empty":{"nodeType":"translation","translation":{"pt":"Nenhuma impressora global.","en":"No global printers."}},"submit":{"nodeType":"translation","translation":{"pt":"Adicionar","en":"Add"}},"submitting":{"nodeType":"translation","translation":{"pt":"A adicionar...","en":"Adding..."}},"toast":{"created":{"nodeType":"translation","translation":{"pt":"Impressora adicionada!","en":"Printer added!"}},"deleted":{"nodeType":"translation","translation":{"pt":"Impressora apagada.","en":"Printer deleted."}},"error":{"nodeType":"translation","translation":{"pt":"Erro","en":"Error"}}}},"globalFilaments":{"addButton":{"nodeType":"translation","translation":{"pt":"Novo Filamento","en":"New Filament"}},"dialogTitle":{"nodeType":"translation","translation":{"pt":"Adicionar Filamento Global","en":"Add Global Filament"}},"brand":{"nodeType":"translation","translation":{"pt":"Marca","en":"Brand"}},"material":{"nodeType":"translation","translation":{"pt":"Material","en":"Material"}},"colorName":{"nodeType":"translation","translation":{"pt":"Nome da Cor","en":"Color Name"}},"colorHex":{"nodeType":"translation","translation":{"pt":"Cor (Hex)","en":"Color (Hex)"}},"spoolWeight":{"nodeType":"translation","translation":{"pt":"Peso do rolo (g)","en":"Spool weight (g)"}},"empty":{"nodeType":"translation","translation":{"pt":"Nenhum filamento global.","en":"No global filaments."}},"submit":{"nodeType":"translation","translation":{"pt":"Adicionar","en":"Add"}},"submitting":{"nodeType":"translation","translation":{"pt":"A adicionar...","en":"Adding..."}},"toast":{"created":{"nodeType":"translation","translation":{"pt":"Filamento adicionado!","en":"Filament added!"}},"deleted":{"nodeType":"translation","translation":{"pt":"Filamento apagado.","en":"Filament deleted."}},"error":{"nodeType":"translation","translation":{"pt":"Erro","en":"Error"}}}},"users":{"addButton":{"nodeType":"translation","translation":{"pt":"Novo Utilizador","en":"New User"}},"dialogTitle":{"nodeType":"translation","translation":{"pt":"Criar Utilizador","en":"Create User"}},"name":{"nodeType":"translation","translation":{"pt":"Nome","en":"Name"}},"email":{"nodeType":"translation","translation":{"pt":"Email","en":"Email"}},"password":{"nodeType":"translation","translation":{"pt":"Password","en":"Password"}},"role":{"nodeType":"translation","translation":{"pt":"Role","en":"Role"}},"plan":{"nodeType":"translation","translation":{"pt":"Plano","en":"Plan"}},"createdAt":{"nodeType":"translation","translation":{"pt":"Criado em","en":"Created at"}},"empty":{"nodeType":"translation","translation":{"pt":"Nenhum utilizador.","en":"No users."}},"submit":{"nodeType":"translation","translation":{"pt":"Criar","en":"Create"}},"submitting":{"nodeType":"translation","translation":{"pt":"A criar...","en":"Creating..."}},"noName":{"nodeType":"translation","translation":{"pt":"Sem nome","en":"No name"}},"toast":{"created":{"nodeType":"translation","translation":{"pt":"Utilizador criado!","en":"User created!"}},"deleted":{"nodeType":"translation","translation":{"pt":"Utilizador apagado.","en":"User deleted."}},"error":{"nodeType":"translation","translation":{"pt":"Erro","en":"Error"}},"confirmDelete":{"nodeType":"translation","translation":{"pt":"Tens a certeza que queres apagar este utilizador?","en":"Are you sure you want to delete this user?"}}}}},"location":"local","localId":"admin::local::src/app/[locale]/(app)/admin/admin.content.ts","filePath":"src/app/[locale]/(app)/admin/admin.content.ts"}]
+[
+  {
+    "key": "admin",
+    "content": {
+      "page": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Painel Admin",
+            "en": "Admin Panel"
+          }
+        },
+        "heading": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Painel Admin",
+            "en": "Admin Panel"
+          }
+        },
+        "description": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Gestão de presets globais e utilizadores do sistema.",
+            "en": "Manage global presets and system users."
+          }
+        }
+      },
+      "tabs": {
+        "hardware": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Presets de Hardware",
+            "en": "Hardware Presets"
+          }
+        },
+        "materials": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Presets de Materiais",
+            "en": "Material Presets"
+          }
+        },
+        "users": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Utilizadores",
+            "en": "Users"
+          }
+        }
+      },
+      "printerPresets": {
+        "addButton": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Nova Impressora",
+            "en": "New Printer"
+          }
+        },
+        "dialogTitle": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Adicionar Impressora Global",
+            "en": "Add Global Printer"
+          }
+        },
+        "brand": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Marca",
+            "en": "Brand"
+          }
+        },
+        "model": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Modelo",
+            "en": "Model"
+          }
+        },
+        "powerWatts": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Potência (W)",
+            "en": "Power (W)"
+          }
+        },
+        "hourlyCost": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Custo/hora (€)",
+            "en": "Cost/hour (€)"
+          }
+        },
+        "empty": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Nenhuma impressora global.",
+            "en": "No global printers."
+          }
+        },
+        "submit": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Adicionar",
+            "en": "Add"
+          }
+        },
+        "submitting": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "A adicionar...",
+            "en": "Adding..."
+          }
+        },
+        "toast": {
+          "created": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Impressora adicionada!",
+              "en": "Printer added!"
+            }
+          },
+          "deleted": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Impressora apagada.",
+              "en": "Printer deleted."
+            }
+          },
+          "error": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Erro",
+              "en": "Error"
+            }
+          }
+        }
+      },
+      "globalFilaments": {
+        "addButton": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Novo Filamento",
+            "en": "New Filament"
+          }
+        },
+        "dialogTitle": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Adicionar Filamento Global",
+            "en": "Add Global Filament"
+          }
+        },
+        "brand": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Marca",
+            "en": "Brand"
+          }
+        },
+        "material": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Material",
+            "en": "Material"
+          }
+        },
+        "colorName": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Nome da Cor",
+            "en": "Color Name"
+          }
+        },
+        "colorHex": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Cor (Hex)",
+            "en": "Color (Hex)"
+          }
+        },
+        "spoolWeight": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Peso do rolo (g)",
+            "en": "Spool weight (g)"
+          }
+        },
+        "empty": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Nenhum filamento global.",
+            "en": "No global filaments."
+          }
+        },
+        "submit": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Adicionar",
+            "en": "Add"
+          }
+        },
+        "submitting": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "A adicionar...",
+            "en": "Adding..."
+          }
+        },
+        "toast": {
+          "created": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Filamento adicionado!",
+              "en": "Filament added!"
+            }
+          },
+          "deleted": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Filamento apagado.",
+              "en": "Filament deleted."
+            }
+          },
+          "error": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Erro",
+              "en": "Error"
+            }
+          }
+        }
+      },
+      "users": {
+        "addButton": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Novo Utilizador",
+            "en": "New User"
+          }
+        },
+        "dialogTitle": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Criar Utilizador",
+            "en": "Create User"
+          }
+        },
+        "name": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Nome",
+            "en": "Name"
+          }
+        },
+        "email": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Email",
+            "en": "Email"
+          }
+        },
+        "password": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Password",
+            "en": "Password"
+          }
+        },
+        "role": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Role",
+            "en": "Role"
+          }
+        },
+        "plan": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Plano",
+            "en": "Plan"
+          }
+        },
+        "createdAt": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Criado em",
+            "en": "Created at"
+          }
+        },
+        "empty": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Nenhum utilizador.",
+            "en": "No users."
+          }
+        },
+        "submit": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Criar",
+            "en": "Create"
+          }
+        },
+        "submitting": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "A criar...",
+            "en": "Creating..."
+          }
+        },
+        "noName": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Sem nome",
+            "en": "No name"
+          }
+        },
+        "toast": {
+          "created": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Utilizador criado!",
+              "en": "User created!"
+            }
+          },
+          "deleted": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Utilizador apagado.",
+              "en": "User deleted."
+            }
+          },
+          "error": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Erro",
+              "en": "Error"
+            }
+          },
+          "confirmDelete": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Tens a certeza que queres apagar este utilizador?",
+              "en": "Are you sure you want to delete this user?"
+            }
+          }
+        }
+      }
+    },
+    "location": "local",
+    "localId": "admin::local::src/app/[locale]/(app)/admin/admin.content.ts",
+    "filePath": "src/app/[locale]/(app)/admin/admin.content.ts"
+  }
+]

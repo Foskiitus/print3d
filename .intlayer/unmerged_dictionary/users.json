@@ -1,1 +1,167 @@
-[{"key":"users","content":{"page":{"title":{"nodeType":"translation","translation":{"en":"Users","pt":"Utilizadores"}},"heading":{"nodeType":"translation","translation":{"en":"Users","pt":"Utilizadores"}},"description":{"nodeType":"translation","translation":{"en":"System access management.","pt":"Gestão de acessos ao sistema."}}},"dialog":{"triggerButton":{"nodeType":"translation","translation":{"en":"New User","pt":"Novo Utilizador"}},"title":{"nodeType":"translation","translation":{"en":"Create User","pt":"Criar Utilizador"}},"fields":{"name":{"nodeType":"translation","translation":{"en":"Name","pt":"Nome"}},"email":{"nodeType":"translation","translation":{"en":"Email","pt":"Email"}},"password":{"nodeType":"translation","translation":{"en":"Password","pt":"Password"}},"role":{"nodeType":"translation","translation":{"en":"Role","pt":"Role"}}},"submitButton":{"nodeType":"translation","translation":{"en":"Create User","pt":"Criar Utilizador"}},"submitting":{"nodeType":"translation","translation":{"en":"Creating...","pt":"A criar..."}}},"table":{"name":{"nodeType":"translation","translation":{"en":"Name","pt":"Nome"}},"email":{"nodeType":"translation","translation":{"en":"Email","pt":"Email"}},"role":{"nodeType":"translation","translation":{"en":"Role","pt":"Role"}},"createdAt":{"nodeType":"translation","translation":{"en":"Created at","pt":"Criado em"}},"empty":{"nodeType":"translation","translation":{"en":"No users found.","pt":"Nenhum utilizador encontrado."}}},"noName":{"nodeType":"translation","translation":{"en":"No Name","pt":"Sem Nome"}},"toast":{"created":{"nodeType":"translation","translation":{"en":"User created!","pt":"Utilizador criado!"}},"deleted":{"nodeType":"translation","translation":{"en":"User deleted.","pt":"Utilizador apagado."}},"createError":{"nodeType":"translation","translation":{"en":"Error creating user","pt":"Erro ao criar utilizador"}},"confirmDelete":{"nodeType":"translation","translation":{"en":"Are you sure you want to delete this user?","pt":"Tens a certeza que queres apagar este utilizador?"}}}},"location":"local","localId":"users::local::src/app/[locale]/(app)/users/users.content.ts","filePath":"src/app/[locale]/(app)/users/users.content.ts"}]
+[
+  {
+    "key": "users",
+    "content": {
+      "page": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Users",
+            "pt": "Utilizadores"
+          }
+        },
+        "heading": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Users",
+            "pt": "Utilizadores"
+          }
+        },
+        "description": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "System access management.",
+            "pt": "Gestão de acessos ao sistema."
+          }
+        }
+      },
+      "dialog": {
+        "triggerButton": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "New User",
+            "pt": "Novo Utilizador"
+          }
+        },
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Create User",
+            "pt": "Criar Utilizador"
+          }
+        },
+        "fields": {
+          "name": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "Name",
+              "pt": "Nome"
+            }
+          },
+          "email": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "Email",
+              "pt": "Email"
+            }
+          },
+          "password": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "Password",
+              "pt": "Password"
+            }
+          },
+          "role": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "Role",
+              "pt": "Role"
+            }
+          }
+        },
+        "submitButton": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Create User",
+            "pt": "Criar Utilizador"
+          }
+        },
+        "submitting": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Creating...",
+            "pt": "A criar..."
+          }
+        }
+      },
+      "table": {
+        "name": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Name",
+            "pt": "Nome"
+          }
+        },
+        "email": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Email",
+            "pt": "Email"
+          }
+        },
+        "role": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Role",
+            "pt": "Role"
+          }
+        },
+        "createdAt": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Created at",
+            "pt": "Criado em"
+          }
+        },
+        "empty": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "No users found.",
+            "pt": "Nenhum utilizador encontrado."
+          }
+        }
+      },
+      "noName": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "No Name",
+          "pt": "Sem Nome"
+        }
+      },
+      "toast": {
+        "created": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "User created!",
+            "pt": "Utilizador criado!"
+          }
+        },
+        "deleted": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "User deleted.",
+            "pt": "Utilizador apagado."
+          }
+        },
+        "createError": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Error creating user",
+            "pt": "Erro ao criar utilizador"
+          }
+        },
+        "confirmDelete": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Are you sure you want to delete this user?",
+            "pt": "Tens a certeza que queres apagar este utilizador?"
+          }
+        }
+      }
+    },
+    "location": "local",
+    "localId": "users::local::src/app/[locale]/(app)/users/users.content.ts",
+    "filePath": "src/app/[locale]/(app)/users/users.content.ts"
+  }
+]

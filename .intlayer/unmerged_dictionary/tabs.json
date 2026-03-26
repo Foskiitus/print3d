@@ -1,1 +1,9 @@
-[{"key":"tabs","content":{},"location":"local","localId":"tabs::local::src/app/[locale]/(app)/admin/tabs/tabs.content.ts","filePath":"src/app/[locale]/(app)/admin/tabs/tabs.content.ts"}]
+[
+  {
+    "key": "tabs",
+    "content": {},
+    "location": "local",
+    "localId": "tabs::local::src/app/[locale]/(app)/admin/tabs/tabs.content.ts",
+    "filePath": "src/app/[locale]/(app)/admin/tabs/tabs.content.ts"
+  }
+]

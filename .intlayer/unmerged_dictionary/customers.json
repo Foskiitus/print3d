@@ -1,1 +1,291 @@
-[{"key":"customers","content":{"title":{"nodeType":"translation","translation":{"pt":"Clientes","en":"Customers"}},"subtitle":{"nodeType":"translation","translation":{"pt":"Gere a lista de clientes e consulta o histórico de compras.","en":"Manage your customer list and view purchase history."}},"searchPlaceholder":{"nodeType":"translation","translation":{"pt":"Buscar por nome, email ou telefone...","en":"Search by name, email or phone..."}},"emptySearch":{"nodeType":"translation","translation":{"pt":"Nenhum cliente encontrado.","en":"No customers found."}},"emptyList":{"nodeType":"translation","translation":{"pt":"Nenhum cliente adicionado ainda.","en":"No customers added yet."}},"salesSuffix":{"nodeType":"translation","translation":{"pt":"venda(s)","en":"sale(s)"}},"edit":{"name":{"nodeType":"translation","translation":{"pt":"Nome *","en":"Name *"}},"email":{"nodeType":"translation","translation":{"pt":"Email","en":"Email"}},"phone":{"nodeType":"translation","translation":{"pt":"Telefone","en":"Phone"}},"nif":{"nodeType":"translation","translation":{"pt":"NIF","en":"VAT number"}},"address":{"nodeType":"translation","translation":{"pt":"Morada","en":"Address"}},"addressPlaceholder":{"nodeType":"translation","translation":{"pt":"Rua, cidade, código postal","en":"Street, city, postal code"}},"notes":{"nodeType":"translation","translation":{"pt":"Notas","en":"Notes"}},"notesPlaceholder":{"nodeType":"translation","translation":{"pt":"Observações...","en":"Observations..."}},"cancel":{"nodeType":"translation","translation":{"pt":"Cancelar","en":"Cancel"}},"save":{"nodeType":"translation","translation":{"pt":"Guardar","en":"Save"}},"saving":{"nodeType":"translation","translation":{"pt":"A guardar...","en":"Saving..."}}},"toasts":{"updated":{"nodeType":"translation","translation":{"pt":"Cliente atualizado","en":"Customer updated"}},"deleted":{"nodeType":"translation","translation":{"pt":"Cliente eliminado","en":"Customer deleted"}},"error":{"nodeType":"translation","translation":{"pt":"Erro","en":"Error"}}},"confirmDelete":{"nodeType":"translation","translation":{"pt":"Eliminar este cliente? As vendas associadas não serão apagadas.","en":"Delete this customer? Associated sales will not be deleted."}},"detail":{"customerSince":{"nodeType":"translation","translation":{"pt":"Cliente desde","en":"Customer since"}},"info":{"nodeType":"translation","translation":{"pt":"Informação","en":"Information"}},"noInfo":{"nodeType":"translation","translation":{"pt":"Sem informação adicional.","en":"No additional information."}},"summary":{"nodeType":"translation","translation":{"pt":"Resumo","en":"Summary"}},"totalSpent":{"nodeType":"translation","translation":{"pt":"Total gasto","en":"Total spent"}},"unitsBought":{"nodeType":"translation","translation":{"pt":"Unidades compradas","en":"Units purchased"}},"profitGenerated":{"nodeType":"translation","translation":{"pt":"Lucro gerado","en":"Profit generated"}},"topProducts":{"nodeType":"translation","translation":{"pt":"Produtos mais comprados","en":"Most purchased products"}},"noPurchases":{"nodeType":"translation","translation":{"pt":"Sem compras","en":"No purchases"}},"purchaseHistory":{"nodeType":"translation","translation":{"pt":"Histórico de compras","en":"Purchase history"}},"noPurchasesRegistered":{"nodeType":"translation","translation":{"pt":"Nenhuma compra registada.","en":"No purchases registered."}},"tableHeaders":{"date":{"nodeType":"translation","translation":{"pt":"Data","en":"Date"}},"product":{"nodeType":"translation","translation":{"pt":"Produto","en":"Product"}},"qty":{"nodeType":"translation","translation":{"pt":"Qtd","en":"Qty"}},"pricePerUnit":{"nodeType":"translation","translation":{"pt":"Preço/un","en":"Price/unit"}},"total":{"nodeType":"translation","translation":{"pt":"Total","en":"Total"}},"profit":{"nodeType":"translation","translation":{"pt":"Lucro","en":"Profit"}}},"units":{"nodeType":"translation","translation":{"pt":"un.","en":"units"}}}},"location":"local","localId":"customers::local::src/app/[locale]/(app)/customers/customers.content.ts","filePath":"src/app/[locale]/(app)/customers/customers.content.ts"}]
+[
+  {
+    "key": "customers",
+    "content": {
+      "title": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Clientes",
+          "en": "Customers"
+        }
+      },
+      "subtitle": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Gere a lista de clientes e consulta o histórico de compras.",
+          "en": "Manage your customer list and view purchase history."
+        }
+      },
+      "searchPlaceholder": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Buscar por nome, email ou telefone...",
+          "en": "Search by name, email or phone..."
+        }
+      },
+      "emptySearch": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Nenhum cliente encontrado.",
+          "en": "No customers found."
+        }
+      },
+      "emptyList": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Nenhum cliente adicionado ainda.",
+          "en": "No customers added yet."
+        }
+      },
+      "salesSuffix": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "venda(s)",
+          "en": "sale(s)"
+        }
+      },
+      "edit": {
+        "name": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Nome *",
+            "en": "Name *"
+          }
+        },
+        "email": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Email",
+            "en": "Email"
+          }
+        },
+        "phone": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Telefone",
+            "en": "Phone"
+          }
+        },
+        "nif": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "NIF",
+            "en": "VAT number"
+          }
+        },
+        "address": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Morada",
+            "en": "Address"
+          }
+        },
+        "addressPlaceholder": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Rua, cidade, código postal",
+            "en": "Street, city, postal code"
+          }
+        },
+        "notes": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Notas",
+            "en": "Notes"
+          }
+        },
+        "notesPlaceholder": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Observações...",
+            "en": "Observations..."
+          }
+        },
+        "cancel": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Cancelar",
+            "en": "Cancel"
+          }
+        },
+        "save": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Guardar",
+            "en": "Save"
+          }
+        },
+        "saving": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "A guardar...",
+            "en": "Saving..."
+          }
+        }
+      },
+      "toasts": {
+        "updated": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Cliente atualizado",
+            "en": "Customer updated"
+          }
+        },
+        "deleted": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Cliente eliminado",
+            "en": "Customer deleted"
+          }
+        },
+        "error": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Erro",
+            "en": "Error"
+          }
+        }
+      },
+      "confirmDelete": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Eliminar este cliente? As vendas associadas não serão apagadas.",
+          "en": "Delete this customer? Associated sales will not be deleted."
+        }
+      },
+      "detail": {
+        "customerSince": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Cliente desde",
+            "en": "Customer since"
+          }
+        },
+        "info": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Informação",
+            "en": "Information"
+          }
+        },
+        "noInfo": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Sem informação adicional.",
+            "en": "No additional information."
+          }
+        },
+        "summary": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Resumo",
+            "en": "Summary"
+          }
+        },
+        "totalSpent": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Total gasto",
+            "en": "Total spent"
+          }
+        },
+        "unitsBought": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Unidades compradas",
+            "en": "Units purchased"
+          }
+        },
+        "profitGenerated": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Lucro gerado",
+            "en": "Profit generated"
+          }
+        },
+        "topProducts": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Produtos mais comprados",
+            "en": "Most purchased products"
+          }
+        },
+        "noPurchases": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Sem compras",
+            "en": "No purchases"
+          }
+        },
+        "purchaseHistory": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Histórico de compras",
+            "en": "Purchase history"
+          }
+        },
+        "noPurchasesRegistered": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Nenhuma compra registada.",
+            "en": "No purchases registered."
+          }
+        },
+        "tableHeaders": {
+          "date": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Data",
+              "en": "Date"
+            }
+          },
+          "product": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Produto",
+              "en": "Product"
+            }
+          },
+          "qty": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Qtd",
+              "en": "Qty"
+            }
+          },
+          "pricePerUnit": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Preço/un",
+              "en": "Price/unit"
+            }
+          },
+          "total": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Total",
+              "en": "Total"
+            }
+          },
+          "profit": {
+            "nodeType": "translation",
+            "translation": {
+              "pt": "Lucro",
+              "en": "Profit"
+            }
+          }
+        },
+        "units": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "un.",
+            "en": "units"
+          }
+        }
+      }
+    },
+    "location": "local",
+    "localId": "customers::local::src/app/[locale]/(app)/customers/customers.content.ts",
+    "filePath": "src/app/[locale]/(app)/customers/customers.content.ts"
+  }
+]

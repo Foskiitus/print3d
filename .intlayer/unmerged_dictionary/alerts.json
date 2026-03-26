@@ -1,1 +1,228 @@
-[{"key":"alerts","content":{"products":{"title":{"nodeType":"translation","translation":{"en":"Product stock","pt":"Stock de produtos"}},"empty":{"nodeType":"translation","translation":{"en":"No products with low stock.","pt":"Nenhum produto com stock baixo."}},"stockInfo":{"nodeType":"translation","translation":{"en":"un. in stock · alert below","pt":"un. em stock · alerta abaixo de"}}},"filaments":{"title":{"nodeType":"translation","translation":{"en":"Filaments","pt":"Filamentos"}},"empty":{"nodeType":"translation","translation":{"en":"No spools with low stock.","pt":"Nenhuma bobine com stock baixo."}},"remaining":{"nodeType":"translation","translation":{"en":"g total · alert below","pt":"g no total · alerta abaixo de"}},"spools":{"nodeType":"translation","translation":{"en":"spools","pt":"bobines"}}},"alertCount":{"nodeType":"translation","translation":{"en":"alert(s)","pt":"alerta(s)"}},"viewAll":{"nodeType":"translation","translation":{"en":"View all alerts","pt":"Ver todos os alertas"}}},"location":"local","localId":"alerts::local::src/components/layout/alerts.content.ts","filePath":"src/components/layout/alerts.content.ts"},{"key":"alerts","content":{"title":{"nodeType":"translation","translation":{"pt":"Alertas de Stock","en":"Stock Alerts"}},"subtitle":{"nodeType":"translation","translation":{"pt":"Produtos e bobines abaixo do limite definido.","en":"Products and spools below the defined threshold."}},"activeBadge":{"nodeType":"translation","translation":{"pt":"alerta(s) ativo(s)","en":"active alert(s)"}},"allClear":{"title":{"nodeType":"translation","translation":{"pt":"Tudo em ordem!","en":"All clear!"}},"sub":{"nodeType":"translation","translation":{"pt":"Nenhum produto ou bobine abaixo do limite de alerta.","en":"No products or spools below the alert threshold."}}},"sections":{"products":{"nodeType":"translation","translation":{"pt":"Produtos","en":"Products"}},"spools":{"nodeType":"translation","translation":{"pt":"Bobines de filamento","en":"Filament spools"}}},"stock":{"units":{"nodeType":"translation","translation":{"pt":"unidades","en":"units"}},"inStock":{"nodeType":"translation","translation":{"pt":"em stock","en":"in stock"}},"alertBelow":{"nodeType":"translation","translation":{"pt":"alerta abaixo de","en":"alert below"}},"un":{"nodeType":"translation","translation":{"pt":"un.","en":"units"}},"total":{"nodeType":"translation","translation":{"pt":"no total","en":"total"}},"spoolsSuffix":{"nodeType":"translation","translation":{"pt":"bobines","en":"spools"}},"default":{"nodeType":"translation","translation":{"pt":"padrão","en":"default"}}},"links":{"viewProduct":{"nodeType":"translation","translation":{"pt":"Ver produto","en":"View product"}},"viewFilaments":{"nodeType":"translation","translation":{"pt":"Ver filamentos","en":"View filaments"}}},"howTo":{"title":{"nodeType":"translation","translation":{"pt":"Como configurar alertas","en":"How to configure alerts"}},"products":{"nodeType":"translation","translation":{"pt":"Para produtos: abre o produto e define o campo \"Alerta de stock mínimo\" na edição.","en":"For products: open the product and set the \"Minimum stock alert\" field when editing."}},"spools":{"nodeType":"translation","translation":{"pt":"Para bobines: abre o filamento e define o campo \"Alerta de stock mínimo\" na bobine.","en":"For spools: open the filament and set the \"Minimum stock alert\" field on the spool."}}}},"location":"local","localId":"alerts::local::src/app/[locale]/(app)/alerts/alerts.content.ts","filePath":"src/app/[locale]/(app)/alerts/alerts.content.ts"}]
+[
+  {
+    "key": "alerts",
+    "content": {
+      "products": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Product stock",
+            "pt": "Stock de produtos"
+          }
+        },
+        "empty": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "No products with low stock.",
+            "pt": "Nenhum produto com stock baixo."
+          }
+        },
+        "stockInfo": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "un. in stock · alert below",
+            "pt": "un. em stock · alerta abaixo de"
+          }
+        }
+      },
+      "filaments": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Filaments",
+            "pt": "Filamentos"
+          }
+        },
+        "empty": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "No spools with low stock.",
+            "pt": "Nenhuma bobine com stock baixo."
+          }
+        },
+        "remaining": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "g total · alert below",
+            "pt": "g no total · alerta abaixo de"
+          }
+        },
+        "spools": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "spools",
+            "pt": "bobines"
+          }
+        }
+      },
+      "alertCount": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "alert(s)",
+          "pt": "alerta(s)"
+        }
+      },
+      "viewAll": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "View all alerts",
+          "pt": "Ver todos os alertas"
+        }
+      }
+    },
+    "location": "local",
+    "localId": "alerts::local::src/components/layout/alerts.content.ts",
+    "filePath": "src/components/layout/alerts.content.ts"
+  },
+  {
+    "key": "alerts",
+    "content": {
+      "title": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Alertas de Stock",
+          "en": "Stock Alerts"
+        }
+      },
+      "subtitle": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Produtos e bobines abaixo do limite definido.",
+          "en": "Products and spools below the defined threshold."
+        }
+      },
+      "activeBadge": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "alerta(s) ativo(s)",
+          "en": "active alert(s)"
+        }
+      },
+      "allClear": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Tudo em ordem!",
+            "en": "All clear!"
+          }
+        },
+        "sub": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Nenhum produto ou bobine abaixo do limite de alerta.",
+            "en": "No products or spools below the alert threshold."
+          }
+        }
+      },
+      "sections": {
+        "products": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Produtos",
+            "en": "Products"
+          }
+        },
+        "spools": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Bobines de filamento",
+            "en": "Filament spools"
+          }
+        }
+      },
+      "stock": {
+        "units": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "unidades",
+            "en": "units"
+          }
+        },
+        "inStock": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "em stock",
+            "en": "in stock"
+          }
+        },
+        "alertBelow": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "alerta abaixo de",
+            "en": "alert below"
+          }
+        },
+        "un": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "un.",
+            "en": "units"
+          }
+        },
+        "total": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "no total",
+            "en": "total"
+          }
+        },
+        "spoolsSuffix": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "bobines",
+            "en": "spools"
+          }
+        },
+        "default": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "padrão",
+            "en": "default"
+          }
+        }
+      },
+      "links": {
+        "viewProduct": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Ver produto",
+            "en": "View product"
+          }
+        },
+        "viewFilaments": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Ver filamentos",
+            "en": "View filaments"
+          }
+        }
+      },
+      "howTo": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Como configurar alertas",
+            "en": "How to configure alerts"
+          }
+        },
+        "products": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Para produtos: abre o produto e define o campo \"Alerta de stock mínimo\" na edição.",
+            "en": "For products: open the product and set the \"Minimum stock alert\" field when editing."
+          }
+        },
+        "spools": {
+          "nodeType": "translation",
+          "translation": {
+            "pt": "Para bobines: abre o filamento e define o campo \"Alerta de stock mínimo\" na bobine.",
+            "en": "For spools: open the filament and set the \"Minimum stock alert\" field on the spool."
+          }
+        }
+      }
+    },
+    "location": "local",
+    "localId": "alerts::local::src/app/[locale]/(app)/alerts/alerts.content.ts",
+    "filePath": "src/app/[locale]/(app)/alerts/alerts.content.ts"
+  }
+]

@@ -1,1 +1,49 @@
-{"key":"sidebar","content":{"nodeType":"translation","translation":{"pt":{"nav":{"dashboard":"Dashboard","inventory":"Inventário","catalog":"Produtos","components":"Componentes","production":"Produção","workshop":"A Minha Oficina","sales":"Encomendas","customers":"Clientes","profile":"A Minha Conta","admin":"Painel Admin"},"roles":{"admin":"Admin","user":"Utilizador"},"signOut":"Sair"},"en":{"nav":{"dashboard":"Dashboard","inventory":"Inventory","catalog":"Products","components":"Components","production":"Production","workshop":"My Workshop","sales":"Orders","customers":"Customers","profile":"My Account","admin":"Admin Panel"},"roles":{"admin":"Admin","user":"User"},"signOut":"Sign out"}}},"localIds":["sidebar::local::src/components/layout/sidebar.content.ts"]}
+{
+  "key": "sidebar",
+  "content": {
+    "nodeType": "translation",
+    "translation": {
+      "pt": {
+        "nav": {
+          "dashboard": "Dashboard",
+          "inventory": "Inventário",
+          "catalog": "Produtos",
+          "components": "Componentes",
+          "production": "Produção",
+          "workshop": "A Minha Oficina",
+          "sales": "Encomendas",
+          "customers": "Clientes",
+          "profile": "A Minha Conta",
+          "admin": "Painel Admin"
+        },
+        "roles": {
+          "admin": "Admin",
+          "user": "Utilizador"
+        },
+        "signOut": "Sair"
+      },
+      "en": {
+        "nav": {
+          "dashboard": "Dashboard",
+          "inventory": "Inventory",
+          "catalog": "Products",
+          "components": "Components",
+          "production": "Production",
+          "workshop": "My Workshop",
+          "sales": "Orders",
+          "customers": "Customers",
+          "profile": "My Account",
+          "admin": "Admin Panel"
+        },
+        "roles": {
+          "admin": "Admin",
+          "user": "User"
+        },
+        "signOut": "Sign out"
+      }
+    }
+  },
+  "localIds": [
+    "sidebar::local::src/components/layout/sidebar.content.ts"
+  ]
+}

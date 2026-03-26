@@ -1,1 +1,172 @@
-[{"key":"contact","content":{"meta":{"title":{"nodeType":"translation","translation":{"en":"Contact","pt":"Contacto"}},"description":{"nodeType":"translation","translation":{"en":"Get in touch with the SpoolIQ team.","pt":"Entra em contacto com a equipa SpoolIQ."}}},"hero":{"title":{"nodeType":"translation","translation":{"en":"Get in touch","pt":"Fala connosco"}},"subtitle":{"nodeType":"translation","translation":{"en":"Have a question, suggestion or just want to say hello? We'd love to hear from you.","pt":"Tens uma dúvida, sugestão ou apenas queres dizer olá? Adoraríamos ouvir-te."}}},"form":{"title":{"nodeType":"translation","translation":{"en":"Send us a message","pt":"Envia-nos uma mensagem"}},"nameLabel":{"nodeType":"translation","translation":{"en":"Name","pt":"Nome"}},"namePlaceholder":{"nodeType":"translation","translation":{"en":"Your name","pt":"O teu nome"}},"emailLabel":{"nodeType":"translation","translation":{"en":"Email","pt":"Email"}},"emailPlaceholder":{"nodeType":"translation","translation":{"en":"your@email.com","pt":"o-teu@email.com"}},"subjectLabel":{"nodeType":"translation","translation":{"en":"Subject","pt":"Assunto"}},"subjectPlaceholder":{"nodeType":"translation","translation":{"en":"How can we help?","pt":"Como podemos ajudar?"}},"messageLabel":{"nodeType":"translation","translation":{"en":"Message","pt":"Mensagem"}},"messagePlaceholder":{"nodeType":"translation","translation":{"en":"Tell us more...","pt":"Conta-nos mais..."}},"submit":{"nodeType":"translation","translation":{"en":"Send message","pt":"Enviar mensagem"}},"submitting":{"nodeType":"translation","translation":{"en":"Sending...","pt":"A enviar..."}},"successTitle":{"nodeType":"translation","translation":{"en":"Message sent!","pt":"Mensagem enviada!"}},"successBody":{"nodeType":"translation","translation":{"en":"Thanks for reaching out. We'll get back to you as soon as possible.","pt":"Obrigado pelo contacto. Responderemos o mais brevemente possível."}},"errorGeneric":{"nodeType":"translation","translation":{"en":"Something went wrong. Please try again or email us directly.","pt":"Ocorreu um erro. Tenta novamente ou envia-nos um email directamente."}}},"social":{"title":{"nodeType":"translation","translation":{"en":"Find us online","pt":"Encontra-nos online"}},"instagram":{"nodeType":"translation","translation":{"en":"Follow us on Instagram","pt":"Segue-nos no Instagram"}},"facebook":{"nodeType":"translation","translation":{"en":"Follow us on Facebook","pt":"Segue-nos no Facebook"}},"email":{"nodeType":"translation","translation":{"en":"Email us directly","pt":"Envia-nos um email"}}}},"location":"local","localId":"contact::local::src/app/[locale]/contact/contact.content.ts","filePath":"src/app/[locale]/contact/contact.content.ts"}]
+[
+  {
+    "key": "contact",
+    "content": {
+      "meta": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Contact",
+            "pt": "Contacto"
+          }
+        },
+        "description": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Get in touch with the SpoolIQ team.",
+            "pt": "Entra em contacto com a equipa SpoolIQ."
+          }
+        }
+      },
+      "hero": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Get in touch",
+            "pt": "Fala connosco"
+          }
+        },
+        "subtitle": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Have a question, suggestion or just want to say hello? We'd love to hear from you.",
+            "pt": "Tens uma dúvida, sugestão ou apenas queres dizer olá? Adoraríamos ouvir-te."
+          }
+        }
+      },
+      "form": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Send us a message",
+            "pt": "Envia-nos uma mensagem"
+          }
+        },
+        "nameLabel": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Name",
+            "pt": "Nome"
+          }
+        },
+        "namePlaceholder": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Your name",
+            "pt": "O teu nome"
+          }
+        },
+        "emailLabel": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Email",
+            "pt": "Email"
+          }
+        },
+        "emailPlaceholder": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "your@email.com",
+            "pt": "o-teu@email.com"
+          }
+        },
+        "subjectLabel": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Subject",
+            "pt": "Assunto"
+          }
+        },
+        "subjectPlaceholder": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "How can we help?",
+            "pt": "Como podemos ajudar?"
+          }
+        },
+        "messageLabel": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Message",
+            "pt": "Mensagem"
+          }
+        },
+        "messagePlaceholder": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Tell us more...",
+            "pt": "Conta-nos mais..."
+          }
+        },
+        "submit": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Send message",
+            "pt": "Enviar mensagem"
+          }
+        },
+        "submitting": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Sending...",
+            "pt": "A enviar..."
+          }
+        },
+        "successTitle": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Message sent!",
+            "pt": "Mensagem enviada!"
+          }
+        },
+        "successBody": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Thanks for reaching out. We'll get back to you as soon as possible.",
+            "pt": "Obrigado pelo contacto. Responderemos o mais brevemente possível."
+          }
+        },
+        "errorGeneric": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Something went wrong. Please try again or email us directly.",
+            "pt": "Ocorreu um erro. Tenta novamente ou envia-nos um email directamente."
+          }
+        }
+      },
+      "social": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Find us online",
+            "pt": "Encontra-nos online"
+          }
+        },
+        "instagram": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Follow us on Instagram",
+            "pt": "Segue-nos no Instagram"
+          }
+        },
+        "facebook": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Follow us on Facebook",
+            "pt": "Segue-nos no Facebook"
+          }
+        },
+        "email": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Email us directly",
+            "pt": "Envia-nos um email"
+          }
+        }
+      }
+    },
+    "location": "local",
+    "localId": "contact::local::src/app/[locale]/contact/contact.content.ts",
+    "filePath": "src/app/[locale]/contact/contact.content.ts"
+  }
+]

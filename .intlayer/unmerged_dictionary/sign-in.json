@@ -1,1 +1,95 @@
-[{"key":"sign-in","content":{"title":{"nodeType":"translation","translation":{"pt":"Entrar","en":"Sign in"}},"subtitle":{"nodeType":"translation","translation":{"pt":"Bem-vindo de volta ao SpoolIQ","en":"Welcome back to SpoolIQ"}},"emailLabel":{"nodeType":"translation","translation":{"pt":"Email","en":"Email"}},"emailPlaceholder":{"nodeType":"translation","translation":{"pt":"tu@exemplo.com","en":"you@example.com"}},"passwordLabel":{"nodeType":"translation","translation":{"pt":"Password","en":"Password"}},"passwordPlaceholder":"••••••••","submitButton":{"nodeType":"translation","translation":{"pt":"Entrar","en":"Sign in"}},"submittingButton":{"nodeType":"translation","translation":{"pt":"A entrar…","en":"Signing in…"}},"errorMessage":{"nodeType":"translation","translation":{"pt":"Email ou password incorretos.","en":"Incorrect email or password."}},"orDivider":{"nodeType":"translation","translation":{"pt":"ou","en":"or"}},"googleButton":{"nodeType":"translation","translation":{"pt":"Entrar com Google","en":"Sign in with Google"}},"noAccount":{"nodeType":"translation","translation":{"pt":"Não tens conta?","en":"Don't have an account?"}},"registerLink":{"nodeType":"translation","translation":{"pt":"Registar","en":"Register"}}},"location":"local","localId":"sign-in::local::src/app/[locale]/sign-in/[[...sign-in]]/sign-in.content.ts","filePath":"src/app/[locale]/sign-in/[[...sign-in]]/sign-in.content.ts"}]
+[
+  {
+    "key": "sign-in",
+    "content": {
+      "title": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Entrar",
+          "en": "Sign in"
+        }
+      },
+      "subtitle": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Bem-vindo de volta ao SpoolIQ",
+          "en": "Welcome back to SpoolIQ"
+        }
+      },
+      "emailLabel": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Email",
+          "en": "Email"
+        }
+      },
+      "emailPlaceholder": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "tu@exemplo.com",
+          "en": "you@example.com"
+        }
+      },
+      "passwordLabel": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Password",
+          "en": "Password"
+        }
+      },
+      "passwordPlaceholder": "••••••••",
+      "submitButton": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Entrar",
+          "en": "Sign in"
+        }
+      },
+      "submittingButton": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "A entrar…",
+          "en": "Signing in…"
+        }
+      },
+      "errorMessage": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Email ou password incorretos.",
+          "en": "Incorrect email or password."
+        }
+      },
+      "orDivider": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "ou",
+          "en": "or"
+        }
+      },
+      "googleButton": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Entrar com Google",
+          "en": "Sign in with Google"
+        }
+      },
+      "noAccount": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Não tens conta?",
+          "en": "Don't have an account?"
+        }
+      },
+      "registerLink": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Registar",
+          "en": "Register"
+        }
+      }
+    },
+    "location": "local",
+    "localId": "sign-in::local::src/app/[locale]/sign-in/[[...sign-in]]/sign-in.content.ts",
+    "filePath": "src/app/[locale]/sign-in/[[...sign-in]]/sign-in.content.ts"
+  }
+]

@@ -1,1 +1,136 @@
-[{"key":"features","content":{"inventory_title":{"nodeType":"translation","translation":{"en":"Smart Inventory","pt":"Inventário Inteligente"}},"inventory_desc":{"nodeType":"translation","translation":{"en":"Track every spool in real time. Low stock alerts, cost per gram and automatic consumption estimates.","pt":"Rastreia cada bobina em tempo real. Alertas de stock baixo, custos por grama e estimativas automáticas de consumo."}},"inventory_tag":{"nodeType":"translation","translation":{"en":"Filaments & Hardware","pt":"Filamentos & Hardware"}},"printers_title":{"nodeType":"translation","translation":{"en":"Printer Management","pt":"Gestão de Impressoras"}},"printers_desc":{"nodeType":"translation","translation":{"en":"Status of each machine, maintenance history with hour or date reminders, and direct association with the filament in use.","pt":"Estado de cada máquina, histórico de manutenção com lembretes por horas ou datas, e associação direta ao filamento em uso."}},"printers_tag":{"nodeType":"translation","translation":{"en":"Machinery","pt":"Maquinaria"}},"costs_title":{"nodeType":"translation","translation":{"en":"Real Costs","pt":"Custos Reais"}},"costs_desc":{"nodeType":"translation","translation":{"en":"Calculate the exact cost of each part — filament, electricity, labour. Set margins and export to invoices.","pt":"Calcula o custo exato de cada peça — filamento, eletricidade, mão de obra. Define margens e exporta para faturas."}},"costs_tag":{"nodeType":"translation","translation":{"en":"Financial","pt":"Financeiro"}},"qr_title":{"nodeType":"translation","translation":{"en":"Quick QR Scan","pt":"Scan QR Rápido"}},"qr_desc":{"nodeType":"translation","translation":{"en":"Scan a spool or printer with your phone. Immediate action in inventory without opening menus. Perfect at the workbench.","pt":"Scan uma bobina ou impressora com o telemóvel. Ação imediata no inventário sem abrir menus. Perfeito em bancada."}},"qr_tag":{"nodeType":"translation","translation":{"en":"Mobile / PWA","pt":"Mobile / PWA"}},"orders_title":{"nodeType":"translation","translation":{"en":"Orders & Sales","pt":"Encomendas & Vendas"}},"orders_desc":{"nodeType":"translation","translation":{"en":"Log customer orders, track production status and automatically calculate the value of each order.","pt":"Regista pedidos de clientes, acompanha o estado de produção e calcula automaticamente o valor de cada encomenda."}},"orders_tag":{"nodeType":"translation","translation":{"en":"Commercial","pt":"Comercial"}},"maintenance_title":{"nodeType":"translation","translation":{"en":"Predictive Maintenance","pt":"Manutenção Preditiva"}},"maintenance_desc":{"nodeType":"translation","translation":{"en":"Schedule reviews by printed hours. Receive alerts before breakdowns. Store photos and history of each intervention.","pt":"Agenda revisões por horas impressas. Recebe alertas antes de avarias. Guarda fotos e histórico de cada intervenção."}},"maintenance_tag":{"nodeType":"translation","translation":{"en":"Preventive","pt":"Preventivo"}}},"location":"local","localId":"features::local::src/app/[locale]/features.content.ts","filePath":"src/app/[locale]/features.content.ts"}]
+[
+  {
+    "key": "features",
+    "content": {
+      "inventory_title": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Smart Inventory",
+          "pt": "Inventário Inteligente"
+        }
+      },
+      "inventory_desc": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Track every spool in real time. Low stock alerts, cost per gram and automatic consumption estimates.",
+          "pt": "Rastreia cada bobina em tempo real. Alertas de stock baixo, custos por grama e estimativas automáticas de consumo."
+        }
+      },
+      "inventory_tag": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Filaments & Hardware",
+          "pt": "Filamentos & Hardware"
+        }
+      },
+      "printers_title": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Printer Management",
+          "pt": "Gestão de Impressoras"
+        }
+      },
+      "printers_desc": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Status of each machine, maintenance history with hour or date reminders, and direct association with the filament in use.",
+          "pt": "Estado de cada máquina, histórico de manutenção com lembretes por horas ou datas, e associação direta ao filamento em uso."
+        }
+      },
+      "printers_tag": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Machinery",
+          "pt": "Maquinaria"
+        }
+      },
+      "costs_title": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Real Costs",
+          "pt": "Custos Reais"
+        }
+      },
+      "costs_desc": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Calculate the exact cost of each part — filament, electricity, labour. Set margins and export to invoices.",
+          "pt": "Calcula o custo exato de cada peça — filamento, eletricidade, mão de obra. Define margens e exporta para faturas."
+        }
+      },
+      "costs_tag": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Financial",
+          "pt": "Financeiro"
+        }
+      },
+      "qr_title": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Quick QR Scan",
+          "pt": "Scan QR Rápido"
+        }
+      },
+      "qr_desc": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Scan a spool or printer with your phone. Immediate action in inventory without opening menus. Perfect at the workbench.",
+          "pt": "Scan uma bobina ou impressora com o telemóvel. Ação imediata no inventário sem abrir menus. Perfeito em bancada."
+        }
+      },
+      "qr_tag": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Mobile / PWA",
+          "pt": "Mobile / PWA"
+        }
+      },
+      "orders_title": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Orders & Sales",
+          "pt": "Encomendas & Vendas"
+        }
+      },
+      "orders_desc": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Log customer orders, track production status and automatically calculate the value of each order.",
+          "pt": "Regista pedidos de clientes, acompanha o estado de produção e calcula automaticamente o valor de cada encomenda."
+        }
+      },
+      "orders_tag": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Commercial",
+          "pt": "Comercial"
+        }
+      },
+      "maintenance_title": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Predictive Maintenance",
+          "pt": "Manutenção Preditiva"
+        }
+      },
+      "maintenance_desc": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Schedule reviews by printed hours. Receive alerts before breakdowns. Store photos and history of each intervention.",
+          "pt": "Agenda revisões por horas impressas. Recebe alertas antes de avarias. Guarda fotos e histórico de cada intervenção."
+        }
+      },
+      "maintenance_tag": {
+        "nodeType": "translation",
+        "translation": {
+          "en": "Preventive",
+          "pt": "Preventivo"
+        }
+      }
+    },
+    "location": "local",
+    "localId": "features::local::src/app/[locale]/features.content.ts",
+    "filePath": "src/app/[locale]/features.content.ts"
+  }
+]

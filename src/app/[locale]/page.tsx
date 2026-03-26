@@ -187,7 +187,7 @@ export default async function HomePage({
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
-                href={`/${locale}/login`}
+                href={`/${locale}/sign-in`}
                 className="btn-secondary px-7 py-3 text-base"
               >
                 {t.cta_login}

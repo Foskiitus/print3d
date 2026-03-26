@@ -1,1 +1,304 @@
-[{"key":"sales","content":{"page":{"title":{"nodeType":"translation","translation":{"en":"Sales","pt":"Vendas"}},"heading":{"nodeType":"translation","translation":{"en":"Sales","pt":"Vendas"}},"description":{"nodeType":"translation","translation":{"en":"Log sales and view your transaction history.","pt":"Registe vendas e consulte o histórico de transações."}}},"summary":{"transactions":{"nodeType":"translation","translation":{"en":"Transactions","pt":"Transações"}},"totalRevenue":{"nodeType":"translation","translation":{"en":"Total revenue","pt":"Receita total"}},"estimatedProfit":{"nodeType":"translation","translation":{"en":"Estimated profit","pt":"Lucro estimado"}}},"search":{"placeholder":{"nodeType":"translation","translation":{"en":"Search by customer or product...","pt":"Buscar por cliente ou produto..."}}},"table":{"date":{"nodeType":"translation","translation":{"en":"Date","pt":"Data"}},"product":{"nodeType":"translation","translation":{"en":"Product","pt":"Produto"}},"customer":{"nodeType":"translation","translation":{"en":"Customer","pt":"Cliente"}},"qty":{"nodeType":"translation","translation":{"en":"Qty","pt":"Qtd"}},"pricePerUnit":{"nodeType":"translation","translation":{"en":"Price/unit","pt":"Preço/un"}},"total":{"nodeType":"translation","translation":{"en":"Total","pt":"Total"}},"profit":{"nodeType":"translation","translation":{"en":"Profit","pt":"Lucro"}},"notes":{"nodeType":"translation","translation":{"en":"Notes","pt":"Notas"}},"noData":{"nodeType":"translation","translation":{"en":"No data","pt":"sem dados"}},"emptySearch":{"nodeType":"translation","translation":{"en":"No sales found.","pt":"Nenhuma venda encontrada."}},"emptyAll":{"nodeType":"translation","translation":{"en":"No sales recorded yet.","pt":"Nenhuma venda registada ainda."}}},"edit":{"noCustomer":{"nodeType":"translation","translation":{"en":"— No customer —","pt":"— Sem cliente —"}},"selectPlaceholder":{"nodeType":"translation","translation":{"en":"Select...","pt":"Selecionar..."}},"notesPlaceholder":{"nodeType":"translation","translation":{"en":"Notes...","pt":"Notas..."}}},"mobileDialog":{"title":{"nodeType":"translation","translation":{"en":"Edit Sale","pt":"Editar Venda"}},"stockAvailable":{"nodeType":"translation","translation":{"en":"Available stock","pt":"Stock disponível"}},"units":{"nodeType":"translation","translation":{"en":"un.","pt":"un."}},"quantity":{"nodeType":"translation","translation":{"en":"Quantity","pt":"Quantidade"}},"pricePerUnit":{"nodeType":"translation","translation":{"en":"Price/unit (€)","pt":"Preço/un (€)"}},"customerLabel":{"nodeType":"translation","translation":{"en":"Customer","pt":"Cliente"}},"optional":{"nodeType":"translation","translation":{"en":"(optional)","pt":"(opcional)"}},"noCustomer":{"nodeType":"translation","translation":{"en":"— No customer —","pt":"— Sem cliente —"}},"selectCustomer":{"nodeType":"translation","translation":{"en":"Select customer...","pt":"Selecionar cliente..."}},"searchCustomer":{"nodeType":"translation","translation":{"en":"Search customer...","pt":"Pesquisar cliente..."}},"notesLabel":{"nodeType":"translation","translation":{"en":"Notes","pt":"Notas"}},"notesPlaceholder":{"nodeType":"translation","translation":{"en":"Observations...","pt":"Observações..."}},"cancel":{"nodeType":"translation","translation":{"en":"Cancel","pt":"Cancelar"}},"save":{"nodeType":"translation","translation":{"en":"Save","pt":"Guardar"}},"saving":{"nodeType":"translation","translation":{"en":"Saving...","pt":"A guardar..."}}},"toast":{"updated":{"nodeType":"translation","translation":{"en":"Sale updated","pt":"Venda atualizada"}},"deleted":{"nodeType":"translation","translation":{"en":"Sale deleted","pt":"Venda apagada"}},"error":{"nodeType":"translation","translation":{"en":"Error","pt":"Erro"}},"confirmDelete":{"nodeType":"translation","translation":{"en":"Delete this sale?","pt":"Apagar esta venda?"}}}},"location":"local","localId":"sales::local::src/app/[locale]/(app)/sales/sales.content.ts","filePath":"src/app/[locale]/(app)/sales/sales.content.ts"}]
+[
+  {
+    "key": "sales",
+    "content": {
+      "page": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Sales",
+            "pt": "Vendas"
+          }
+        },
+        "heading": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Sales",
+            "pt": "Vendas"
+          }
+        },
+        "description": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Log sales and view your transaction history.",
+            "pt": "Registe vendas e consulte o histórico de transações."
+          }
+        }
+      },
+      "summary": {
+        "transactions": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Transactions",
+            "pt": "Transações"
+          }
+        },
+        "totalRevenue": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Total revenue",
+            "pt": "Receita total"
+          }
+        },
+        "estimatedProfit": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Estimated profit",
+            "pt": "Lucro estimado"
+          }
+        }
+      },
+      "search": {
+        "placeholder": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Search by customer or product...",
+            "pt": "Buscar por cliente ou produto..."
+          }
+        }
+      },
+      "table": {
+        "date": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Date",
+            "pt": "Data"
+          }
+        },
+        "product": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Product",
+            "pt": "Produto"
+          }
+        },
+        "customer": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Customer",
+            "pt": "Cliente"
+          }
+        },
+        "qty": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Qty",
+            "pt": "Qtd"
+          }
+        },
+        "pricePerUnit": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Price/unit",
+            "pt": "Preço/un"
+          }
+        },
+        "total": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Total",
+            "pt": "Total"
+          }
+        },
+        "profit": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Profit",
+            "pt": "Lucro"
+          }
+        },
+        "notes": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Notes",
+            "pt": "Notas"
+          }
+        },
+        "noData": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "No data",
+            "pt": "sem dados"
+          }
+        },
+        "emptySearch": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "No sales found.",
+            "pt": "Nenhuma venda encontrada."
+          }
+        },
+        "emptyAll": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "No sales recorded yet.",
+            "pt": "Nenhuma venda registada ainda."
+          }
+        }
+      },
+      "edit": {
+        "noCustomer": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "— No customer —",
+            "pt": "— Sem cliente —"
+          }
+        },
+        "selectPlaceholder": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Select...",
+            "pt": "Selecionar..."
+          }
+        },
+        "notesPlaceholder": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Notes...",
+            "pt": "Notas..."
+          }
+        }
+      },
+      "mobileDialog": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Edit Sale",
+            "pt": "Editar Venda"
+          }
+        },
+        "stockAvailable": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Available stock",
+            "pt": "Stock disponível"
+          }
+        },
+        "units": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "un.",
+            "pt": "un."
+          }
+        },
+        "quantity": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Quantity",
+            "pt": "Quantidade"
+          }
+        },
+        "pricePerUnit": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Price/unit (€)",
+            "pt": "Preço/un (€)"
+          }
+        },
+        "customerLabel": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Customer",
+            "pt": "Cliente"
+          }
+        },
+        "optional": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "(optional)",
+            "pt": "(opcional)"
+          }
+        },
+        "noCustomer": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "— No customer —",
+            "pt": "— Sem cliente —"
+          }
+        },
+        "selectCustomer": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Select customer...",
+            "pt": "Selecionar cliente..."
+          }
+        },
+        "searchCustomer": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Search customer...",
+            "pt": "Pesquisar cliente..."
+          }
+        },
+        "notesLabel": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Notes",
+            "pt": "Notas"
+          }
+        },
+        "notesPlaceholder": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Observations...",
+            "pt": "Observações..."
+          }
+        },
+        "cancel": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Cancel",
+            "pt": "Cancelar"
+          }
+        },
+        "save": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Save",
+            "pt": "Guardar"
+          }
+        },
+        "saving": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Saving...",
+            "pt": "A guardar..."
+          }
+        }
+      },
+      "toast": {
+        "updated": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Sale updated",
+            "pt": "Venda atualizada"
+          }
+        },
+        "deleted": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Sale deleted",
+            "pt": "Venda apagada"
+          }
+        },
+        "error": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Error",
+            "pt": "Erro"
+          }
+        },
+        "confirmDelete": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Delete this sale?",
+            "pt": "Apagar esta venda?"
+          }
+        }
+      }
+    },
+    "location": "local",
+    "localId": "sales::local::src/app/[locale]/(app)/sales/sales.content.ts",
+    "filePath": "src/app/[locale]/(app)/sales/sales.content.ts"
+  }
+]

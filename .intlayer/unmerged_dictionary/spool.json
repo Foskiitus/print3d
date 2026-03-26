@@ -1,1 +1,266 @@
-[{"key":"spool","content":{"functions":{"remainingWeight":{"nodeType":"translation","translation":{"en":"g remaining","pt":"g restantes"}},"tareLabel":{"nodeType":"translation","translation":{"en":"Tare weight","pt":"Peso da tara"}},"initialGrossLabel":{"nodeType":"translation","translation":{"en":"Initial gross weight","pt":"Peso bruto inicial"}},"invalidSpool":{"nodeType":"translation","translation":{"en":"Invalid spool","pt":"Bobine inválida"}}},"buttons":{"loadInPrinter":{"nodeType":"translation","translation":{"en":"Load in printer","pt":"Carregar na impressora"}},"updateWeight":{"nodeType":"translation","translation":{"en":"Update weight","pt":"Actualizar peso"}},"finishSpool":{"nodeType":"translation","translation":{"en":"Finish spool","pt":"Rolo Acabou"}}},"updateWeightModal":{"title":{"nodeType":"translation","translation":{"en":"Update weight","pt":"Actualizar peso"}},"currentWeightLabel":{"nodeType":"translation","translation":{"en":"Includes tare weight","pt":"Inclui o peso do rolo vazio"}},"tareLabel":{"nodeType":"translation","translation":{"en":"Tare","pt":"Tara"}},"saveButton":{"nodeType":"translation","translation":{"en":"Save","pt":"Guardar"}}},"details":{"title":{"nodeType":"translation","translation":{"en":"Spool details","pt":"Detalhes da bobine"}},"labels":{"price":{"nodeType":"translation","translation":{"en":"Price","pt":"Preço"}},"costPerGram":{"nodeType":"translation","translation":{"en":"Cost/gram","pt":"Custo/grama"}},"boughtAt":{"nodeType":"translation","translation":{"en":"Bought at","pt":"Comprado em"}},"openedAt":{"nodeType":"translation","translation":{"en":"Opened at","pt":"Aberto em"}},"supplier":{"nodeType":"translation","translation":{"en":"Supplier","pt":"Fornecedor"}},"notes":{"nodeType":"translation","translation":{"en":"Notes","pt":"Notas"}}}},"history":{"title":{"nodeType":"translation","translation":{"en":"Spool history","pt":"Histórico de uso"}},"noHistory":{"nodeType":"translation","translation":{"en":"No usage recorded yet","pt":"Nenhuma produção registada ainda"}}},"loading":{"loadingSpool":{"nodeType":"translation","translation":{"en":"Loading spool...","pt":"A carregar bobine..."}}},"spoolOwnerPanel":{"title":{"nodeType":"translation","translation":{"en":"Spool details","pt":"Detalhes da bobine"}}},"toast":{"adjustmentUpdated":{"nodeType":"translation","translation":{"en":"Adjustment updated","pt":"Peso actualizado"}},"spoolArchived":{"nodeType":"translation","translation":{"en":"Spool archived","pt":"Rolo arquivado"}},"spoolLoadedIn":{"nodeType":"translation","translation":{"en":"Spool loaded in","pt":"Rolo carregado em "}},"alertSaved":{"nodeType":"translation","translation":{"en":"Alert saved!","pt":"Alerta guardado!"}},"adjustmentDeleted":{"nodeType":"translation","translation":{"en":"Adjustment removed","pt":"Ajuste removido"}},"materialDeleted":{"nodeType":"translation","translation":{"en":"Material deleted","pt":"Material eliminado"}},"spoolDeleted":{"nodeType":"translation","translation":{"en":"Spool removed","pt":"Bobine removida"}},"error":{"nodeType":"translation","translation":{"en":"Error","pt":"Erro"}},"deleteError":{"nodeType":"translation","translation":{"en":"Error deleting","pt":"Erro ao eliminar"}},"confirmDeleteAdjustment":{"nodeType":"translation","translation":{"en":"Mark this roll as consumed? It will be saved in the history.","pt":"Marcar este rolo como consumido? Ficará no histórico."}},"confirmDeleteMaterial":{"nodeType":"translation","translation":{"en":"Are you sure you want to delete this material?","pt":"Tens a certeza que queres eliminar este material?"}},"confirmDeleteSpool":{"nodeType":"translation","translation":{"en":"Delete this spool?","pt":"Eliminar esta bobine?"}}}},"location":"local","localId":"spool::local::src/app/[locale]/(app)/spool/[qrCodeId]/spool.content.ts","filePath":"src/app/[locale]/(app)/spool/[qrCodeId]/spool.content.ts"}]
+[
+  {
+    "key": "spool",
+    "content": {
+      "functions": {
+        "remainingWeight": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "g remaining",
+            "pt": "g restantes"
+          }
+        },
+        "tareLabel": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Tare weight",
+            "pt": "Peso da tara"
+          }
+        },
+        "initialGrossLabel": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Initial gross weight",
+            "pt": "Peso bruto inicial"
+          }
+        },
+        "invalidSpool": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Invalid spool",
+            "pt": "Bobine inválida"
+          }
+        }
+      },
+      "buttons": {
+        "loadInPrinter": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Load in printer",
+            "pt": "Carregar na impressora"
+          }
+        },
+        "updateWeight": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Update weight",
+            "pt": "Actualizar peso"
+          }
+        },
+        "finishSpool": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Finish spool",
+            "pt": "Rolo Acabou"
+          }
+        }
+      },
+      "updateWeightModal": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Update weight",
+            "pt": "Actualizar peso"
+          }
+        },
+        "currentWeightLabel": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Includes tare weight",
+            "pt": "Inclui o peso do rolo vazio"
+          }
+        },
+        "tareLabel": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Tare",
+            "pt": "Tara"
+          }
+        },
+        "saveButton": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Save",
+            "pt": "Guardar"
+          }
+        }
+      },
+      "details": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Spool details",
+            "pt": "Detalhes da bobine"
+          }
+        },
+        "labels": {
+          "price": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "Price",
+              "pt": "Preço"
+            }
+          },
+          "costPerGram": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "Cost/gram",
+              "pt": "Custo/grama"
+            }
+          },
+          "boughtAt": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "Bought at",
+              "pt": "Comprado em"
+            }
+          },
+          "openedAt": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "Opened at",
+              "pt": "Aberto em"
+            }
+          },
+          "supplier": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "Supplier",
+              "pt": "Fornecedor"
+            }
+          },
+          "notes": {
+            "nodeType": "translation",
+            "translation": {
+              "en": "Notes",
+              "pt": "Notas"
+            }
+          }
+        }
+      },
+      "history": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Spool history",
+            "pt": "Histórico de uso"
+          }
+        },
+        "noHistory": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "No usage recorded yet",
+            "pt": "Nenhuma produção registada ainda"
+          }
+        }
+      },
+      "loading": {
+        "loadingSpool": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Loading spool...",
+            "pt": "A carregar bobine..."
+          }
+        }
+      },
+      "spoolOwnerPanel": {
+        "title": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Spool details",
+            "pt": "Detalhes da bobine"
+          }
+        }
+      },
+      "toast": {
+        "adjustmentUpdated": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Adjustment updated",
+            "pt": "Peso actualizado"
+          }
+        },
+        "spoolArchived": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Spool archived",
+            "pt": "Rolo arquivado"
+          }
+        },
+        "spoolLoadedIn": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Spool loaded in",
+            "pt": "Rolo carregado em "
+          }
+        },
+        "alertSaved": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Alert saved!",
+            "pt": "Alerta guardado!"
+          }
+        },
+        "adjustmentDeleted": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Adjustment removed",
+            "pt": "Ajuste removido"
+          }
+        },
+        "materialDeleted": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Material deleted",
+            "pt": "Material eliminado"
+          }
+        },
+        "spoolDeleted": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Spool removed",
+            "pt": "Bobine removida"
+          }
+        },
+        "error": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Error",
+            "pt": "Erro"
+          }
+        },
+        "deleteError": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Error deleting",
+            "pt": "Erro ao eliminar"
+          }
+        },
+        "confirmDeleteAdjustment": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Mark this roll as consumed? It will be saved in the history.",
+            "pt": "Marcar este rolo como consumido? Ficará no histórico."
+          }
+        },
+        "confirmDeleteMaterial": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Are you sure you want to delete this material?",
+            "pt": "Tens a certeza que queres eliminar este material?"
+          }
+        },
+        "confirmDeleteSpool": {
+          "nodeType": "translation",
+          "translation": {
+            "en": "Delete this spool?",
+            "pt": "Eliminar esta bobine?"
+          }
+        }
+      }
+    },
+    "location": "local",
+    "localId": "spool::local::src/app/[locale]/(app)/spool/[qrCodeId]/spool.content.ts",
+    "filePath": "src/app/[locale]/(app)/spool/[qrCodeId]/spool.content.ts"
+  }
+]

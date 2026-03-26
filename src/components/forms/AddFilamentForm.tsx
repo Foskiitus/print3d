@@ -5,6 +5,8 @@ import { useParams } from "next/navigation";
 import { Check, ChevronRight, Plus, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/toaster";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ColorPicker } from "@/components/ui/colorPicker";
 import QRCode from "qrcode";
 
@@ -147,11 +149,11 @@ function SupplierInlineCreate({
     >
       <div className="flex items-center justify-between mb-1">
         <span className="text-xs font-medium text-theme">Novo fornecedor</span>
-        <button type="button" onClick={() => setOpen(false)}>
+        <Button type="button" onClick={() => setOpen(false)}>
           <X className="w-3.5 h-3.5 text-navy-400" />
-        </button>
+        </Button>
       </div>
-      <input
+      <Input
         autoFocus
         value={name}
         onChange={(e) => setName(e.target.value)}
@@ -159,19 +161,19 @@ function SupplierInlineCreate({
         required
         className="w-full px-2.5 py-1.5 rounded-md border border-theme/40 bg-background text-sm text-theme placeholder:text-dark-subtle focus:outline-none focus:border-brand-500/60"
       />
-      <input
+      <Input
         value={url}
         onChange={(e) => setUrl(e.target.value)}
         placeholder="Website (opcional)"
         className="w-full px-2.5 py-1.5 rounded-md border border-theme/40 bg-background text-sm text-theme placeholder:text-dark-subtle focus:outline-none focus:border-brand-500/60"
       />
-      <button
+      <Button
         type="submit"
         disabled={loading}
         className="w-full py-1.5 rounded-md bg-brand-500 text-white text-xs font-medium hover:bg-brand-600 transition-colors disabled:opacity-50"
       >
         {loading ? "A guardar..." : "Guardar"}
-      </button>
+      </Button>
     </form>
   );
 }

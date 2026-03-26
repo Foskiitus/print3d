@@ -1,1 +1,136 @@
-[{"key":"sign-up","content":{"title":{"nodeType":"translation","translation":{"pt":"Criar conta","en":"Create account"}},"subtitle":{"nodeType":"translation","translation":{"pt":"Começa a usar o SpoolIQ hoje","en":"Start using SpoolIQ today"}},"nameLabel":{"nodeType":"translation","translation":{"pt":"Nome","en":"Name"}},"namePlaceholder":{"nodeType":"translation","translation":{"pt":"O teu nome","en":"Your name"}},"emailLabel":{"nodeType":"translation","translation":{"pt":"Email","en":"Email"}},"emailPlaceholder":{"nodeType":"translation","translation":{"pt":"tu@exemplo.com","en":"you@example.com"}},"passwordLabel":{"nodeType":"translation","translation":{"pt":"Password","en":"Password"}},"passwordPlaceholder":{"nodeType":"translation","translation":{"pt":"Mínimo 8 caracteres","en":"Minimum 8 characters"}},"submitButton":{"nodeType":"translation","translation":{"pt":"Criar conta","en":"Create account"}},"submittingButton":{"nodeType":"translation","translation":{"pt":"A criar conta…","en":"Creating account…"}},"orDivider":{"nodeType":"translation","translation":{"pt":"ou","en":"or"}},"googleButton":{"nodeType":"translation","translation":{"pt":"Registar com Google","en":"Sign up with Google"}},"hasAccount":{"nodeType":"translation","translation":{"pt":"Já tens conta?","en":"Already have an account?"}},"loginLink":{"nodeType":"translation","translation":{"pt":"Entrar","en":"Sign in"}},"confirmTitle":{"nodeType":"translation","translation":{"pt":"Confirma o teu email","en":"Confirm your email"}},"confirmMessage":{"nodeType":"translation","translation":{"pt":"Enviámos um link de confirmação para","en":"We sent a confirmation link to"}},"confirmSub":{"nodeType":"translation","translation":{"pt":"Clica no link para ativares a tua conta.","en":"Click the link to activate your account."}},"backToLogin":{"nodeType":"translation","translation":{"pt":"Voltar ao login","en":"Back to login"}}},"location":"local","localId":"sign-up::local::src/app/[locale]/sign-up/[[...sign-up]]/sign-up.content.ts","filePath":"src/app/[locale]/sign-up/[[...sign-up]]/sign-up.content.ts"}]
+[
+  {
+    "key": "sign-up",
+    "content": {
+      "title": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Criar conta",
+          "en": "Create account"
+        }
+      },
+      "subtitle": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Começa a usar o SpoolIQ hoje",
+          "en": "Start using SpoolIQ today"
+        }
+      },
+      "nameLabel": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Nome",
+          "en": "Name"
+        }
+      },
+      "namePlaceholder": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "O teu nome",
+          "en": "Your name"
+        }
+      },
+      "emailLabel": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Email",
+          "en": "Email"
+        }
+      },
+      "emailPlaceholder": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "tu@exemplo.com",
+          "en": "you@example.com"
+        }
+      },
+      "passwordLabel": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Password",
+          "en": "Password"
+        }
+      },
+      "passwordPlaceholder": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Mínimo 8 caracteres",
+          "en": "Minimum 8 characters"
+        }
+      },
+      "submitButton": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Criar conta",
+          "en": "Create account"
+        }
+      },
+      "submittingButton": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "A criar conta…",
+          "en": "Creating account…"
+        }
+      },
+      "orDivider": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "ou",
+          "en": "or"
+        }
+      },
+      "googleButton": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Registar com Google",
+          "en": "Sign up with Google"
+        }
+      },
+      "hasAccount": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Já tens conta?",
+          "en": "Already have an account?"
+        }
+      },
+      "loginLink": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Entrar",
+          "en": "Sign in"
+        }
+      },
+      "confirmTitle": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Confirma o teu email",
+          "en": "Confirm your email"
+        }
+      },
+      "confirmMessage": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Enviámos um link de confirmação para",
+          "en": "We sent a confirmation link to"
+        }
+      },
+      "confirmSub": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Clica no link para ativares a tua conta.",
+          "en": "Click the link to activate your account."
+        }
+      },
+      "backToLogin": {
+        "nodeType": "translation",
+        "translation": {
+          "pt": "Voltar ao login",
+          "en": "Back to login"
+        }
+      }
+    },
+    "location": "local",
+    "localId": "sign-up::local::src/app/[locale]/sign-up/[[...sign-up]]/sign-up.content.ts",
+    "filePath": "src/app/[locale]/sign-up/[[...sign-up]]/sign-up.content.ts"
+  }
+]
