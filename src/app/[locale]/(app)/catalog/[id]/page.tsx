@@ -15,7 +15,7 @@ export default async function ProductDetailPage({
   const userId = await requirePageAuth();
   if (!userId) redirect(`/${locale}/sign-in`);
 
-  const [product, allComponents, categories] = await Promise.all([
+  const [product, allComponents, categories, allExtras] = await Promise.all([
     prisma.product.findFirst({
       where: { id, userId },
       include: {
@@ -31,7 +31,21 @@ export default async function ProductDetailPage({
           },
           orderBy: { component: { name: "asc" } },
         },
-        extras: { include: { extra: true } },
+        // Incluir extras com todos os campos necessários para a UI
+        extras: {
+          include: {
+            extra: {
+              select: {
+                id: true,
+                name: true,
+                price: true,
+                unit: true,
+                category: true,
+              },
+            },
+          },
+          orderBy: { extra: { name: "asc" } },
+        },
         sales: {
           orderBy: { date: "desc" },
           take: 5,
@@ -50,6 +64,19 @@ export default async function ProductDetailPage({
 
     prisma.category.findMany({
       where: { userId },
+      orderBy: { name: "asc" },
+    }),
+
+    // Todos os extras disponíveis para este utilizador (para o picker)
+    prisma.extra.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        unit: true,
+        category: true,
+      },
       orderBy: { name: "asc" },
     }),
   ]);
@@ -91,6 +118,7 @@ export default async function ProductDetailPage({
     return acc + entry.quantity * (componentCostPerUnit / profileCount);
   }, 0);
 
+  // Custo de extras calculado no servidor (para SSR inicial)
   const extrasCost = product.extras.reduce(
     (sum, e) => sum + e.extra.price * e.quantity,
     0,
@@ -111,6 +139,7 @@ export default async function ProductDetailPage({
     <ProductDetailClient
       product={product as any}
       allComponents={allComponents as any}
+      allExtras={allExtras as any}
       categories={categories}
       estimatedCost={estimatedCost}
       suggestedPrice={suggestedPrice}

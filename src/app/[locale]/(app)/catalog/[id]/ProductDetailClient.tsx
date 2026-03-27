@@ -31,6 +31,7 @@ import {
   ArrowLeft,
   PenLine,
   AlertTriangle,
+  ShoppingBag,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
@@ -45,6 +46,20 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 interface Category {
   id: string;
   name: string;
+}
+
+interface Extra {
+  id: string;
+  name: string;
+  price: number;
+  unit: string | null;
+  category: string | null;
+}
+
+interface ProductExtra {
+  id: string;
+  quantity: number;
+  extra: Extra;
 }
 
 interface FilamentReq {
@@ -87,11 +102,7 @@ interface Product {
   category: Category | null;
   alertThreshold: number | null;
   bom: BOMEntry[];
-  extras: {
-    id: string;
-    quantity: number;
-    extra: { id: string; name: string; price: number; unit: string | null };
-  }[];
+  extras: ProductExtra[];
   sales: { id: string; date: string; quantity: number; salePrice: number }[];
 }
 
@@ -437,11 +448,248 @@ function AddComponentPicker({
   );
 }
 
+// ─── Extra Row ────────────────────────────────────────────────────────────────
+// Linha editável de um extra na BOM do produto.
+// Permite editar a quantidade e remover o extra.
+
+function ExtraRow({
+  entry,
+  onUpdateQty,
+  onRemove,
+}: {
+  entry: ProductExtra;
+  onUpdateQty: (id: string, qty: number) => void;
+  onRemove: (id: string) => void;
+}) {
+  const [editingQty, setEditingQty] = useState(false);
+  const [qtyValue, setQtyValue] = useState(String(entry.quantity));
+
+  const totalCost = entry.quantity * entry.extra.price;
+
+  return (
+    <div className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/20 transition-colors group">
+      {/* Ícone */}
+      <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex-shrink-0 flex items-center justify-center">
+        <ShoppingBag size={14} className="text-amber-600" />
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-foreground truncate">
+          {entry.extra.name}
+        </p>
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className="text-[10px] text-muted-foreground">
+            {formatCurrency(entry.extra.price)}/{entry.extra.unit ?? "un"}
+          </span>
+          {entry.extra.category && (
+            <span className="text-[10px] text-muted-foreground capitalize">
+              · {entry.extra.category}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Custo total */}
+      <span className="text-xs font-semibold text-foreground flex-shrink-0">
+        {formatCurrency(totalCost)}
+      </span>
+
+      {/* Quantidade */}
+      <div className="flex items-center gap-1 flex-shrink-0">
+        {editingQty ? (
+          <>
+            <Input
+              type="number"
+              min="0.1"
+              step="0.1"
+              value={qtyValue}
+              onChange={(e) => setQtyValue(e.target.value)}
+              className="w-16 h-7 text-xs text-center"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const n = Math.max(0.1, parseFloat(qtyValue) || 1);
+                  onUpdateQty(entry.id, n);
+                  setEditingQty(false);
+                }
+                if (e.key === "Escape") setEditingQty(false);
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const n = Math.max(0.1, parseFloat(qtyValue) || 1);
+                onUpdateQty(entry.id, n);
+                setEditingQty(false);
+              }}
+              className="text-primary"
+            >
+              <Check size={13} />
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setQtyValue(String(entry.quantity));
+              setEditingQty(true);
+            }}
+            className="flex items-center gap-1 px-2 py-1 rounded hover:bg-muted/60 transition-colors"
+          >
+            <span className="text-sm font-medium text-foreground">
+              ×{entry.quantity}
+            </span>
+            <Pencil
+              size={10}
+              className="text-muted-foreground opacity-0 group-hover:opacity-100"
+            />
+          </button>
+        )}
+      </div>
+
+      {/* Remover */}
+      <button
+        type="button"
+        onClick={() => onRemove(entry.id)}
+        className="opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-destructive transition-all p-1 flex-shrink-0"
+      >
+        <Trash2 size={12} />
+      </button>
+    </div>
+  );
+}
+
+// ─── Add Extra Picker ─────────────────────────────────────────────────────────
+// Picker para adicionar extras (hardware/consumíveis) à BOM do produto.
+
+function AddExtraPicker({
+  allExtras,
+  existingIds,
+  productId,
+  onAdded,
+}: {
+  allExtras: Extra[];
+  existingIds: string[];
+  productId: string;
+  onAdded: (entry: ProductExtra) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+
+  const available = allExtras.filter(
+    (e) =>
+      !existingIds.includes(e.id) &&
+      e.name.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  async function handleAdd(extra: Extra) {
+    setLoadingId(extra.id);
+    try {
+      const res = await fetch(`${SITE_URL}/api/products/${productId}/extras`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
+        body: JSON.stringify({ extraId: extra.id, quantity: 1 }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      onAdded(data);
+      setOpen(false);
+      setSearch("");
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setLoadingId(null);
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-2 w-full p-2.5 rounded-lg border border-dashed border-border hover:border-amber-500/40 hover:bg-amber-500/5 transition-colors text-sm text-muted-foreground"
+      >
+        <Plus size={13} />
+        Adicionar extra / hardware
+      </button>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-foreground">
+          Escolher extra
+        </span>
+        <button type="button" onClick={() => setOpen(false)}>
+          <X
+            size={13}
+            className="text-muted-foreground hover:text-foreground"
+          />
+        </button>
+      </div>
+      <div className="relative">
+        <Search
+          size={12}
+          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          placeholder="Pesquisar extras…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-7 h-7 text-xs"
+          autoFocus
+        />
+      </div>
+      <div className="max-h-48 overflow-y-auto space-y-1">
+        {available.length === 0 && (
+          <p className="text-xs text-muted-foreground text-center py-3">
+            {search
+              ? `Sem resultados para "${search}"`
+              : allExtras.length === 0
+                ? "Não tens extras criados. Cria extras em Inventário → Hardware."
+                : "Todos os extras já estão adicionados."}
+          </p>
+        )}
+        {available.map((e) => (
+          <button
+            key={e.id}
+            type="button"
+            onClick={() => handleAdd(e)}
+            disabled={loadingId === e.id}
+            className="flex items-center justify-between w-full p-2 rounded-md hover:bg-muted/60 transition-colors text-left"
+          >
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-foreground truncate">
+                {e.name}
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                {formatCurrency(e.price)}/{e.unit ?? "un"}
+                {e.category && ` · ${e.category}`}
+              </p>
+            </div>
+            <Plus
+              size={12}
+              className="text-muted-foreground flex-shrink-0 ml-2"
+            />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function ProductDetailClient({
   product: initialProduct,
   allComponents,
+  allExtras,
   categories,
   estimatedCost,
   suggestedPrice,
@@ -450,6 +698,7 @@ export function ProductDetailClient({
 }: {
   product: Product;
   allComponents: Component[];
+  allExtras: Extra[];
   categories: Category[];
   estimatedCost: number;
   suggestedPrice: number;
@@ -459,12 +708,13 @@ export function ProductDetailClient({
   const router = useRouter();
   const [product, setProduct] = useState(initialProduct);
   const [bom, setBom] = useState<BOMEntry[]>(initialProduct.bom);
+  const [extras, setExtras] = useState<ProductExtra[]>(initialProduct.extras);
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(initialProduct.name);
   const [savingName, setSavingName] = useState(false);
 
-  // Custo de extras por unidade (para passar ao ProductionSummaryCard)
-  const extrasCostPerUnit = product.extras.reduce(
+  // Custo de extras por unidade (reactivo ao estado local)
+  const extrasCostPerUnit = extras.reduce(
     (acc, e) => acc + e.quantity * e.extra.price,
     0,
   );
@@ -539,6 +789,49 @@ export function ProductDetailClient({
       if (!res.ok) throw new Error("Erro ao remover");
       setBom((prev) => prev.filter((e) => e.id !== bomId));
       toast({ title: "Componente removido da BOM" });
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    }
+  }
+
+  // ── Extras: atualizar quantidade ──────────────────────────────────────────
+  async function handleUpdateExtraQty(extraEntryId: string, quantity: number) {
+    try {
+      const res = await fetch(
+        `${SITE_URL}/api/products/${product.id}/extras/${extraEntryId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+          },
+          body: JSON.stringify({ quantity }),
+        },
+      );
+      if (!res.ok) throw new Error("Erro ao atualizar");
+      setExtras((prev) =>
+        prev.map((e) => (e.id === extraEntryId ? { ...e, quantity } : e)),
+      );
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    }
+  }
+
+  // ── Extras: remover ───────────────────────────────────────────────────────
+  async function handleRemoveExtra(extraEntryId: string) {
+    try {
+      const res = await fetch(
+        `${SITE_URL}/api/products/${product.id}/extras/${extraEntryId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+          },
+        },
+      );
+      if (!res.ok) throw new Error("Erro ao remover");
+      setExtras((prev) => prev.filter((e) => e.id !== extraEntryId));
+      toast({ title: "Extra removido" });
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     }
@@ -679,37 +972,44 @@ export function ProductDetailClient({
             </CardContent>
           </Card>
 
-          {/* Extras */}
-          {product.extras.length > 0 && (
-            <Card>
-              <CardContent className="p-5 space-y-3">
-                <h2 className="text-sm font-semibold text-foreground">
-                  Extras
-                </h2>
+          {/* Extras / Hardware */}
+          <Card>
+            <CardContent className="p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground">
+                    Extras / Hardware
+                  </h2>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {extras.length === 0
+                      ? "Adiciona parafusos, íman, cola ou outros consumíveis."
+                      : `${extras.length} extra${extras.length !== 1 ? "s" : ""} · ${formatCurrency(extrasCostPerUnit)} por unidade`}
+                  </p>
+                </div>
+                <ShoppingBag size={14} className="text-muted-foreground" />
+              </div>
+
+              {extras.length > 0 && (
                 <div className="space-y-2">
-                  {product.extras.map((e) => (
-                    <div
-                      key={e.id}
-                      className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40"
-                    >
-                      <div>
-                        <p className="text-xs font-medium text-foreground">
-                          {e.extra.name}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {e.quantity} {e.extra.unit ?? "un"} ×{" "}
-                          {formatCurrency(e.extra.price)}
-                        </p>
-                      </div>
-                      <span className="text-xs font-semibold text-foreground">
-                        {formatCurrency(e.quantity * e.extra.price)}
-                      </span>
-                    </div>
+                  {extras.map((entry) => (
+                    <ExtraRow
+                      key={entry.id}
+                      entry={entry}
+                      onUpdateQty={handleUpdateExtraQty}
+                      onRemove={handleRemoveExtra}
+                    />
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              )}
+
+              <AddExtraPicker
+                allExtras={allExtras}
+                existingIds={extras.map((e) => e.extra.id)}
+                productId={product.id}
+                onAdded={(entry) => setExtras((prev) => [...prev, entry])}
+              />
+            </CardContent>
+          </Card>
 
           {/* Vendas recentes */}
           {product.sales.length > 0 && (
