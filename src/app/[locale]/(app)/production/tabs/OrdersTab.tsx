@@ -886,9 +886,9 @@ function ManualEntryModal({
 
 // ─── Print Job Card ───────────────────────────────────────────────────────────
 // Shown inside an expanded OrderCard. Lets the user drive the job through
-// its lifecycle: draft → printing → done (or failed).
-// Starting a job also marks the printer as "printing".
-// Completing/failing a job marks the printer as "idle".
+// its lifecycle: pending → printing → done (or failed).
+// For multi-plate components, shows "Mesa N de N" so the user knows
+// which plate they are currently printing.
 
 function PrintJobCard({
   job,
@@ -899,6 +899,11 @@ function PrintJobCard({
 }) {
   const [busy, setBusy] = useState(false);
   const jobCfg = JOB_STATUS_CONFIG[job.status] ?? JOB_STATUS_CONFIG.pending;
+
+  // Multi-mesa: plateNumber e totalPlates podem existir no job
+  const plateNumber = (job as any).plateNumber as number | null | undefined;
+  const totalPlates = (job as any).totalPlates as number | null | undefined;
+  const isMultiPlate = totalPlates && totalPlates > 1;
 
   async function transition(newStatus: "printing" | "done" | "failed") {
     setBusy(true);
@@ -915,8 +920,12 @@ function PrintJobCard({
       if (!res.ok) throw new Error(data.error || "Erro ao atualizar job");
 
       const labels: Record<string, string> = {
-        printing: "Impressão iniciada",
-        done: "Job concluído ✓",
+        printing: isMultiPlate
+          ? `Mesa ${plateNumber} iniciada`
+          : "Impressão iniciada",
+        done: isMultiPlate
+          ? `Mesa ${plateNumber} concluída ✓`
+          : "Job concluído ✓",
         failed: "Job marcado como falhado",
       };
       toast({ title: labels[newStatus] });
@@ -929,11 +938,27 @@ function PrintJobCard({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-card p-3 space-y-2.5">
+    <div
+      className={cn(
+        "rounded-lg border bg-card p-3 space-y-2.5",
+        // Destaque visual para mesa activa em multi-placa
+        isMultiPlate && job.status === "printing"
+          ? "border-blue-500/40 bg-blue-500/5"
+          : isMultiPlate && job.status === "done"
+            ? "border-emerald-500/20 bg-emerald-500/5"
+            : "border-border",
+      )}
+    >
       {/* Header row */}
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Indicador de mesa em componentes multi-placa */}
+            {isMultiPlate && (
+              <span className="text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded flex-shrink-0">
+                Mesa {plateNumber}/{totalPlates}
+              </span>
+            )}
             <p className="text-xs font-medium text-foreground truncate">
               {job.printer.name}
             </p>
@@ -948,9 +973,11 @@ function PrintJobCard({
             </Badge>
           </div>
           <p className="text-[10px] text-muted-foreground mt-0.5">
-            {job.items
-              .map((i) => `${i.quantity}× ${i.component.name}`)
-              .join(", ")}
+            {job.notes
+              ? job.notes
+              : job.items
+                  .map((i) => `${i.quantity}× ${i.component.name}`)
+                  .join(", ")}
           </p>
         </div>
         {job.estimatedMinutes && (

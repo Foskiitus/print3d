@@ -3,29 +3,23 @@
 // PATCH /api/production/jobs/[id]
 //
 // Avança o estado de um PrintJob:
-//
-//   pending  ──► printing   (utilizador confirma início físico)
-//   printing ──► done       (impressão terminou com sucesso)
-//   printing ──► failed     (impressão falhou)
-//   pending  ──► failed     (job cancelado antes de começar)
+//   pending  → printing  (utilizador confirma início)
+//   printing → done      (impressão terminou)
+//   printing → failed
+//   pending  → failed
 //
 // Efeitos colaterais:
+//   → printing : Printer.status = "printing", PrintJob.startedAt = now
+//   → done     : Printer.status = "idle", PrintJob.finishedAt = now
+//                Printer.totalPrintTime += estimatedMinutes
+//                Verificar se a OP pode avançar para "assembly":
+//                  — Para componentes multi-mesa: só quando TODAS as mesas
+//                    do mesmo componente (mesmo componentId) estiverem done.
+//                  — Depois disso, verificar se todos os componentes da OP
+//                    estão done (sem jobs pending/printing).
+//   → failed   : Printer.status = "idle", PrintJob.finishedAt = now
 //
-//   → printing:
-//       • Printer.status = "printing"
-//       • PrintJob.startedAt = now()
-//
-//   → done:
-//       • Printer.status = "idle"
-//       • PrintJob.finishedAt = now()
-//       • Printer.totalPrintTime += estimatedMinutes
-//       • Se todos os jobs da OP estão done/failed → OP avança para "assembly"
-//
-//   → failed:
-//       • Printer.status = "idle"
-//       • PrintJob.finishedAt = now()
-//
-// Body:  { status: "printing" | "done" | "failed" }
+// Body: { status: "printing" | "done" | "failed" }
 
 import { requireApiAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -49,7 +43,6 @@ export async function PATCH(
   const body = (await req.json()) as { status: TargetStatus };
   const { status: targetStatus } = body;
 
-  // ── Validação do payload ──────────────────────────────────────────────────
   if (!["printing", "done", "failed"].includes(targetStatus)) {
     return NextResponse.json(
       { error: `Status inválido: "${targetStatus}"` },
@@ -57,16 +50,12 @@ export async function PATCH(
     );
   }
 
-  // ── Carregar o job ────────────────────────────────────────────────────────
   const job = await prisma.printJob.findFirst({
     where: { id: jobId, userId },
     include: {
-      order: {
-        select: { id: true, status: true },
-      },
-      printer: {
-        select: { id: true, status: true },
-      },
+      order: { select: { id: true, status: true } },
+      printer: { select: { id: true, status: true } },
+      items: { select: { componentId: true } },
     },
   });
 
@@ -74,7 +63,14 @@ export async function PATCH(
     return NextResponse.json({ error: "Job não encontrado" }, { status: 404 });
   }
 
-  // ── Validar transição ─────────────────────────────────────────────────────
+  const order = job.order;
+  if (!order) {
+    return NextResponse.json(
+      { error: "Ordem de produção associada não encontrada" },
+      { status: 404 },
+    );
+  }
+
   const allowed = VALID_TRANSITIONS[job.status] ?? [];
   if (!allowed.includes(targetStatus)) {
     return NextResponse.json(
@@ -85,7 +81,6 @@ export async function PATCH(
 
   const now = new Date();
 
-  // ── Transição em transação atómica ───────────────────────────────────────
   await prisma.$transaction(async (tx) => {
     // 1. Atualizar o job
     await tx.printJob.update({
@@ -93,7 +88,6 @@ export async function PATCH(
       data: {
         status: targetStatus,
         startedAt: targetStatus === "printing" ? now : undefined,
-        // schema usa finishedAt (não completedAt)
         finishedAt:
           targetStatus === "done" || targetStatus === "failed"
             ? now
@@ -101,7 +95,7 @@ export async function PATCH(
       },
     });
 
-    // 2. Sincronizar status da impressora
+    // 2. Sincronizar impressora
     if (targetStatus === "printing") {
       await tx.printer.update({
         where: { id: job.printerId },
@@ -122,10 +116,33 @@ export async function PATCH(
       });
     }
 
-    // 3. Verificar se a OP pode avançar para "assembly"
-    //    Condição: todos os jobs da OP estão done ou failed (nenhum pending/printing)
-    //    e pelo menos um ficou done.
+    // 3. Verificar avanço para "assembly" — só quando done/failed e há orderId
     if ((targetStatus === "done" || targetStatus === "failed") && job.orderId) {
+      // ── Verificação multi-mesa ─────────────────────────────────────────────
+      // Se este job pertence a um componente multi-mesa (totalPlates > 1),
+      // verificar se todas as mesas deste componente já terminaram.
+      // As mesas são identificadas pelo mesmo componentId + mesmo orderId.
+      const componentIds = job.items.map((i) => i.componentId);
+
+      if (job.totalPlates && job.totalPlates > 1 && componentIds.length > 0) {
+        // Mesas ainda activas deste componente (excluindo o job atual)
+        const pendingPlatesForComponent = await tx.printJob.count({
+          where: {
+            orderId: job.orderId,
+            id: { not: jobId },
+            status: { in: ["pending", "printing"] },
+            items: {
+              some: { componentId: { in: componentIds } },
+            },
+          },
+        });
+
+        // Se ainda há mesas por terminar, não avançar a OP
+        if (pendingPlatesForComponent > 0) return;
+      }
+
+      // ── Verificação global da OP ───────────────────────────────────────────
+      // Todos os jobs da OP (excluindo o atual) devem estar done/failed
       const remainingActive = await tx.printJob.count({
         where: {
           orderId: job.orderId,
@@ -135,19 +152,14 @@ export async function PATCH(
       });
 
       const anyDone = await tx.printJob.findFirst({
-        where: {
-          orderId: job.orderId,
-          status: "done",
-        },
+        where: { orderId: job.orderId, status: "done" },
         select: { id: true },
       });
-
-      const orderStatus = job.order?.status;
 
       if (
         remainingActive === 0 &&
         (anyDone || targetStatus === "done") &&
-        orderStatus === "in_progress"
+        order.status === "in_progress"
       ) {
         await tx.productionOrder.update({
           where: { id: job.orderId },
@@ -157,7 +169,7 @@ export async function PATCH(
     }
   });
 
-  // ── Devolver job atualizado ───────────────────────────────────────────────
+  // Devolver job atualizado
   const updated = await prisma.printJob.findUnique({
     where: { id: jobId },
     include: {

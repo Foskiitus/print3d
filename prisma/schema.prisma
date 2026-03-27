@@ -403,6 +403,7 @@ model ComponentPrintProfile {
   component    Component              @relation(fields: [componentId], references: [id], onDelete: Cascade)
   filaments    ProfileFilamentReq[]
   jobItems     PrintJobItem[]
+  plates       ProfilePlate[]  
 
   @@index([componentId])
 }
@@ -529,6 +530,8 @@ model PrintJob {
   orderId   String?
   printerId String
   status    String   @default("pending")
+  plateNumber  Int?                    // ← qual placa este job representa (1-based)
+  totalPlates  Int?  
   // "pending" | "printing" | "done" | "failed" | "cancelled"
 
   notes            String?
@@ -559,6 +562,39 @@ model PrintJob {
   @@index([printerId])
   @@index([status])
 }
+
+model ProfilePlate {
+  id           String   @id @default(cuid())
+  profileId    String
+  plateNumber  Int      // ordem da placa (1, 2, 3…)
+  name         String?  // ex: "Mesa 1 — Corpo", "Mesa 2 — Tampa"
+  filePath     String?  // ficheiro .3mf específico desta placa (opcional)
+  printTime    Int?     // minutos por corrida desta placa
+  filamentUsed Float?   // gramas totais desta placa (soma de todas as cores)
+  batchSize    Int      @default(1) // peças por corrida nesta placa
+
+  profile   ComponentPrintProfile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  filaments ProfilePlateFilamentReq[]
+
+  @@unique([profileId, plateNumber])
+  @@index([profileId])
+}
+
+// 4. Requisitos de filamento por placa — separados dos ProfileFilamentReq do perfil:
+
+model ProfilePlateFilamentReq {
+  id         String  @id @default(cuid())
+  plateId    String
+  material   String
+  colorHex   String?
+  colorName  String?
+  estimatedG Float
+
+  plate ProfilePlate @relation(fields: [plateId], references: [id], onDelete: Cascade)
+
+  @@index([plateId])
+}
+
 
 //////////////////////////////////////////////////////////
 // PRINT JOB ITEM

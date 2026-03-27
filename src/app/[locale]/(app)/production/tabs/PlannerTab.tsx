@@ -46,6 +46,15 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 // ─── Types locais ─────────────────────────────────────────────────────────────
 
+// Placa individual de um perfil multi-mesa
+interface ProfilePlate {
+  plateNumber: number;
+  name: string | null;
+  printTime: number | null;
+  batchSize: number;
+  filaments: FilamentReq[];
+}
+
 interface PendingPart {
   orderId: string;
   orderRef: string;
@@ -59,7 +68,8 @@ interface ConfirmState {
   part: PendingPart;
   printer: PrinterType;
   recipe: "single" | "full";
-  platesNeeded: number; // quantas placas são necessárias para satisfazer quantityNeeded
+  platesNeeded: number; // quantas vezes o perfil completo é corrido
+  profilePlates: ProfilePlate[]; // placas do perfil (1 se mono-mesa)
 }
 
 interface AvailableSpool {
@@ -276,6 +286,25 @@ function SlotConfigModal({
   const quantityNeeded = part?.quantityNeeded ?? 1;
   const platesNeeded = Math.ceil(quantityNeeded / batchSize);
   const requirements: FilamentReq[] = part?.profile?.filaments ?? [];
+
+  // Multi-mesa: extrair placas do perfil para exibir info correcta
+  const profilePlates: ProfilePlate[] =
+    (part?.profile as any)?.plates?.length > 0
+      ? (part?.profile as any).plates
+      : [
+          {
+            plateNumber: 1,
+            name: null,
+            printTime: part?.profile?.printTime ?? null,
+            batchSize,
+            filaments: [],
+          },
+        ];
+  const isMultiPlate = profilePlates.length > 1;
+  const totalPlateMinutesSlot = profilePlates.reduce(
+    (s, p) => s + (p.printTime ?? 0),
+    0,
+  );
 
   const knownSpools = useMemo(() => {
     const map = new Map<string, AvailableSpool>();
@@ -858,8 +887,11 @@ function SlotConfigModal({
             </p>
             <div className="flex gap-2">
               {(["single", "full"] as const).map((r) => {
-                const plates = r === "full" ? platesNeeded : 1;
-                const pieces = plates * batchSize;
+                const runs = r === "full" ? platesNeeded : 1;
+                const pieces = runs * batchSize;
+                const totalMesas = isMultiPlate
+                  ? runs * profilePlates.length
+                  : runs;
                 return (
                   <button
                     key={r}
@@ -872,13 +904,12 @@ function SlotConfigModal({
                     )}
                   >
                     {r === "single"
-                      ? "1 placa"
-                      : `${platesNeeded} placa${platesNeeded > 1 ? "s" : ""}`}
+                      ? "1 corrida"
+                      : `${platesNeeded} corrida${platesNeeded > 1 ? "s" : ""}`}
                     <span className="block text-[10px] font-normal opacity-70 mt-0.5">
+                      {isMultiPlate ? `${totalMesas} mesas · ` : ""}
                       {pieces} peça{pieces > 1 ? "s" : ""}
-                      {r === "full" &&
-                        pieces < quantityNeeded &&
-                        " ⚠ incompleto"}
+                      {r === "full" && pieces < quantityNeeded && " ⚠"}
                     </span>
                   </button>
                 );
@@ -1016,28 +1047,68 @@ function PendingPartCard({
 
       {profile && (
         <div className="flex items-center gap-2 flex-wrap">
-          {profile.batchSize > 1 && (
-            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-              <Layers size={9} />
-              {Math.ceil(part.quantityNeeded / profile.batchSize)} placa
-              {Math.ceil(part.quantityNeeded / profile.batchSize) > 1
-                ? "s"
-                : ""}{" "}
-              × {profile.batchSize} peças
-            </span>
-          )}
-          {profile.printTime && (
-            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-              <Clock size={9} />
-              {fmtTime(profile.printTime)}/placa
-            </span>
-          )}
-          {profile.filamentUsed && (
-            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-              <Layers size={9} />
-              {profile.filamentUsed}g/placa
-            </span>
-          )}
+          {(() => {
+            // Multi-mesa: verificar se o perfil tem placas definidas
+            const plates = (profile as any)?.plates as
+              | ProfilePlate[]
+              | undefined;
+            const isMultiPlate = plates && plates.length > 1;
+
+            if (isMultiPlate) {
+              const totalTime = plates.reduce(
+                (s, p) => s + (p.printTime ?? 0),
+                0,
+              );
+              const runsNeeded = Math.ceil(
+                part.quantityNeeded / profile.batchSize,
+              );
+              return (
+                <>
+                  <span className="text-[10px] text-primary font-medium bg-primary/10 px-1.5 py-0.5 rounded flex items-center gap-1">
+                    <Layers size={9} />
+                    {plates.length} mesas
+                  </span>
+                  <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <Clock size={9} />
+                    {fmtTime(totalTime)}/corrida
+                  </span>
+                  {runsNeeded > 1 && (
+                    <span className="text-[10px] text-muted-foreground">
+                      × {runsNeeded} corridas
+                    </span>
+                  )}
+                </>
+              );
+            }
+
+            // Mono-mesa: comportamento original
+            return (
+              <>
+                {profile.batchSize > 1 && (
+                  <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <Layers size={9} />
+                    {Math.ceil(part.quantityNeeded / profile.batchSize)} placa
+                    {Math.ceil(part.quantityNeeded / profile.batchSize) > 1
+                      ? "s"
+                      : ""}{" "}
+                    × {profile.batchSize} peças
+                  </span>
+                )}
+                {profile.printTime && (
+                  <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <Clock size={9} />
+                    {fmtTime(profile.printTime)}/placa
+                  </span>
+                )}
+                {profile.filamentUsed && (
+                  <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <Layers size={9} />
+                    {profile.filamentUsed}g/placa
+                  </span>
+                )}
+              </>
+            );
+          })()}
           {profile.filaments.slice(0, 6).map((f, i) => (
             <span key={i} className="flex items-center gap-0.5">
               <div
@@ -1215,29 +1286,42 @@ function ConfirmPrintDialog({
   onCancel: () => void;
 }) {
   const c = useIntlayer("production");
-  const { part, printer, platesNeeded } = state;
+  const { part, printer, platesNeeded, profilePlates } = state;
   const profile = part.profile;
   const [recipe, setRecipe] = useState<"single" | "full">(state.recipe);
   const [loading, setLoading] = useState(false);
 
   const batchSize = profile?.batchSize ?? 1;
+  const isMultiPlate = profilePlates.length > 1;
 
-  // Quantas placas vai imprimir neste job
-  const plates = recipe === "full" ? platesNeeded : 1;
-  // Peças que resultam deste job
-  const piecesProduced = plates * batchSize;
-  // Tempo total = tempo de 1 placa × nº de placas (NÃO × peças)
-  const estimatedMinutes = profile?.printTime
-    ? Math.round(profile.printTime * plates)
-    : null;
+  // Corridas (runs) = quantas vezes o perfil completo é impresso
+  const runs = recipe === "full" ? platesNeeded : 1;
+  const piecesProduced = runs * batchSize;
 
-  // Custo de filamento = custo por placa × nº de placas
-  const filamentCostPerPlate =
+  // Tempo total = soma do tempo de TODAS as placas × corridas
+  const totalPlateMinutes = profilePlates.reduce(
+    (s, p) => s + (p.printTime ?? 0),
+    0,
+  );
+  const estimatedMinutes =
+    totalPlateMinutes > 0 ? Math.round(totalPlateMinutes * runs) : null;
+
+  // Custo de filamento = soma de todos os req de todas as placas × corridas
+  const filamentCostPerRun = profilePlates.reduce((runAcc, plate) => {
+    const plateCost = plate.filaments.reduce((acc, f) => {
+      const pricePerG = materialPriceMap[f.material] ?? 0.025;
+      return acc + f.estimatedG * pricePerG;
+    }, 0);
+    return runAcc + plateCost;
+  }, 0);
+  // Fallback para filamentos do perfil raiz (quando não há placas com filaments)
+  const filamentCostPerRunFallback =
     profile?.filaments.reduce((acc, f) => {
       const pricePerG = materialPriceMap[f.material] ?? 0.025;
       return acc + f.estimatedG * pricePerG;
     }, 0) ?? 0;
-  const filamentCost = filamentCostPerPlate * plates;
+  const effectiveCostPerRun = filamentCostPerRun || filamentCostPerRunFallback;
+  const filamentCost = effectiveCostPerRun * runs;
 
   return (
     <div
@@ -1298,9 +1382,10 @@ function ConfirmPrintDialog({
                       : "border-border text-muted-foreground",
                   )}
                 >
-                  {c.planner.confirm.single.value}
+                  1 corrida
                   <span className="block text-[10px] font-normal opacity-70 mt-0.5">
-                    1 placa · {batchSize} peças
+                    {isMultiPlate ? `${profilePlates.length} mesas · ` : ""}
+                    {batchSize} peças
                   </span>
                 </button>
                 <button
@@ -1312,9 +1397,11 @@ function ConfirmPrintDialog({
                       : "border-border text-muted-foreground",
                   )}
                 >
-                  {c.planner.confirm.fullPlate.value}
+                  {platesNeeded} corrida{platesNeeded > 1 ? "s" : ""}
                   <span className="block text-[10px] font-normal opacity-70 mt-0.5">
-                    {platesNeeded} placa{platesNeeded > 1 ? "s" : ""} ·{" "}
+                    {isMultiPlate
+                      ? `${profilePlates.length * platesNeeded} mesas · `
+                      : ""}
                     {piecesProduced} peças
                   </span>
                 </button>
@@ -1322,11 +1409,52 @@ function ConfirmPrintDialog({
             </div>
           )}
 
+          {/* Multi-mesa: mostrar breakdown das placas */}
+          {isMultiPlate && (
+            <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Mesas — {profilePlates.length} ficheiros de impressão
+              </p>
+              {profilePlates.map((plate) => (
+                <div
+                  key={plate.plateNumber}
+                  className="flex items-center justify-between text-xs"
+                >
+                  <span className="text-muted-foreground">
+                    <span className="font-medium text-foreground">
+                      Mesa {plate.plateNumber}
+                    </span>
+                    {plate.name && (
+                      <span className="ml-1 text-muted-foreground">
+                        — {plate.name}
+                      </span>
+                    )}
+                  </span>
+                  <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                    <span>{plate.batchSize} peças/corrida</span>
+                    {plate.printTime && (
+                      <span className="flex items-center gap-0.5">
+                        <Clock size={9} />
+                        {fmtTime(plate.printTime)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Resumo */}
           <div className="rounded-lg bg-muted/30 border border-border p-3 space-y-1.5 text-xs">
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Placas a imprimir</span>
-              <span className="font-medium text-foreground">{plates}</span>
+              <span className="text-muted-foreground">
+                {isMultiPlate ? "Mesas a imprimir" : "Placas a imprimir"}
+              </span>
+              <span className="font-medium text-foreground">
+                {isMultiPlate
+                  ? `${runs} × ${profilePlates.length} = ${runs * profilePlates.length}`
+                  : runs}
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Peças produzidas</span>
@@ -1355,9 +1483,9 @@ function ConfirmPrintDialog({
                 </span>
                 <span className="font-medium text-foreground">
                   {fmtTime(estimatedMinutes)}
-                  {batchSize > 1 && plates > 1 && (
+                  {isMultiPlate && runs > 0 && (
                     <span className="text-muted-foreground font-normal ml-1">
-                      ({fmtTime(profile!.printTime!)} × {plates})
+                      ({fmtTime(totalPlateMinutes)}/corrida × {runs})
                     </span>
                   )}
                 </span>
@@ -1368,25 +1496,29 @@ function ConfirmPrintDialog({
                 <span className="text-muted-foreground">Custo filamento</span>
                 <span className="font-medium text-foreground">
                   €{filamentCost.toFixed(3)}
-                  {plates > 1 && (
+                  {runs > 1 && (
                     <span className="text-muted-foreground font-normal ml-1">
-                      (€{filamentCostPerPlate.toFixed(3)} × {plates})
+                      (€{effectiveCostPerRun.toFixed(3)}/corrida × {runs})
                     </span>
                   )}
                 </span>
               </div>
             )}
-            {/* Filamentos por placa */}
-            {profile?.filaments && profile.filaments.length > 0 && (
+            {/* Filamentos da primeira placa (ou do perfil raiz) */}
+            {(profilePlates[0]?.filaments ?? profile?.filaments ?? []).length >
+              0 && (
               <div className="pt-1 border-t border-border flex flex-wrap gap-1.5">
-                {profile.filaments.map((f, i) => (
+                {(profilePlates[0]?.filaments?.length > 0
+                  ? profilePlates[0].filaments
+                  : (profile?.filaments ?? [])
+                ).map((f, i) => (
                   <span key={i} className="flex items-center gap-1">
                     <div
                       className="w-2.5 h-2.5 rounded-full"
                       style={{ backgroundColor: f.colorHex ?? "#888" }}
                     />
                     <span className="text-muted-foreground">
-                      {f.material} {f.estimatedG}g/placa
+                      {f.material} {f.estimatedG}g/corrida
                     </span>
                   </span>
                 ))}
@@ -1482,26 +1614,49 @@ export function PlannerTab({
     setDragging(null);
     setSelected(null);
 
-    const batchSize = part.profile?.batchSize ?? 1;
-    // Quantas placas são necessárias para produzir todas as peças pedidas
+    const profile = part.profile;
+    const batchSize = profile?.batchSize ?? 1;
     const platesNeeded = Math.ceil(part.quantityNeeded / batchSize);
-    // Receita por defeito: placa completa se batchSize > 1
     const defaultRecipe: "single" | "full" = batchSize > 1 ? "full" : "single";
+
+    // Extrair placas do perfil (multi-mesa) ou criar placa única como fallback
+    const profilePlates: ProfilePlate[] =
+      (profile as any)?.plates?.length > 0
+        ? (profile as any).plates
+        : [
+            {
+              plateNumber: 1,
+              name: null,
+              printTime: profile?.printTime ?? null,
+              batchSize: profile?.batchSize ?? 1,
+              filaments: profile?.filaments ?? [],
+            },
+          ];
 
     const requirements: FilamentReq[] = part.profile?.filaments ?? [];
 
-    // Se não há requisitos de filamento, avançar directamente
     if (requirements.length === 0) {
-      setConfirm({ part, printer, recipe: defaultRecipe, platesNeeded });
+      setConfirm({
+        part,
+        printer,
+        recipe: defaultRecipe,
+        platesNeeded,
+        profilePlates,
+      });
       return;
     }
 
-    // Pre-flight check com os slots actuais da impressora
     const allSlots = printer.units.flatMap((u) => u.slots);
     const preflight = runPreflightCheck(requirements, allSlots);
 
     if (preflight.ok) {
-      setConfirm({ part, printer, recipe: defaultRecipe, platesNeeded });
+      setConfirm({
+        part,
+        printer,
+        recipe: defaultRecipe,
+        platesNeeded,
+        profilePlates,
+      });
     } else {
       // Filamentos em falta — abrir modal de configuração de slots
       const missingList = preflight.missing
@@ -1542,17 +1697,18 @@ export function PlannerTab({
 
   async function handleConfirm(recipe: "single" | "full") {
     if (!confirm) return;
-    const { part, printer, platesNeeded } = confirm;
+    const { part, printer, platesNeeded, profilePlates } = confirm;
     const batchSize = part.profile?.batchSize ?? 1;
 
-    // "single" = 1 placa (batchSize peças), "full" = todas as placas necessárias
-    const plates = recipe === "full" ? platesNeeded : 1;
-    // Peças que vão ser produzidas neste job
-    const quantity = plates * batchSize;
-    // Tempo total = tempo de 1 placa × número de placas
-    const estimatedMinutes = part.profile?.printTime
-      ? Math.round(part.profile.printTime * plates)
-      : null;
+    const runs = recipe === "full" ? platesNeeded : 1;
+    const quantity = runs * batchSize;
+    // Tempo total = soma do tempo de todas as placas × número de corridas
+    const totalPlateMinutes = profilePlates.reduce(
+      (s, p) => s + (p.printTime ?? 0),
+      0,
+    );
+    const estimatedMinutes =
+      totalPlateMinutes > 0 ? Math.round(totalPlateMinutes * runs) : null;
 
     try {
       const res = await fetch(`${SITE_URL}/api/production/jobs`, {
@@ -1592,9 +1748,26 @@ export function PlannerTab({
     const platesNeeded = Math.ceil(part.quantityNeeded / batchSize);
     const plates = recipe === "full" ? platesNeeded : 1;
     const quantity = plates * batchSize;
-    const estimatedMinutes = part.profile?.printTime
-      ? Math.round(part.profile.printTime * plates)
-      : null;
+
+    const profilePlates: ProfilePlate[] =
+      (part.profile as any)?.plates?.length > 0
+        ? (part.profile as any).plates
+        : [
+            {
+              plateNumber: 1,
+              name: null,
+              printTime: part.profile?.printTime ?? null,
+              batchSize: part.profile?.batchSize ?? 1,
+              filaments: [],
+            },
+          ];
+
+    const totalPlateMinutes = profilePlates.reduce(
+      (s, p) => s + (p.printTime ?? 0),
+      0,
+    );
+    const estimatedMinutes =
+      totalPlateMinutes > 0 ? Math.round(totalPlateMinutes * plates) : null;
 
     try {
       // 1. Persistir slots na BD

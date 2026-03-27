@@ -97,6 +97,7 @@ export interface PrintJob {
   totalCost: number | null;
   startedAt: string | null;
   finishedAt: string | null;
+  notes?: string | null;
   createdAt: string;
   printer: {
     id: string;
@@ -111,7 +112,7 @@ export interface ProductionOrder {
   id: string;
   reference: string;
   status: string;
-  notes: string | null;
+  notes?: string | null;
   createdAt: string;
   updatedAt: string;
   // ← novo: se a OP foi gerada automaticamente a partir de uma venda

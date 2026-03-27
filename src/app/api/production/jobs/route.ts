@@ -2,7 +2,11 @@
 //
 // POST /api/production/jobs
 //
-// Cria um novo PrintJob a partir do Planeador de Mesas.
+// Cria PrintJob(s) a partir do Planeador de Mesas.
+//
+// Se o perfil tiver múltiplas placas (ProfilePlate), cria um PrintJob
+// por placa — cada um com plateNumber e totalPlates definidos.
+// Se só houver uma placa (ou nenhuma), comportamento anterior: 1 job.
 //
 // Body:
 //   {
@@ -10,15 +14,12 @@
 //     printerId:        string
 //     componentId:      string
 //     profileId:        string | null
-//     quantity:         number        — peças totais (plates × batchSize)
-//     estimatedMinutes: number | null — tempo total (printTime × plates), calculado no frontend
+//     quantity:         number         — peças totais
+//     estimatedMinutes: number | null  — tempo total, calculado no frontend
 //     recipe:           "single" | "full"
 //   }
 //
-// Efeitos:
-//   1. Cria PrintJob { status: "pending" } + PrintJobItem com profileId
-//   2. Avança ProductionOrder → "in_progress" (se ainda em draft/pending)
-//   3. Marca Printer.status = "printing"
+// Resposta: job único (objeto) ou array de jobs se multi-placa
 
 import { requireApiAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -34,7 +35,7 @@ export async function POST(req: Request) {
     componentId: string;
     profileId: string | null;
     quantity: number;
-    estimatedMinutes?: number | null; // calculado no frontend com a matemática correta
+    estimatedMinutes?: number | null;
     recipe?: "single" | "full";
   };
 
@@ -55,19 +56,17 @@ export async function POST(req: Request) {
     );
   }
 
-  // ── Verificar que a OP pertence ao utilizador ─────────────────────────────
+  // ── Verificar OP ──────────────────────────────────────────────────────────
   const order = await prisma.productionOrder.findFirst({
     where: { id: orderId, userId },
     select: { id: true, status: true },
   });
-
   if (!order) {
     return NextResponse.json(
       { error: "Ordem de produção não encontrada" },
       { status: 404 },
     );
   }
-
   if (["done", "cancelled"].includes(order.status)) {
     return NextResponse.json(
       { error: `Não é possível lançar um job numa OP "${order.status}"` },
@@ -75,12 +74,11 @@ export async function POST(req: Request) {
     );
   }
 
-  // ── Verificar que a impressora pertence ao utilizador ─────────────────────
+  // ── Verificar impressora ──────────────────────────────────────────────────
   const printer = await prisma.printer.findFirst({
     where: { id: printerId, userId },
     select: { id: true },
   });
-
   if (!printer) {
     return NextResponse.json(
       { error: "Impressora não encontrada" },
@@ -88,12 +86,11 @@ export async function POST(req: Request) {
     );
   }
 
-  // ── Verificar que o componente pertence ao utilizador ─────────────────────
+  // ── Verificar componente ──────────────────────────────────────────────────
   const component = await prisma.component.findFirst({
     where: { id: componentId, userId },
     select: { id: true },
   });
-
   if (!component) {
     return NextResponse.json(
       { error: "Componente não encontrado" },
@@ -101,57 +98,119 @@ export async function POST(req: Request) {
     );
   }
 
-  // ── Obter tempo estimado ──────────────────────────────────────────────────
-  // Preferir o valor calculado no frontend (já tem plates × printTime correto).
-  // Fallback: calcular a partir do perfil se o frontend não enviou.
-  let estimatedMinutes: number | null = estimatedMinutesFromClient ?? null;
-  if (estimatedMinutes === null && profileId) {
+  // ── Carregar perfil e placas ──────────────────────────────────────────────
+  type PlateSpec = {
+    plateNumber: number;
+    name: string | null;
+    printTime: number | null;
+    batchSize: number;
+  };
+
+  let plates: PlateSpec[] = [];
+
+  if (profileId) {
     const profile = await prisma.componentPrintProfile.findFirst({
-      where: {
-        id: profileId,
-        component: { userId },
+      where: { id: profileId, component: { userId } },
+      select: {
+        printTime: true,
+        batchSize: true,
+        plates: {
+          orderBy: { plateNumber: "asc" },
+          select: {
+            plateNumber: true,
+            name: true,
+            printTime: true,
+            batchSize: true,
+          },
+        },
       },
-      select: { printTime: true, batchSize: true },
     });
-    if (profile?.printTime) {
-      // Fallback seguro: 1 placa (o frontend devia sempre enviar estimatedMinutes)
-      estimatedMinutes = profile.printTime;
+
+    if (profile) {
+      if (profile.plates.length > 0) {
+        plates = profile.plates;
+      } else {
+        // Placa única — campos do próprio perfil como fallback
+        plates = [
+          {
+            plateNumber: 1,
+            name: null,
+            printTime: profile.printTime ?? null,
+            batchSize: profile.batchSize,
+          },
+        ];
+      }
     }
   }
 
-  // ── Criar job + avançar OP + atualizar impressora (transação atómica) ─────
-  const job = await prisma.$transaction(async (tx) => {
-    // 1. Criar o PrintJob
-    // "pending" = planeado, não confirmado como em execução física.
-    // O utilizador confirma no OrderCard → status passa a "printing".
-    const newJob = await tx.printJob.create({
-      data: {
-        userId,
-        status: "pending",
-        orderId,
-        printerId,
-        estimatedMinutes,
-        quantity,
-        items: {
-          create: [
-            {
-              componentId,
-              profileId: profileId ?? null,
-              quantity,
-            },
-          ],
-        },
-      },
-      include: {
-        printer: { select: { id: true, name: true, status: true } },
-        items: {
-          include: { component: { select: { id: true, name: true } } },
-        },
-        order: { select: { id: true, status: true } },
-      },
-    });
+  if (plates.length === 0) {
+    plates = [{ plateNumber: 1, name: null, printTime: null, batchSize: 1 }];
+  }
 
-    // 2. Avançar a OP para "in_progress" se ainda estava em draft/pending
+  const totalPlates = plates.length;
+  const totalProfileMinutes = plates.reduce(
+    (s, p) => s + (p.printTime ?? 0),
+    0,
+  );
+
+  // ── Criar jobs em transação ───────────────────────────────────────────────
+  const jobs = await prisma.$transaction(async (tx) => {
+    const created = [];
+
+    for (const plate of plates) {
+      // Tempo desta placa: proporcional ao estimado pelo frontend,
+      // ou o printTime da placa, ou null
+      let plateMinutes: number | null = null;
+      if (
+        estimatedMinutesFromClient != null &&
+        estimatedMinutesFromClient > 0 &&
+        totalProfileMinutes > 0
+      ) {
+        const fraction = (plate.printTime ?? 0) / totalProfileMinutes;
+        plateMinutes =
+          Math.round(estimatedMinutesFromClient * fraction) || null;
+      } else if (plate.printTime != null) {
+        plateMinutes = plate.printTime;
+      }
+
+      const job = await tx.printJob.create({
+        data: {
+          userId,
+          status: "pending",
+          orderId,
+          printerId,
+          estimatedMinutes: plateMinutes,
+          quantity: plate.batchSize,
+          plateNumber: plate.plateNumber,
+          totalPlates,
+          notes: plate.name
+            ? `Mesa ${plate.plateNumber}: ${plate.name}`
+            : totalPlates > 1
+              ? `Mesa ${plate.plateNumber} de ${totalPlates}`
+              : null,
+          items: {
+            create: [
+              {
+                componentId,
+                profileId: profileId ?? null,
+                quantity: plate.batchSize,
+              },
+            ],
+          },
+        },
+        include: {
+          printer: { select: { id: true, name: true, status: true } },
+          items: {
+            include: { component: { select: { id: true, name: true } } },
+          },
+          order: { select: { id: true, status: true } },
+        },
+      });
+
+      created.push(job);
+    }
+
+    // Avançar OP para in_progress
     if (["draft", "pending"].includes(order.status)) {
       await tx.productionOrder.update({
         where: { id: orderId },
@@ -159,14 +218,17 @@ export async function POST(req: Request) {
       });
     }
 
-    // 3. Marcar a impressora como "printing"
+    // Marcar impressora como printing
     await tx.printer.update({
       where: { id: printerId },
       data: { status: "printing" },
     });
 
-    return newJob;
+    return created;
   });
 
-  return NextResponse.json(job, { status: 201 });
+  // Retrocompatibilidade: 1 job → objeto; N jobs → array
+  return NextResponse.json(jobs.length === 1 ? jobs[0] : jobs, {
+    status: 201,
+  });
 }
