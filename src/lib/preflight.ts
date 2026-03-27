@@ -49,11 +49,18 @@ export interface PreflightResult {
   }[];
 }
 
+export type PreflightColorMode = "strict" | "approximate" | "ignore";
+
+export interface PreflightOptions {
+  colorMode?: PreflightColorMode;
+}
+
 // ─── Lógica de matching ───────────────────────────────────────────────────────
 
 // Tolerância de cor: dois hexes são considerados "iguais" se a distância
 // RGB for inferior a este threshold. Permite variações de fotografias/ecrãs.
 const COLOR_TOLERANCE = 30;
+const COLOR_TOLERANCE_APPROX = 80;
 
 function hexToRgb(hex: string): [number, number, number] | null {
   const clean = hex.replace("#", "");
@@ -76,22 +83,55 @@ function colorDistance(a: string, b: string): number {
   );
 }
 
+function normalizeMaterial(material: string): string {
+  return material.trim().toUpperCase();
+}
+
+function materialsAreCompatible(
+  slotMaterial: string,
+  requiredMaterial: string,
+): boolean {
+  const slot = normalizeMaterial(slotMaterial);
+  const req = normalizeMaterial(requiredMaterial);
+
+  if (slot === req) return true;
+
+  // Aceita variantes do mesmo material-base.
+  // Ex.: requisito "PLA" aceita "PLA MATTE", "PLA+", "PLA-CF".
+  if (
+    slot.startsWith(`${req} `) ||
+    slot.startsWith(`${req}-`) ||
+    slot.startsWith(`${req}+`)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 function slotMatchesRequirement(
   slot: SlotState,
   req: FilamentRequirement,
+  options?: PreflightOptions,
 ): boolean {
   if (!slot.currentSpool) return false;
   const { item } = slot.currentSpool;
+  const colorMode = options?.colorMode ?? "strict";
 
-  // 1. Material tem de coincidir (case-insensitive)
-  if (item.material.toLowerCase() !== req.material.toLowerCase()) return false;
+  // 1. Material deve ser compatível com o requisito (inclui variantes base)
+  if (!materialsAreCompatible(item.material, req.material)) return false;
 
   // 2. Cor: se o requisito não tem cor definida, qualquer cor serve
   if (!req.colorHex) return true;
 
-  // 3. Cor: verifica dentro da tolerância
+  // 3. Cor: se o modo ignorar está activo, não bloqueia por cor
+  if (colorMode === "ignore") return true;
+
+  // 4. Cor: verifica dentro da tolerância conforme o modo
+  const tolerance =
+    colorMode === "approximate" ? COLOR_TOLERANCE_APPROX : COLOR_TOLERANCE;
   const dist = colorDistance(item.colorHex, req.colorHex);
-  return dist <= COLOR_TOLERANCE;
+  return dist <= tolerance;
 }
 
 // ─── Função principal (usada no frontend — puro TS sem Prisma) ───────────────
@@ -99,6 +139,7 @@ function slotMatchesRequirement(
 export function runPreflightCheck(
   requirements: FilamentRequirement[],
   slots: SlotState[],
+  options?: PreflightOptions,
 ): PreflightResult {
   const missing: FilamentRequirement[] = [];
   const matched: PreflightResult["matched"] = [];
@@ -107,7 +148,7 @@ export function runPreflightCheck(
   // (um slot pode satisfazer vários requisitos do mesmo material/cor)
   for (const req of requirements) {
     const matchingSlot = slots.find((slot) =>
-      slotMatchesRequirement(slot, req),
+      slotMatchesRequirement(slot, req, options),
     );
 
     if (matchingSlot && matchingSlot.currentSpool) {

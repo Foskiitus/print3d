@@ -88,6 +88,7 @@ interface AvailableSpool {
 
 // Cor de matching: tolerância RGB
 const COLOR_TOLERANCE = 30;
+const COLOR_TOLERANCE_APPROX = 80;
 
 function colorDist(a: string, b: string): number {
   const h = (s: string) => [
@@ -104,11 +105,43 @@ function colorDist(a: string, b: string): number {
   }
 }
 
-function spoolMatchesReq(spool: AvailableSpool, req: FilamentReq): boolean {
-  if (spool.item.material.toLowerCase() !== req.material.toLowerCase())
-    return false;
+function normalizeMaterial(material: string): string {
+  return material.trim().toUpperCase();
+}
+
+function materialsAreCompatible(
+  spoolMaterial: string,
+  requiredMaterial: string,
+): boolean {
+  const spool = normalizeMaterial(spoolMaterial);
+  const req = normalizeMaterial(requiredMaterial);
+
+  if (spool === req) return true;
+
+  // Aceita variantes do mesmo material-base.
+  // Ex.: requisito "PLA" aceita "PLA MATTE", "PLA+", "PLA-CF".
+  if (
+    spool.startsWith(`${req} `) ||
+    spool.startsWith(`${req}-`) ||
+    spool.startsWith(`${req}+`)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function spoolMatchesReq(
+  spool: AvailableSpool,
+  req: FilamentReq,
+  colorMode: "strict" | "approximate" | "ignore" = "strict",
+): boolean {
+  if (!materialsAreCompatible(spool.item.material, req.material)) return false;
   if (!req.colorHex) return true;
-  return colorDist(spool.item.colorHex, req.colorHex) <= COLOR_TOLERANCE;
+  if (colorMode === "ignore") return true;
+  const tolerance =
+    colorMode === "approximate" ? COLOR_TOLERANCE_APPROX : COLOR_TOLERANCE;
+  return colorDist(spool.item.colorHex, req.colorHex) <= tolerance;
 }
 
 // Constrói as SearchableSelectOptions para um slot.
@@ -221,6 +254,9 @@ function SlotConfigModal({
     Record<string, AvailableSpool>
   >({});
   const [recipe, setRecipe] = useState<"single" | "full">("full");
+  const [colorMode, setColorMode] = useState<
+    "strict" | "approximate" | "ignore"
+  >("strict");
   const [confirming, setConfirming] = useState(false);
   const [persisting, setPersisting] = useState<Record<string, boolean>>({});
 
@@ -277,7 +313,7 @@ function SlotConfigModal({
 
   const preflight =
     requirements.length > 0
-      ? runPreflightCheck(requirements, preflightSlots)
+      ? runPreflightCheck(requirements, preflightSlots, { colorMode })
       : { ok: true, missing: [], matched: [] };
 
   function getContextMaterialForSlot(slotPosition: number): string | undefined {
@@ -411,7 +447,9 @@ function SlotConfigModal({
       setScannedSpools((prev) => ({ ...prev, [spool.id]: spool }));
 
       // Verificar compatibilidade de material com os requisitos da peça
-      const isCompatible = requirements.some((r) => spoolMatchesReq(spool, r));
+      const isCompatible = requirements.some((r) =>
+        spoolMatchesReq(spool, r, colorMode),
+      );
 
       if (!isCompatible && requirements.length > 0) {
         // Material errado — avisar e deixar o utilizador decidir
@@ -567,6 +605,52 @@ function SlotConfigModal({
                 );
               })}
             </div>
+
+            <div className="mt-3 pt-3 border-t border-border/60 space-y-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Modo de cor
+              </p>
+              <div className="grid grid-cols-3 gap-1.5">
+                {(
+                  [
+                    {
+                      value: "strict",
+                      label: "Estrita",
+                      hint: "Cor mais exata",
+                    },
+                    {
+                      value: "approximate",
+                      label: "Aproximada",
+                      hint: "Aceita tons semelhantes",
+                    },
+                    {
+                      value: "ignore",
+                      label: "Ignorar",
+                      hint: "Só valida material",
+                    },
+                  ] as const
+                ).map((mode) => (
+                  <button
+                    key={mode.value}
+                    type="button"
+                    onClick={() => setColorMode(mode.value)}
+                    className={cn(
+                      "rounded-md border px-2 py-1.5 text-left transition-colors",
+                      colorMode === mode.value
+                        ? "border-primary bg-primary/10"
+                        : "border-border hover:border-border/80 bg-background/30",
+                    )}
+                  >
+                    <p className="text-[10px] font-medium text-foreground">
+                      {mode.label}
+                    </p>
+                    <p className="text-[9px] text-muted-foreground">
+                      {mode.hint}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
@@ -582,7 +666,7 @@ function SlotConfigModal({
             const isScanningThisSlot = activeScanSlotId === slot.id;
             const flash = scanFlash[slot.id];
             const satisfiesReq = spool
-              ? requirements.some((r) => spoolMatchesReq(spool, r))
+              ? requirements.some((r) => spoolMatchesReq(spool, r, colorMode))
               : false;
             const contextMaterial = getContextMaterialForSlot(slot.position);
             const options = buildSpoolOptions(
