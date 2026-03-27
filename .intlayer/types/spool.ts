@@ -14,7 +14,8 @@ export default {
         "buttons": {
           "loadInPrinter": "Carregar na impressora",
           "updateWeight": "Actualizar peso",
-          "finishSpool": "Rolo Acabou"
+          "finishSpool": "Rolo Acabou",
+          "deleteSpool": "Eliminar bobine"
         },
         "updateWeightModal": {
           "title": "Actualizar peso",
@@ -38,7 +39,8 @@ export default {
           "noHistory": "Nenhuma produção registada ainda"
         },
         "loading": {
-          "loadingSpool": "A carregar bobine..."
+          "loadingSpool": "A carregar bobine...",
+          "deletingSpool": "A eliminar..."
         },
         "spoolOwnerPanel": {
           "title": "Detalhes da bobine"
@@ -53,6 +55,7 @@ export default {
           "spoolDeleted": "Bobine removida",
           "error": "Erro",
           "deleteError": "Erro ao eliminar",
+          "spoolDeleteBlockedByUsage": "Esta bobine já tem gastos e não pode ser eliminada.",
           "confirmDeleteAdjustment": "Marcar este rolo como consumido? Ficará no histórico.",
           "confirmDeleteMaterial": "Tens a certeza que queres eliminar este material?",
           "confirmDeleteSpool": "Eliminar esta bobine?"
@@ -68,7 +71,8 @@ export default {
         "buttons": {
           "loadInPrinter": "Load in printer",
           "updateWeight": "Update weight",
-          "finishSpool": "Finish spool"
+          "finishSpool": "Finish spool",
+          "deleteSpool": "Delete spool"
         },
         "updateWeightModal": {
           "title": "Update weight",
@@ -92,7 +96,8 @@ export default {
           "noHistory": "No usage recorded yet"
         },
         "loading": {
-          "loadingSpool": "Loading spool..."
+          "loadingSpool": "Loading spool...",
+          "deletingSpool": "Deleting..."
         },
         "spoolOwnerPanel": {
           "title": "Spool details"
@@ -107,6 +112,7 @@ export default {
           "spoolDeleted": "Spool removed",
           "error": "Error",
           "deleteError": "Error deleting",
+          "spoolDeleteBlockedByUsage": "This spool already has usage and cannot be deleted.",
           "confirmDeleteAdjustment": "Mark this roll as consumed? It will be saved in the history.",
           "confirmDeleteMaterial": "Are you sure you want to delete this material?",
           "confirmDeleteSpool": "Delete this spool?"

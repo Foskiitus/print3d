@@ -16,6 +16,11 @@ export default async function SpoolPage({
     include: {
       item: true,
       supplier: true,
+      loadedInSlot: {
+        select: {
+          id: true,
+        },
+      },
     },
   });
 

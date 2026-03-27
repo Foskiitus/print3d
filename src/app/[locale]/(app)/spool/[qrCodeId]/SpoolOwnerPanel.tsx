@@ -6,9 +6,11 @@ import {
   Printer,
   Scale,
   Archive,
+  Trash2,
   ArrowLeft,
   Clock,
   Package,
+  QrCode,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SpoolIQLogo } from "@/components/ui/logo";
@@ -36,6 +38,7 @@ interface Purchase {
     colorHex: string;
   };
   supplier?: { name: string };
+  loadedInSlot?: { id: string } | null;
 }
 
 interface PrinterItem {
@@ -125,9 +128,11 @@ export function SpoolOwnerPanel({
   const [newWeight, setNewWeight] = useState("");
   const [loadingPrinter, setLoadingPrinter] = useState<string | null>(null);
   const [archiving, setArchiving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [showPrinters, setShowPrinters] = useState(false);
   const [history, setHistory] = useState<ProductionEntry[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [qrDataUrl, setQrDataUrl] = useState("");
 
   const { locale } = useLocale();
   const c = useIntlayer("spool");
@@ -141,6 +146,8 @@ export function SpoolOwnerPanel({
   const dateOpened = purchase.openedAt
     ? new Date(purchase.openedAt).toLocaleDateString("pt-PT")
     : "—";
+  const canDeleteSpool =
+    !purchase.loadedInSlot && purchase.currentWeight >= purchase.initialWeight;
 
   useEffect(() => {
     fetch(`${SITE_URL}/api/inventory/${purchase.id}/history`, {
@@ -153,6 +160,30 @@ export function SpoolOwnerPanel({
       .catch(() => setHistory([]))
       .finally(() => setLoadingHistory(false));
   }, [purchase.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const targetUrl = `${window.location.origin}/${locale}/spool/${purchase.qrCodeId}`;
+
+    import("qrcode")
+      .then((QRCode) =>
+        QRCode.toDataURL(targetUrl, {
+          width: 180,
+          margin: 1,
+          color: { dark: "#000000", light: "#ffffff" },
+        }),
+      )
+      .then((url) => {
+        if (!cancelled) setQrDataUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setQrDataUrl("");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [locale, purchase.qrCodeId]);
 
   const handleWeigh = async () => {
     const w = parseFloat(newWeight);
@@ -189,7 +220,11 @@ export function SpoolOwnerPanel({
     setLoadingPrinter(null);
     setShowPrinters(false);
     if (res.ok) {
-      setPurchase((p) => ({ ...p, openedAt: new Date().toISOString() }));
+      setPurchase((p) => ({
+        ...p,
+        openedAt: new Date().toISOString(),
+        loadedInSlot: p.loadedInSlot ?? { id: "loaded" },
+      }));
       toast({ title: `${c.toast.spoolLoadedIn.value} ${data.printerName}` });
     }
   };
@@ -209,6 +244,42 @@ export function SpoolOwnerPanel({
     if (res.ok) {
       toast({ title: c.toast.spoolArchived.value });
       router.push("/filaments");
+    }
+  };
+
+  const handleDeleteSpool = async () => {
+    if (!confirm(c.toast.confirmDeleteSpool.value)) return;
+    setDeleting(true);
+
+    try {
+      const res = await fetch(`${SITE_URL}/api/inventory/${purchase.id}`, {
+        method: "DELETE",
+        headers: {
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        if (res.status === 409) {
+          throw new Error(
+            data.error || c.toast.spoolDeleteBlockedByUsage.value,
+          );
+        }
+        throw new Error(data.error || c.toast.deleteError.value);
+      }
+
+      toast({ title: c.toast.spoolDeleted.value });
+      router.push(`/${locale}/inventory`);
+    } catch (e: any) {
+      toast({
+        title: c.toast.error.value,
+        description: e.message,
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -262,7 +333,12 @@ export function SpoolOwnerPanel({
         </div>
 
         {/* Acções rápidas */}
-        <div className="grid grid-cols-3 gap-3">
+        <div
+          className={cn(
+            "grid grid-cols-2 gap-3",
+            canDeleteSpool ? "sm:grid-cols-4" : "sm:grid-cols-3",
+          )}
+        >
           <div className="relative">
             <button
               onClick={() => setShowPrinters(!showPrinters)}
@@ -311,6 +387,21 @@ export function SpoolOwnerPanel({
               {c.buttons.finishSpool.value}
             </span>
           </button>
+
+          {canDeleteSpool && (
+            <button
+              onClick={handleDeleteSpool}
+              disabled={deleting}
+              className="card flex flex-col items-center gap-2 py-4 hover:border-red-500/30 hover:bg-red-500/5 transition-all disabled:opacity-50"
+            >
+              <Trash2 className="w-6 h-6 text-red-400" />
+              <span className="text-xs text-center leading-tight">
+                {deleting
+                  ? c.loading.deletingSpool.value
+                  : c.buttons.deleteSpool.value}
+              </span>
+            </button>
+          )}
         </div>
 
         {/* Input de peso */}
@@ -373,6 +464,27 @@ export function SpoolOwnerPanel({
                   <span className="text-theme">{row.value}</span>
                 </div>
               ))}
+          </div>
+        </div>
+
+        <div className="card space-y-3">
+          <h2 className="text-sm font-semibold text-theme flex items-center gap-2">
+            <QrCode className="w-4 h-4 text-navy-400" />
+            QR Code
+          </h2>
+          <div className="flex flex-col items-center gap-2">
+            {qrDataUrl ? (
+              <img
+                src={qrDataUrl}
+                alt={`QR ${purchase.qrCodeId}`}
+                className="w-36 h-36 rounded-lg bg-white p-1"
+              />
+            ) : (
+              <div className="w-36 h-36 rounded-lg bg-theme/10 animate-pulse" />
+            )}
+            <p className="text-xs font-mono text-dark-subtle text-center">
+              #{purchase.qrCodeId}
+            </p>
           </div>
         </div>
 

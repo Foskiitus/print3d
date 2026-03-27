@@ -1,4 +1,7 @@
-import { CheckCircle } from "lucide-react";
+"use client";
+
+import { useEffect, useState } from "react";
+import { CheckCircle, QrCode } from "lucide-react";
 import { SpoolIQLogo } from "@/components/ui/logo";
 
 interface Purchase {
@@ -15,6 +18,31 @@ interface Purchase {
 }
 
 export function SpoolPublicView({ purchase }: { purchase: Purchase }) {
+  const [qrDataUrl, setQrDataUrl] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    import("qrcode")
+      .then((QRCode) =>
+        QRCode.toDataURL(window.location.href, {
+          width: 140,
+          margin: 1,
+          color: { dark: "#000000", light: "#ffffff" },
+        }),
+      )
+      .then((url) => {
+        if (!cancelled) setQrDataUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setQrDataUrl("");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [purchase.qrCodeId]);
+
   const usable = purchase.initialWeight - purchase.tareWeight;
   const remaining = Math.max(0, purchase.currentWeight - purchase.tareWeight);
   const pct = usable > 0 ? Math.round((remaining / usable) * 100) : 0;
@@ -74,6 +102,24 @@ export function SpoolPublicView({ purchase }: { purchase: Purchase }) {
                         : "#ef4444",
                 }}
               />
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-theme/20 space-y-2">
+            <div className="flex items-center justify-center gap-1.5 text-xs text-navy-400">
+              <QrCode className="w-3.5 h-3.5" />
+              <span>QR do spool</span>
+            </div>
+            <div className="flex justify-center">
+              {qrDataUrl ? (
+                <img
+                  src={qrDataUrl}
+                  alt={`QR ${purchase.qrCodeId}`}
+                  className="w-28 h-28 rounded-lg bg-white p-1"
+                />
+              ) : (
+                <div className="w-28 h-28 rounded-lg bg-theme/10 animate-pulse" />
+              )}
             </div>
           </div>
         </div>

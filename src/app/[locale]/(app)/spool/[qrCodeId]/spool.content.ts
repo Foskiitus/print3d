@@ -20,6 +20,7 @@ const spoolContent = {
       loadInPrinter: t({ en: "Load in printer", pt: "Carregar na impressora" }),
       updateWeight: t({ en: "Update weight", pt: "Actualizar peso" }),
       finishSpool: t({ en: "Finish spool", pt: "Rolo Acabou" }),
+      deleteSpool: t({ en: "Delete spool", pt: "Eliminar bobine" }),
     },
 
     updateWeightModal: {
@@ -54,6 +55,7 @@ const spoolContent = {
 
     loading: {
       loadingSpool: t({ en: "Loading spool...", pt: "A carregar bobine..." }),
+      deletingSpool: t({ en: "Deleting...", pt: "A eliminar..." }),
     },
 
     // ── SpoolOwnerPanel ───────────────────────────────────────
@@ -74,6 +76,10 @@ const spoolContent = {
       spoolDeleted: t({ en: "Spool removed", pt: "Bobine removida" }),
       error: t({ en: "Error", pt: "Erro" }),
       deleteError: t({ en: "Error deleting", pt: "Erro ao eliminar" }),
+      spoolDeleteBlockedByUsage: t({
+        en: "This spool already has usage and cannot be deleted.",
+        pt: "Esta bobine já tem gastos e não pode ser eliminada.",
+      }),
       confirmDeleteAdjustment: t({
         en: "Mark this roll as consumed? It will be saved in the history.",
         pt: "Marcar este rolo como consumido? Ficará no histórico.",
