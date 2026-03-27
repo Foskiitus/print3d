@@ -223,6 +223,7 @@ function SlotConfigModal({
 
   // Scanner state: qual slot tem o scanner aberto
   const [activeScanSlotId, setActiveScanSlotId] = useState<string | null>(null);
+  const activeScanSlotIdRef = useRef<string | null>(null);
   // Flash de validação por slot: "ok" | "error" | null
   const [scanFlash, setScanFlash] = useState<
     Record<string, "ok" | "error" | null>
@@ -318,8 +319,8 @@ function SlotConfigModal({
     stopScanner,
   } = useQrScanner({
     onScan: (spoolId, rawText) => {
-      if (!activeScanSlotId) return;
-      const slotId = activeScanSlotId;
+      const slotId = activeScanSlotIdRef.current;
+      if (!slotId) return;
 
       // Procurar a bobine pelo qrCodeId (o ID extraído do QR)
       const spool = availableSpools.find(
@@ -337,6 +338,7 @@ function SlotConfigModal({
           () => setScanFlash((prev) => ({ ...prev, [slotId]: null })),
           2000,
         );
+        activeScanSlotIdRef.current = null;
         setActiveScanSlotId(null);
         return;
       }
@@ -357,6 +359,7 @@ function SlotConfigModal({
             `Queres carregar este rolo na mesma?`,
         );
         if (!proceed) {
+          activeScanSlotIdRef.current = null;
           setActiveScanSlotId(null);
           return;
         }
@@ -372,18 +375,20 @@ function SlotConfigModal({
         () => setScanFlash((prev) => ({ ...prev, [slotId]: null })),
         2500,
       );
+      activeScanSlotIdRef.current = null;
       setActiveScanSlotId(null);
     },
     onInvalidCode: (raw) => {
-      if (!activeScanSlotId) return;
-      setScanFlash((prev) => ({ ...prev, [activeScanSlotId]: "error" }));
+      const slotId = activeScanSlotIdRef.current;
+      if (!slotId) return;
+      setScanFlash((prev) => ({ ...prev, [slotId]: "error" }));
       toast({
         title: "QR Code inválido",
         description: `Formato não reconhecido: "${raw.slice(0, 40)}..."`,
         variant: "destructive",
       });
       setTimeout(
-        () => setScanFlash((prev) => ({ ...prev, [activeScanSlotId!]: null })),
+        () => setScanFlash((prev) => ({ ...prev, [slotId]: null })),
         2000,
       );
     },
@@ -391,6 +396,7 @@ function SlotConfigModal({
 
   function openScanner(slotId: string) {
     if (activeScanSlotId) stopScanner();
+    activeScanSlotIdRef.current = slotId;
     setActiveScanSlotId(slotId);
     // Pequeno delay para o DOM renderizar o elemento de vídeo
     setTimeout(() => startScanner(videoRef.current), 100);
@@ -398,6 +404,7 @@ function SlotConfigModal({
 
   function closeScanner() {
     stopScanner();
+    activeScanSlotIdRef.current = null;
     setActiveScanSlotId(null);
   }
 
