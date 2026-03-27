@@ -288,12 +288,21 @@ function SlotConfigModal({
 
   // ── Persistência imediata ao seleccionar ────────────────────────────────
   async function handleSlotChange(slotId: string, spoolId: string | null) {
+    if (!printer) {
+      toast({
+        title: "Erro ao guardar slot",
+        description: "Impressora não encontrada.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const resolved = spoolId === "__empty__" ? null : spoolId;
     setAssignments((prev) => ({ ...prev, [slotId]: resolved }));
     setPersisting((prev) => ({ ...prev, [slotId]: true }));
-    if (!printer) return;
+
     try {
-      const res = await fetch(`${SITE_URL}/api/printers/${printer?.id}/slots`, {
+      const res = await fetch(`${SITE_URL}/api/printers/${printer.id}/slots`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -301,11 +310,12 @@ function SlotConfigModal({
         },
         body: JSON.stringify({ slots: [{ slotId, spoolId: resolved }] }),
       });
+
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         toast({
           title: "Erro ao guardar slot",
-          description: err.error,
+          description: err.error ?? "Falha ao actualizar o slot.",
           variant: "destructive",
         });
         setAssignments((prev) => {
@@ -314,6 +324,17 @@ function SlotConfigModal({
           return n;
         });
       }
+    } catch {
+      toast({
+        title: "Erro ao guardar slot",
+        description: "Falha de rede ao actualizar o slot.",
+        variant: "destructive",
+      });
+      setAssignments((prev) => {
+        const n = { ...prev };
+        delete n[slotId];
+        return n;
+      });
     } finally {
       setPersisting((prev) => ({ ...prev, [slotId]: false }));
     }
