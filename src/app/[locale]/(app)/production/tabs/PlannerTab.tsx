@@ -217,6 +217,9 @@ function SlotConfigModal({
   const [assignments, setAssignments] = useState<Record<string, string | null>>(
     {},
   );
+  const [scannedSpools, setScannedSpools] = useState<
+    Record<string, AvailableSpool>
+  >({});
   const [recipe, setRecipe] = useState<"single" | "full">("full");
   const [confirming, setConfirming] = useState(false);
   const [persisting, setPersisting] = useState<Record<string, boolean>>({});
@@ -235,6 +238,13 @@ function SlotConfigModal({
   const batchSize = part?.profile?.batchSize ?? 1;
   const requirements: FilamentReq[] = part?.profile?.filaments ?? [];
 
+  const knownSpools = useMemo(() => {
+    const map = new Map<string, AvailableSpool>();
+    for (const s of availableSpools) map.set(s.id, s);
+    for (const s of Object.values(scannedSpools)) map.set(s.id, s);
+    return Array.from(map.values());
+  }, [availableSpools, scannedSpools]);
+
   const allSlots = (printer?.units ?? []).flatMap((u: PrinterUnit) =>
     u.slots.map((s: PrinterSlot) => ({ ...s, unitName: u.name })),
   );
@@ -245,7 +255,7 @@ function SlotConfigModal({
         ? assignments[slot.id]
         : (slot.currentSpool?.id ?? null);
     const spool = assignedId
-      ? (availableSpools.find((s) => s.id === assignedId) ??
+      ? (knownSpools.find((s) => s.id === assignedId) ??
         (slot.currentSpool as AvailableSpool | null))
       : null;
     return { ...slot, effectiveSpool: spool };
@@ -309,6 +319,42 @@ function SlotConfigModal({
     }
   }
 
+  async function findSpoolByQrCode(
+    scannedQrCodeId: string,
+  ): Promise<AvailableSpool | null> {
+    const normalized = scannedQrCodeId.trim().toUpperCase();
+
+    const local = knownSpools.find(
+      (s) => s.qrCodeId.trim().toUpperCase() === normalized,
+    );
+    if (local) return local;
+
+    try {
+      const res = await fetch(`${SITE_URL}/api/inventory`, {
+        headers: {
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
+      });
+      if (!res.ok) return null;
+
+      const data = await res.json();
+      const p = data.find(
+        (row: any) => row.qrCodeId?.trim().toUpperCase() === normalized,
+      );
+      if (!p) return null;
+
+      return {
+        id: p.id,
+        qrCodeId: p.qrCodeId,
+        currentWeight: p.currentWeight,
+        initialWeight: p.initialWeight,
+        item: p.item,
+      };
+    } catch {
+      return null;
+    }
+  }
+
   // ── QR Scanner por slot ──────────────────────────────────────────────────
   // Cada slot tem o seu próprio scanner mas partilhamos um único hook.
   // Ao ler, fechamos o scanner do slot e aplicamos o resultado.
@@ -318,14 +364,12 @@ function SlotConfigModal({
     startScanner,
     stopScanner,
   } = useQrScanner({
-    onScan: (spoolId, rawText) => {
+    onScan: async (spoolId, rawText) => {
       const slotId = activeScanSlotIdRef.current;
       if (!slotId) return;
 
       // Procurar a bobine pelo qrCodeId (o ID extraído do QR)
-      const spool = availableSpools.find(
-        (s) => s.qrCodeId.toUpperCase() === spoolId.toUpperCase(),
-      );
+      const spool = await findSpoolByQrCode(spoolId);
 
       if (!spool) {
         setScanFlash((prev) => ({ ...prev, [slotId]: "error" }));
@@ -342,6 +386,8 @@ function SlotConfigModal({
         setActiveScanSlotId(null);
         return;
       }
+
+      setScannedSpools((prev) => ({ ...prev, [spool.id]: spool }));
 
       // Verificar compatibilidade de material com os requisitos da peça
       const isCompatible = requirements.some((r) => spoolMatchesReq(spool, r));
@@ -519,7 +565,7 @@ function SlotConfigModal({
               : false;
             const contextMaterial = getContextMaterialForSlot(slot.position);
             const options = buildSpoolOptions(
-              availableSpools,
+              knownSpools,
               requirements,
               contextMaterial,
             );
