@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   MoreHorizontal,
@@ -16,7 +16,11 @@ import {
   X,
   Info,
   Layers,
+  QrCode,
+  CameraOff,
+  Loader2,
 } from "lucide-react";
+import { useQrScanner } from "@/hooks/useQrScanner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,6 +90,21 @@ const STATUS_CONFIG: Record<
     badge: "bg-destructive/10 text-destructive border-destructive/20",
   },
 };
+
+// ─── Helper: adaptive slot border ────────────────────────────────────────────
+// Returns a CSS border color that is always visible regardless of the
+// background color and the current color-scheme (light / dark).
+// White (#fff / #ffffff) in light mode would be invisible → use a grey ring.
+// All other colors get a semi-transparent version of themselves.
+
+function slotBorderColor(hex: string): string {
+  const normalized = hex.replace("#", "").toLowerCase();
+  const isWhiteish =
+    normalized === "fff" ||
+    normalized === "ffffff" ||
+    normalized === "ffffffff";
+  return isWhiteish ? "#d1d5db" : `${hex}60`; // gray-300 or 38% alpha
+}
 
 // ─── Spool Detail Modal ───────────────────────────────────────────────────────
 // Shown when clicking a slot that already has a spool loaded
@@ -170,8 +189,11 @@ function SpoolDetailModal({
           {/* Color + identity */}
           <div className="flex items-center gap-3">
             <div
-              className="w-12 h-12 rounded-full border-2 border-white/10 flex-shrink-0 shadow-inner"
-              style={{ backgroundColor: spool.item.colorHex }}
+              className="w-12 h-12 rounded-full flex-shrink-0 shadow-inner"
+              style={{
+                backgroundColor: spool.item.colorHex,
+                border: `2px solid ${slotBorderColor(spool.item.colorHex)}`,
+              }}
             />
             <div>
               <p className="text-base font-semibold text-foreground">
@@ -208,7 +230,6 @@ function SpoolDetailModal({
               className="flex-1 gap-1.5 text-xs"
               onClick={() => {
                 onClose();
-                // Small delay so the close animation doesn't conflict
                 setTimeout(() => onSwap(slot), 50);
               }}
             >
@@ -233,7 +254,7 @@ function SpoolDetailModal({
 }
 
 // ─── Slot Assign Modal ────────────────────────────────────────────────────────
-// Shown when clicking an empty slot
+// Shown when clicking an empty slot (or swapping from SpoolDetailModal)
 
 function SlotAssignModal({
   printerId,
@@ -259,8 +280,11 @@ function SlotAssignModal({
   const [loading, setLoading] = useState(false);
   const [loadingStock, setLoadingStock] = useState(true);
 
+  // videoRef passed to useQrScanner (BarcodeDetector path)
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
   // Load available stock on mount
-  useState<void>(() => {
+  useEffect(() => {
     fetch(`${SITE_URL}/api/inventory/available`, {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
@@ -272,7 +296,53 @@ function SlotAssignModal({
         setLoadingStock(false);
       })
       .catch(() => setLoadingStock(false));
+  }, []);
+
+  // Stop scanner when switching away from scan tab or closing
+  const {
+    status: scanStatus,
+    errorMsg: scanError,
+    startScanner,
+    stopScanner,
+  } = useQrScanner({
+    onScan: async (qrValue) => {
+      const found = stock.find(
+        (s) => s.qrCodeId === qrValue.trim().toUpperCase(),
+      );
+      if (!found) {
+        toast({
+          title: "Rolo não encontrado",
+          description: `QR "${qrValue}" não existe no inventário.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      const warning = getWarning(found);
+      if (warning && !confirm(`${warning}\n\nDeseja continuar na mesma?`))
+        return;
+      await assign(found.id);
+    },
+    onInvalidCode: (raw) => {
+      toast({
+        title: "QR Code inválido",
+        description: `Formato não reconhecido: "${raw.slice(0, 40)}"`,
+        variant: "destructive",
+      });
+    },
   });
+
+  // Start / stop camera when switching tabs
+  useEffect(() => {
+    if (tab === "scan") {
+      // Small delay so the video element is in the DOM
+      setTimeout(() => startScanner(videoRef.current), 100);
+    } else {
+      stopScanner();
+    }
+    return () => {
+      stopScanner();
+    };
+  }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = stock.filter(
     (s) =>
@@ -320,15 +390,14 @@ function SlotAssignModal({
     }
   }
 
-  async function handleScan() {
-    if (!scanValue.trim()) return;
-    const found = stock.find(
-      (s) => s.qrCodeId === scanValue.trim().toUpperCase(),
-    );
+  async function handleManualScan() {
+    const value = scanValue.trim();
+    if (!value) return;
+    const found = stock.find((s) => s.qrCodeId === value.toUpperCase());
     if (!found) {
       toast({
         title: "Rolo não encontrado",
-        description: `QR "${scanValue}" não existe no inventário.`,
+        description: `QR "${value}" não existe no inventário.`,
         variant: "destructive",
       });
       return;
@@ -386,7 +455,7 @@ function SlotAssignModal({
                 </>
               ) : (
                 <>
-                  <ScanLine size={12} />
+                  <QrCode size={12} />
                   Scan QR
                 </>
               )}
@@ -443,9 +512,13 @@ function SlotAssignModal({
                     disabled={loading}
                     className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/40 hover:bg-muted/40 transition-colors text-left group"
                   >
+                    {/* FIX 1: adaptive border so white is visible in light mode */}
                     <div
-                      className="w-8 h-8 rounded-full flex-shrink-0 border-2 border-white/10"
-                      style={{ backgroundColor: spool.item.colorHex }}
+                      className="w-8 h-8 rounded-full flex-shrink-0"
+                      style={{
+                        backgroundColor: spool.item.colorHex,
+                        border: `2px solid ${slotBorderColor(spool.item.colorHex)}`,
+                      }}
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground">
@@ -473,27 +546,74 @@ function SlotAssignModal({
               })}
             </>
           )}
+
           {tab === "scan" && (
-            <div className="space-y-4">
-              <div className="p-4 rounded-lg border border-dashed border-border flex flex-col items-center gap-3">
-                <ScanLine size={32} className="text-muted-foreground" />
-                <p className="text-xs text-muted-foreground text-center">
-                  Aponta o leitor de QR ou escreve manualmente o ID do rolo.
-                </p>
+            <div className="space-y-3">
+              {/* Camera feed — mirrors the pattern used in PlannerTab/SlotConfigModal */}
+              <div className="rounded-lg overflow-hidden bg-black relative">
+                {scanStatus === "requesting" && (
+                  <div className="flex items-center justify-center gap-2 py-8 text-white text-xs">
+                    <Loader2 size={14} className="animate-spin" />A aceder à
+                    câmara…
+                  </div>
+                )}
+                {scanStatus === "error" && (
+                  <div className="flex flex-col items-center justify-center gap-2 py-6 px-4 text-center">
+                    <CameraOff size={20} className="text-destructive" />
+                    <p className="text-xs text-destructive">{scanError}</p>
+                  </div>
+                )}
+                {/* BarcodeDetector path — native video element */}
+                {"BarcodeDetector" in
+                  (typeof window !== "undefined" ? window : {}) && (
+                  <video
+                    ref={videoRef}
+                    className={`w-full max-h-48 object-cover${scanStatus !== "scanning" ? " hidden" : ""}`}
+                    playsInline
+                    muted
+                    autoPlay
+                  />
+                )}
+                {/* html5-qrcode fallback — renders into this div */}
+                {!(
+                  "BarcodeDetector" in
+                  (typeof window !== "undefined" ? window : {})
+                ) && (
+                  <div
+                    id="qr-scanner-video"
+                    className={scanStatus !== "scanning" ? "hidden" : "w-full"}
+                  />
+                )}
+                {/* Viewfinder overlay */}
+                {scanStatus === "scanning" && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-36 h-36 border-2 border-white/70 rounded-lg relative">
+                      <div className="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-primary rounded-tl" />
+                      <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-primary rounded-tr" />
+                      <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-primary rounded-bl" />
+                      <div className="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-primary rounded-br" />
+                    </div>
+                  </div>
+                )}
               </div>
+
+              <p className="text-[11px] text-muted-foreground text-center">
+                Aponta para o QR Code do rolo ou escreve o ID manualmente.
+              </p>
+
+              {/* Manual fallback input */}
               <div className="flex gap-2">
                 <Input
                   placeholder="ex: SPL-A3F2B1"
                   value={scanValue}
                   onChange={(e) => setScanValue(e.target.value.toUpperCase())}
                   className="font-mono text-sm"
-                  autoFocus
-                  onKeyDown={(e) => e.key === "Enter" && handleScan()}
+                  onKeyDown={(e) => e.key === "Enter" && handleManualScan()}
                 />
                 <Button
                   type="button"
                   size="sm"
-                  onClick={handleScan}
+                  onClick={handleManualScan}
                   disabled={loading || !scanValue.trim()}
                 >
                   Confirmar
@@ -534,6 +654,7 @@ function SlotGrid({
           <div className="flex flex-wrap gap-1.5">
             {unit.slots.map((slot: PrinterSlot) => {
               const hasSpool = slot.currentSpool !== null;
+              const hex = slot.currentSpool?.item.colorHex ?? "";
               return (
                 <button
                   key={slot.id}
@@ -544,19 +665,21 @@ function SlotGrid({
                       : `Slot ${slot.position} — vazio`
                   }
                   onClick={(e) => {
-                    e.stopPropagation(); // Don't navigate to printer detail
+                    e.stopPropagation();
                     onSlotClick(slot, unit);
                   }}
-                  className={`relative w-7 h-7 rounded-md border transition-all ${
+                  className={`relative w-7 h-7 rounded-md transition-all ${
                     hasSpool
-                      ? "border-transparent hover:scale-110 hover:shadow-md"
-                      : "border-dashed border-border bg-muted/30 hover:border-primary/50 hover:bg-muted/60"
+                      ? "hover:scale-110 hover:shadow-md"
+                      : "border border-dashed border-border bg-muted/30 hover:border-primary/50 hover:bg-muted/60"
                   }`}
                   style={
                     hasSpool
                       ? {
-                          backgroundColor: slot.currentSpool!.item.colorHex,
-                          boxShadow: `0 0 0 1.5px ${slot.currentSpool!.item.colorHex}40`,
+                          backgroundColor: hex,
+                          // FIX 1: always-visible border — grey for white slots, semi-transparent color otherwise
+                          border: `1.5px solid ${slotBorderColor(hex)}`,
+                          boxShadow: `0 0 0 1px ${slotBorderColor(hex)}`,
                         }
                       : {}
                   }
@@ -624,7 +747,6 @@ export function PrinterCard({
 
   function handleSlotClick(slot: PrinterSlot, unit: PrinterUnit) {
     if (slot.currentSpool) {
-      // Slot has a spool → show detail modal
       setDetailSlot({
         slot: slot as PrinterSlot & {
           currentSpool: NonNullable<PrinterSlot["currentSpool"]>;
@@ -632,7 +754,6 @@ export function PrinterCard({
         unit,
       });
     } else {
-      // Empty slot → show assign modal
       setAssignSlot({ slot, unit });
     }
   }
@@ -716,7 +837,6 @@ export function PrinterCard({
           onClose={() => setDetailSlot(null)}
           onUnload={handleSlotUnloaded}
           onSwap={(slot: PrinterSlot) => {
-            // Switch from detail → assign modal
             setDetailSlot(null);
             setAssignSlot({ slot, unit: detailSlot.unit });
           }}
@@ -744,7 +864,6 @@ export function PrinterCard({
         {/* ── Header ── */}
         <div className="flex items-start justify-between p-4 pb-3">
           <div className="flex items-center gap-3 min-w-0">
-            {/* Status dot */}
             <span
               className={`w-2 h-2 rounded-full flex-shrink-0 mt-0.5 ${statusCfg.dot}`}
             />
@@ -765,7 +884,6 @@ export function PrinterCard({
               {statusCfg.label}
             </Badge>
 
-            {/* Context menu — stopPropagation so it doesn't navigate */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -887,7 +1005,6 @@ export function PrinterCard({
                 </p>
               </div>
               <SlotGrid printer={localPrinter} onSlotClick={handleSlotClick} />
-              {/* Capability badges */}
               <div className="flex flex-wrap gap-1 pt-0.5">
                 {localPrinter.units.some((u) => u.supportsHighTemp) && (
                   <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded px-1.5 py-0.5">
@@ -916,7 +1033,6 @@ export function PrinterCard({
             </button>
           )}
 
-          {/* Last maintenance */}
           {lastMaintenance && (
             <p className="text-[10px] text-muted-foreground border-t border-border pt-2.5">
               Última manutenção:{" "}

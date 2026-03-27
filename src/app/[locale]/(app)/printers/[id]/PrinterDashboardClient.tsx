@@ -30,7 +30,10 @@ import {
   ScanLine,
   ChevronRight,
   PackageX,
+  Loader2,
+  CameraOff,
 } from "lucide-react";
+import { useQrScanner } from "@/hooks/useQrScanner";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { toast } from "@/components/ui/toaster";
@@ -179,9 +182,13 @@ function QrCodeImage({
   return <canvas ref={canvasRef} className="rounded-lg" />;
 }
 
-async function exportQrPdf(qrCodeId: string, printerName: string) {
+async function exportQrPdf(
+  qrUrl: string,
+  qrCodeId: string,
+  printerName: string,
+) {
   const QRCode = await import("qrcode");
-  const svgString = await QRCode.toString(qrCodeId, {
+  const svgString = await QRCode.toString(qrUrl, {
     type: "svg",
     margin: 1,
     color: { dark: "#000000", light: "#ffffff" },
@@ -769,6 +776,9 @@ export function PrinterDashboardClient({
 }) {
   const qrCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  // The QR encodes the full URL so scanning it opens the printer dashboard directly
+  const qrUrl = `${SITE_URL}/scan/printer/${printer.qrCodeId}`;
+
   const [name, setName] = useState(printer.name);
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(printer.name);
@@ -786,6 +796,115 @@ export function PrinterDashboardClient({
     slot: PrinterSlot;
     unit: PrinterUnit;
   } | null>(null);
+
+  // ── Quick-load scanner: ler QR do filamento para o atribuir ao primeiro slot vazio ──
+  const quickScanVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [quickScanOpen, setQuickScanOpen] = useState(false);
+  const [quickScanValue, setQuickScanValue] = useState("");
+  const [quickScanLoading, setQuickScanLoading] = useState(false);
+
+  const {
+    status: quickScanStatus,
+    errorMsg: quickScanError,
+    startScanner: startQuickScanner,
+    stopScanner: stopQuickScanner,
+  } = useQrScanner({
+    onScan: async (qrValue) => {
+      await handleQuickLoadSpool(qrValue);
+    },
+    onInvalidCode: (raw) => {
+      toast({
+        title: "QR Code inválido",
+        description: `Formato não reconhecido: "${raw.slice(0, 40)}"`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Open / close the quick-load scanner
+  function openQuickScan() {
+    setQuickScanOpen(true);
+    setQuickScanValue("");
+    setTimeout(() => startQuickScanner(quickScanVideoRef.current), 100);
+  }
+
+  function closeQuickScan() {
+    stopQuickScanner();
+    setQuickScanOpen(false);
+    setQuickScanValue("");
+  }
+
+  // Assign scanned spool to the first empty slot found across all units
+  async function handleQuickLoadSpool(qrCodeId: string) {
+    const normalized = qrCodeId.trim().toUpperCase();
+
+    // Find first empty slot
+    const allSlotsList = units.flatMap((u) =>
+      u.slots.map((s) => ({ ...s, unit: u })),
+    );
+    const emptySlot = allSlotsList.find((s) => s.currentSpool === null);
+    if (!emptySlot) {
+      toast({
+        title: "Todos os slots estão ocupados",
+        description: "Retira um filamento antes de carregar outro.",
+        variant: "destructive",
+      });
+      closeQuickScan();
+      return;
+    }
+
+    setQuickScanLoading(true);
+    try {
+      // Resolve spool by qrCodeId
+      const invRes = await fetch(`${SITE_URL}/api/inventory/available`, {
+        headers: {
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
+      });
+      if (!invRes.ok) throw new Error("Erro ao carregar inventário");
+      const stock: StockSpool[] = await invRes.json();
+      const found = stock.find((s) => s.qrCodeId === normalized);
+      if (!found) {
+        toast({
+          title: "Rolo não encontrado",
+          description: `"${normalized}" não existe no inventário.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Assign to the empty slot
+      const res = await fetch(
+        `${SITE_URL}/api/printers/${printer.id}/slots/${emptySlot.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+          },
+          body: JSON.stringify({ spoolId: found.id }),
+        },
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao associar filamento");
+
+      handleSlotAssigned(emptySlot.id, data.currentSpool);
+      toast({
+        title: `${found.item.brand} ${found.item.material} carregado`,
+        description: `Slot ${emptySlot.position} · ${emptySlot.unit.name}`,
+      });
+      closeQuickScan();
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setQuickScanLoading(false);
+    }
+  }
+
+  async function handleManualQuickLoad() {
+    if (!quickScanValue.trim()) return;
+    await handleQuickLoadSpool(quickScanValue);
+  }
 
   const statusConfig =
     STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.idle;
@@ -1186,28 +1305,138 @@ export function PrinterDashboardClient({
                   </h3>
                   <QrCode size={14} className="text-muted-foreground" />
                 </div>
+
+                {/* QR image + info */}
                 <div className="flex items-center gap-4">
-                  <QrCodeImage
-                    value={printer.qrCodeId}
-                    canvasRef={qrCanvasRef}
-                  />
-                  <div>
+                  {/* QR now encodes the full URL → scanning opens the printer dashboard */}
+                  <QrCodeImage value={qrUrl} canvasRef={qrCanvasRef} />
+                  <div className="space-y-1.5">
                     <p className="text-sm font-mono font-bold text-foreground">
                       {printer.qrCodeId}
                     </p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                      ID único para check-in
+                    <p className="text-[10px] text-muted-foreground">
+                      Lê para abrir esta página
                     </p>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="mt-2 text-xs h-7 gap-1.5"
-                      onClick={() => exportQrPdf(printer.qrCodeId, name)}
+                      className="text-xs h-7 gap-1.5"
+                      onClick={() => exportQrPdf(qrUrl, printer.qrCodeId, name)}
                     >
                       <Download size={11} />
                       Exportar PDF
                     </Button>
                   </div>
+                </div>
+
+                {/* Quick-load filament via QR scan */}
+                <div className="pt-2 border-t border-border space-y-2">
+                  <p className="text-[10px] text-muted-foreground">
+                    Para carregar um filamento rapidamente, lê o QR do rolo.
+                  </p>
+
+                  {!quickScanOpen ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-1.5 text-xs"
+                      onClick={openQuickScan}
+                    >
+                      <ScanLine size={12} />
+                      Scan para carregar filamento
+                    </Button>
+                  ) : (
+                    <div className="space-y-2">
+                      {/* Camera feed */}
+                      <div className="rounded-lg overflow-hidden bg-black relative">
+                        {quickScanStatus === "requesting" && (
+                          <div className="flex items-center justify-center gap-2 py-8 text-white text-xs">
+                            <Loader2 size={14} className="animate-spin" />A
+                            aceder à câmara…
+                          </div>
+                        )}
+                        {quickScanStatus === "error" && (
+                          <div className="flex flex-col items-center justify-center gap-2 py-6 px-4 text-center">
+                            <CameraOff size={20} className="text-destructive" />
+                            <p className="text-xs text-destructive">
+                              {quickScanError}
+                            </p>
+                          </div>
+                        )}
+                        {"BarcodeDetector" in
+                          (typeof window !== "undefined" ? window : {}) && (
+                          <video
+                            ref={quickScanVideoRef}
+                            className={`w-full max-h-44 object-cover${quickScanStatus !== "scanning" ? " hidden" : ""}`}
+                            playsInline
+                            muted
+                            autoPlay
+                          />
+                        )}
+                        {!(
+                          "BarcodeDetector" in
+                          (typeof window !== "undefined" ? window : {})
+                        ) && (
+                          <div
+                            id="qr-scanner-video"
+                            className={
+                              quickScanStatus !== "scanning"
+                                ? "hidden"
+                                : "w-full"
+                            }
+                          />
+                        )}
+                        {quickScanStatus === "scanning" && (
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="w-32 h-32 border-2 border-white/70 rounded-lg relative">
+                              <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-primary rounded-tl" />
+                              <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-primary rounded-tr" />
+                              <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-primary rounded-bl" />
+                              <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-primary rounded-br" />
+                            </div>
+                          </div>
+                        )}
+                        {quickScanLoading && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                            <Loader2
+                              size={24}
+                              className="animate-spin text-white"
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Manual fallback */}
+                      <div className="flex gap-2">
+                        <input
+                          className="flex-1 h-8 rounded-md border border-border bg-background px-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring"
+                          placeholder="ex: SPL-A3F2B1"
+                          value={quickScanValue}
+                          onChange={(e) =>
+                            setQuickScanValue(e.target.value.toUpperCase())
+                          }
+                          onKeyDown={(e) =>
+                            e.key === "Enter" && handleManualQuickLoad()
+                          }
+                        />
+                        <Button
+                          size="sm"
+                          onClick={handleManualQuickLoad}
+                          disabled={quickScanLoading || !quickScanValue.trim()}
+                        >
+                          OK
+                        </Button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={closeQuickScan}
+                        className="w-full text-[11px] text-muted-foreground hover:text-foreground text-center"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
