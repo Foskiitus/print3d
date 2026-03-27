@@ -138,7 +138,7 @@ export function InventoryPageClient({
       label: c.tabs.finishedGoods.value,
       icon: Package,
       // Mostra unidades disponíveis (livres) em vez de número de produtos
-      count: finishedGoods.reduce((sum, g) => sum + g.available, 0),
+      count: finishedGoods.reduce((sum, g) => sum + (g.stockQty || 0), 0),
     },
   ];
 
