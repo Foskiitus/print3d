@@ -82,7 +82,7 @@ export function PlatformsSection({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 card">
       <h2 className="text-base font-semibold text-foreground">
         {c.platforms.heading.value}
       </h2>

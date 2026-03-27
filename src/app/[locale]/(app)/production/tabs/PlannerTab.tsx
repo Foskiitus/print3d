@@ -318,7 +318,6 @@ function SlotConfigModal({
     stopScanner,
   } = useQrScanner({
     onScan: (spoolId, rawText) => {
-      window.alert("Lido: " + spoolId);
       if (!activeScanSlotId) return;
       const slotId = activeScanSlotId;
 

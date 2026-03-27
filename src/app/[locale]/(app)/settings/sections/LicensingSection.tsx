@@ -88,7 +88,7 @@ export function LicensingSection({
       </div>
 
       {/* Formulário */}
-      <div className="rounded-xl border border-border p-4 space-y-3">
+      <div className="rounded-xl border border-border p-4 space-y-3 card">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <Label>{c.licensing.name.value}</Label>
@@ -137,7 +137,7 @@ export function LicensingSection({
 
       {/* Lista */}
       {licenses.length === 0 ? (
-        <div className="border border-dashed rounded-xl py-10 text-center">
+        <div className="border border-dashed rounded-xl py-10 text-center card">
           <FileKey
             size={28}
             className="text-muted-foreground/30 mx-auto mb-2"

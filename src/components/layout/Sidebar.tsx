@@ -218,7 +218,7 @@ export function Sidebar() {
         )}
       >
         {/* Logo */}
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-border h-14">
           <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center text-primary flex-shrink-0">
             <SpoolIcon className="w-5 h-5" />
           </div>

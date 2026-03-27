@@ -108,7 +108,7 @@ export function SettingsPageClient({
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Sub-sidebar */}
         <nav className="lg:w-48 flex-shrink-0">
-          <div className="flex lg:flex-col gap-1 flex-wrap">
+          <div className="flex lg:flex-col gap-1 flex-wrap bg-[--bg-surface] rounded-lg p-2">
             {navItems.map(({ key, label, icon: Icon }) => (
               <button
                 key={key}

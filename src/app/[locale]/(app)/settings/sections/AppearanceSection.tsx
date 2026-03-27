@@ -15,7 +15,7 @@ export function AppearanceSection() {
         {c.appearance.heading.value}
       </h2>
 
-      <div className="rounded-xl border border-border p-5">
+      <div className="border-border card">
         <div className="flex items-start justify-between gap-6 flex-wrap">
           <div className="space-y-1 flex-1 min-w-[200px]">
             <p className="text-sm font-medium text-foreground">

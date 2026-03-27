@@ -47,7 +47,7 @@ export function PrivacySection({ userId }: { userId: string }) {
       </h2>
 
       {/* Exportar dados */}
-      <div className="rounded-xl border border-border p-5 space-y-3">
+      <div className="border-border space-y-3 card">
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
             <Download size={15} className="text-primary" />
@@ -74,7 +74,7 @@ export function PrivacySection({ userId }: { userId: string }) {
       </div>
 
       {/* Links legais */}
-      <div className="rounded-xl border border-border p-5 space-y-3">
+      <div className="border-border space-y-3 card">
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
             <Shield size={15} className="text-muted-foreground" />

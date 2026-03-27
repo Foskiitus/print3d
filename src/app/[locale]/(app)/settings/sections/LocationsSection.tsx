@@ -73,7 +73,7 @@ export function LocationsSection({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 card">
       <div>
         <h2 className="text-base font-semibold text-foreground">
           {c.locations.heading.value}

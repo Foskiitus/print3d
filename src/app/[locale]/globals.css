@@ -28,9 +28,11 @@
     /* Backgrounds */
     --background: 216 100% 97%; /* #f0f6ff — Page BG */
     --bg: 216 100% 97%;
+    --bg-surface: #ffffff;
     --card: 0 0% 100%; /* #ffffff */
 
     /* Foregrounds */
+
     --foreground: 222 47% 11%; /* #0f172a — Navy text */
     --card-foreground: 222 47% 11%; /* #0f172a */
 
@@ -92,6 +94,7 @@
     /* Backgrounds */
     --background: 220 50% 4%; /* #060c18 — Deep Navy */
     --bg: 220 50% 4%;
+    --bg-surface: #05090f;
     --card: 222 45% 7%; /* #0a1020 — Card surface */
 
     /* Foregrounds */
