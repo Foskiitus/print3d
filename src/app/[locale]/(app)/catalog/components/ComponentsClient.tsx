@@ -145,7 +145,7 @@ function ProductsPopover({
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-full mt-1 z-20 bg-popover border border-border rounded-lg shadow-lg p-1.5 min-w-[180px]">
+          <div className="absolute left-0 top-full mt-1 z-20 bg-popover border border-border rounded-lg shadow-lg p-1.5 min-w-[180px] bg-[--bg-surface]">
             {entries.map((entry) => (
               <button
                 key={entry.productId}
@@ -298,7 +298,7 @@ function ComponentCard({
   return (
     <div
       className={cn(
-        "rounded-xl border bg-card overflow-hidden transition-colors",
+        "rounded-xl border bg-card  transition-colors",
         component.requiresAdapter ? "border-amber-500/30" : "border-border",
       )}
     >
