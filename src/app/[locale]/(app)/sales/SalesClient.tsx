@@ -29,6 +29,9 @@ import {
   ClipboardList,
   PackageCheck,
   Clock,
+  Truck,
+  Flag,
+  Ban,
 } from "lucide-react";
 import { toast } from "@/components/ui/toaster";
 import { refreshAlerts } from "@/lib/refreshAlerts";
@@ -107,6 +110,103 @@ function SaleStatusBadge({ status }: { status: string }) {
       <Icon size={9} />
       {cfg.label}
     </Badge>
+  );
+}
+
+// ─── Status action button ─────────────────────────────────────────────────────
+// Shows the next possible action for each sale status.
+
+const NEXT_STATUS_CONFIG: Record<
+  string,
+  {
+    label: string;
+    nextStatus: string;
+    icon: React.ElementType;
+    className: string;
+  } | null
+> = {
+  pending: null, // avança só via conclusão de OP
+  ready_to_ship: {
+    label: "Marcar Enviada",
+    nextStatus: "shipped",
+    icon: Truck,
+    className:
+      "border-blue-500/30 bg-blue-500/10 text-blue-700 hover:bg-blue-500/20",
+  },
+  shipped: {
+    label: "Concluir",
+    nextStatus: "fulfilled",
+    icon: Flag,
+    className:
+      "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20",
+  },
+  fulfilled: null,
+  cancelled: null,
+};
+
+function StatusActionButton({
+  sale,
+  onStatusChange,
+  compact = false,
+}: {
+  sale: any;
+  onStatusChange: (id: string, status: string) => Promise<void>;
+  compact?: boolean;
+}) {
+  const [loading, setLoading] = useState(false);
+  const cfg = NEXT_STATUS_CONFIG[sale.status ?? "fulfilled"];
+  if (!cfg) return null;
+
+  const Icon = cfg.icon;
+  const nextStatus = cfg.nextStatus;
+  const label = cfg.label;
+  const className = cfg.className;
+
+  async function handleClick() {
+    setLoading(true);
+    try {
+      await onStatusChange(sale.id, nextStatus);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (compact) {
+    return (
+      <button
+        onClick={handleClick}
+        disabled={loading}
+        title={label}
+        className={cn(
+          "flex items-center gap-1 px-2 py-1 rounded-md border text-[10px] font-medium transition-colors disabled:opacity-50",
+          className,
+        )}
+      >
+        {loading ? (
+          <span className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+        ) : (
+          <Icon size={10} />
+        )}
+        {label}
+      </button>
+    );
+  }
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={handleClick}
+      disabled={loading}
+      className={cn("h-7 gap-1.5 text-[11px] border", className)}
+    >
+      {loading ? (
+        <span className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+      ) : (
+        <Icon size={11} />
+      )}
+      {label}
+    </Button>
   );
 }
 
@@ -228,6 +328,37 @@ export function SalesClient({
       if (!res.ok) throw new Error(data.error);
       toast({ title: c.toast.deleted.value });
       refresh();
+      refreshAlerts();
+    } catch (error: any) {
+      toast({
+        title: c.toast.error.value,
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleStatusChange = async (id: string, status: string) => {
+    try {
+      const res = await fetch(`${SITE_URL}/api/sales/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
+        body: JSON.stringify({ status }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      const labels: Record<string, string> = {
+        shipped: "Marcada como enviada ✓",
+        fulfilled: "Venda concluída ✓",
+        cancelled: "Venda cancelada",
+      };
+      toast({ title: labels[status] ?? "Estado atualizado" });
+      // Atualizar localmente sem re-fetch para resposta imediata
+      setSales((prev) => prev.map((s) => (s.id === id ? { ...s, status } : s)));
       refreshAlerts();
     } catch (error: any) {
       toast({
@@ -409,8 +540,13 @@ export function SalesClient({
                       </p>
                       {/* Status badge no mobile */}
                       {sale.status && sale.status !== "fulfilled" && (
-                        <div className="mt-1">
+                        <div className="mt-1 flex items-center gap-2 flex-wrap">
                           <SaleStatusBadge status={sale.status} />
+                          <StatusActionButton
+                            sale={sale}
+                            onStatusChange={handleStatusChange}
+                            compact
+                          />
                         </div>
                       )}
                       {/* Link para a OP gerada (se existir) */}
@@ -734,7 +870,7 @@ export function SalesClient({
 
                       {/* Estado + link para OP */}
                       <td className="px-4 py-3">
-                        <div className="space-y-1">
+                        <div className="space-y-1.5">
                           <SaleStatusBadge
                             status={sale.status ?? "fulfilled"}
                           />
@@ -743,6 +879,13 @@ export function SalesClient({
                               <ClipboardList size={9} />
                               {sale.productionOrder.reference}
                             </p>
+                          )}
+                          {!isEditing && (
+                            <StatusActionButton
+                              sale={sale}
+                              onStatusChange={handleStatusChange}
+                              compact
+                            />
                           )}
                         </div>
                       </td>
