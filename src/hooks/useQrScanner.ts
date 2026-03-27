@@ -44,6 +44,11 @@ export function useQrScanner({
   const streamRef = useRef<MediaStream | null>(null);
   const animFrameRef = useRef<number | null>(null);
   const html5ScannerRef = useRef<any | null>(null); // html5-qrcode instance
+  const onScanRef = useRef(onScan);
+  const onInvalidCodeRef = useRef(onInvalidCode);
+
+  onScanRef.current = onScan;
+  onInvalidCodeRef.current = onInvalidCode;
 
   // ── Extrai o ID do QR ────────────────────────────────────────────────────
   function extractSpoolId(raw: string): string | null {
@@ -87,10 +92,10 @@ export function useQrScanner({
       triggerFeedback("success");
       setStatus("success");
       stopScanner();
-      onScan(spoolId, rawText);
+      onScanRef.current(spoolId, rawText);
     } else {
       triggerFeedback("error");
-      onInvalidCode?.(rawText);
+      onInvalidCodeRef.current?.(rawText);
     }
   }
 
