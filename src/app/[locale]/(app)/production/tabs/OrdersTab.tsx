@@ -17,6 +17,9 @@ import {
   AlertTriangle,
   Pencil,
   Info,
+  PlayCircle,
+  StopCircle,
+  Loader2,
 } from "lucide-react";
 import { useIntlayer } from "next-intlayer";
 import { Button } from "@/components/ui/button";
@@ -79,15 +82,46 @@ const STATUS_CONFIG: Record<
   },
 };
 
-// Transições manuais de estado.
-// "pending → in_progress" REMOVIDO: a OP só avança para "Em Produção"
-// através do Planeador de Mesas ao lançar um PrintJob.
+// Status dos Print Jobs (diferente dos status das OPs)
+const JOB_STATUS_CONFIG: Record<
+  string,
+  { label: string; color: string; bg: string }
+> = {
+  pending: {
+    label: "Planeado",
+    color: "text-muted-foreground",
+    bg: "bg-muted/50",
+  },
+  printing: {
+    label: "A Imprimir",
+    color: "text-blue-600",
+    bg: "bg-blue-500/10 border-blue-500/20",
+  },
+  done: {
+    label: "Concluído",
+    color: "text-emerald-600",
+    bg: "bg-emerald-500/10 border-emerald-500/20",
+  },
+  failed: {
+    label: "Falhou",
+    color: "text-destructive",
+    bg: "bg-destructive/10 border-destructive/20",
+  },
+  cancelled: {
+    label: "Cancelado",
+    color: "text-muted-foreground",
+    bg: "bg-muted/30",
+  },
+};
+
+// Transições manuais de estado da OP.
+// "pending → in_progress" só acontece via Planeador (ao lançar o 1º job).
 // "done" é tratado pela action "complete" com modal de registo.
 const STATUS_TRANSITIONS: Record<string, string[]> = {
   draft: ["pending", "cancelled"],
-  pending: ["cancelled"], // ← sem in_progress: só o Planeador avança
+  pending: ["cancelled"],
   in_progress: ["assembly", "cancelled"],
-  assembly: [], // só via botão "Concluir OP"
+  assembly: [],
   done: [],
   cancelled: [],
 };
@@ -850,6 +884,139 @@ function ManualEntryModal({
   );
 }
 
+// ─── Print Job Card ───────────────────────────────────────────────────────────
+// Shown inside an expanded OrderCard. Lets the user drive the job through
+// its lifecycle: draft → printing → done (or failed).
+// Starting a job also marks the printer as "printing".
+// Completing/failing a job marks the printer as "idle".
+
+function PrintJobCard({
+  job,
+  onChanged,
+}: {
+  job: ProductionOrder["printJobs"][0];
+  onChanged: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const jobCfg = JOB_STATUS_CONFIG[job.status] ?? JOB_STATUS_CONFIG.pending;
+
+  async function transition(newStatus: "printing" | "done" | "failed") {
+    setBusy(true);
+    try {
+      const res = await fetch(`${SITE_URL}/api/production/jobs/${job.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao atualizar job");
+
+      const labels: Record<string, string> = {
+        printing: "Impressão iniciada",
+        done: "Job concluído ✓",
+        failed: "Job marcado como falhado",
+      };
+      toast({ title: labels[newStatus] });
+      onChanged();
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-3 space-y-2.5">
+      {/* Header row */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="text-xs font-medium text-foreground truncate">
+              {job.printer.name}
+            </p>
+            <Badge
+              className={cn(
+                "text-[9px] px-1.5 py-0 border flex-shrink-0",
+                jobCfg.bg,
+                jobCfg.color,
+              )}
+            >
+              {jobCfg.label}
+            </Badge>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-0.5">
+            {job.items
+              .map((i) => `${i.quantity}× ${i.component.name}`)
+              .join(", ")}
+          </p>
+        </div>
+        {job.estimatedMinutes && (
+          <span className="text-[10px] text-muted-foreground flex items-center gap-1 flex-shrink-0">
+            <Clock size={9} />
+            {job.estimatedMinutes >= 60
+              ? `${Math.floor(job.estimatedMinutes / 60)}h${job.estimatedMinutes % 60 > 0 ? `${job.estimatedMinutes % 60}m` : ""}`
+              : `${job.estimatedMinutes}m`}
+          </span>
+        )}
+      </div>
+
+      {/* Action buttons — only for active jobs */}
+      {job.status === "pending" && (
+        <div className="flex gap-2">
+          <button
+            onClick={() => transition("printing")}
+            disabled={busy}
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-blue-500/30 bg-blue-500/10 text-blue-700 text-[11px] font-medium hover:bg-blue-500/20 transition-colors disabled:opacity-50"
+          >
+            {busy ? (
+              <Loader2 size={11} className="animate-spin" />
+            ) : (
+              <PlayCircle size={11} />
+            )}
+            Confirmar início
+          </button>
+          <button
+            onClick={() => transition("failed")}
+            disabled={busy}
+            className="px-3 py-1.5 rounded-md border border-destructive/30 bg-destructive/10 text-destructive text-[11px] hover:bg-destructive/20 transition-colors disabled:opacity-50"
+            title="Cancelar / falhou antes de começar"
+          >
+            <StopCircle size={11} />
+          </button>
+        </div>
+      )}
+
+      {job.status === "printing" && (
+        <div className="flex gap-2">
+          <button
+            onClick={() => transition("done")}
+            disabled={busy}
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 text-[11px] font-medium hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
+          >
+            {busy ? (
+              <Loader2 size={11} className="animate-spin" />
+            ) : (
+              <CheckCircle2 size={11} />
+            )}
+            Marcar como concluído
+          </button>
+          <button
+            onClick={() => transition("failed")}
+            disabled={busy}
+            className="px-3 py-1.5 rounded-md border border-destructive/30 bg-destructive/10 text-destructive text-[11px] hover:bg-destructive/20 transition-colors disabled:opacity-50"
+            title="Marcar como falhado"
+          >
+            <StopCircle size={11} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Order Card ───────────────────────────────────────────────────────────────
 
 function OrderCard({
@@ -860,7 +1027,11 @@ function OrderCard({
   onRefresh: () => void;
 }) {
   const c = useIntlayer("production");
-  const [expanded, setExpanded] = useState(false);
+  const hasActiveJobs = order.printJobs.some((j) =>
+    ["pending", "printing"].includes(j.status),
+  );
+  // Auto-expand when there are jobs to act on
+  const [expanded, setExpanded] = useState(hasActiveJobs);
   const [completing, setCompleting] = useState(false);
   const [manualEntryOpen, setManualEntryOpen] = useState(false);
   const status = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.draft;
@@ -869,15 +1040,20 @@ function OrderCard({
 
   const isLinkedToSale = !!(order as any).salesOrderId;
 
-  const hasPendingJobs = order.printJobs.some((j) =>
-    ["pending", "printing"].includes(j.status),
-  );
+  // "pending" jobs = draft or printing (not yet done/failed)
+  const hasPendingJobs = hasActiveJobs;
   const hasDoneJobs = order.printJobs.some((j) => j.status === "done");
 
   // Pode mostrar o botão "Concluir" em assembly ou in_progress sem jobs pendentes
   const canComplete =
     (order.status === "assembly" || order.status === "in_progress") &&
     !hasPendingJobs;
+
+  // When in_progress with jobs, show "→ Montagem" only if not already completable
+  // (avoid showing both the transition button and the complete button)
+  const showTransitions = transitions.filter((s) =>
+    canComplete && order.status === "in_progress" ? s !== "assembly" : true,
+  );
 
   async function handleStatusChange(newStatus: string) {
     // Bloqueio: não permitir avançar para in_progress manualmente
@@ -1161,9 +1337,9 @@ function OrderCard({
       />
 
       {/* Transições de estado manuais */}
-      {transitions.length > 0 && (
+      {showTransitions.length > 0 && (
         <div className="px-4 pb-3 flex gap-2 flex-wrap items-center">
-          {transitions.map((s) => {
+          {showTransitions.map((s) => {
             const cfg = STATUS_CONFIG[s];
             return (
               <button
@@ -1180,11 +1356,14 @@ function OrderCard({
               </button>
             );
           })}
-          {/* Hint para o Planeador quando a OP está pendente */}
-          {order.status === "pending" && (
+          {/* Hint para o Planeador quando a OP está pendente ou em curso sem jobs concluídos */}
+          {(order.status === "pending" ||
+            (order.status === "in_progress" && hasPendingJobs)) && (
             <span className="text-[10px] text-muted-foreground flex items-center gap-1 ml-1">
               <Info size={9} />
-              Usa o Planeador para iniciar a impressão
+              {order.status === "pending"
+                ? "Usa o Planeador para iniciar a impressão"
+                : "Conclui os jobs abaixo para poder fechar a OP"}
             </span>
           )}
         </div>
@@ -1196,43 +1375,26 @@ function OrderCard({
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Print Jobs ({order.printJobs.length})
           </p>
-          {order.printJobs.map((job) => {
-            const jobStatus = STATUS_CONFIG[job.status] ?? STATUS_CONFIG.draft;
-            return (
-              <div
-                key={job.id}
-                className="rounded-lg border border-border bg-card p-3 flex items-center justify-between gap-2"
-              >
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-foreground">
-                    {job.printer.name}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {job.items
-                      .map((i) => `${i.quantity}× ${i.component.name}`)
-                      .join(", ")}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {job.estimatedMinutes && (
-                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                      <Clock size={9} />
-                      {Math.round(job.estimatedMinutes / 60)}h
-                    </span>
-                  )}
-                  <Badge
-                    className={cn(
-                      "text-[9px] px-1.5 py-0 border",
-                      jobStatus.bg,
-                      jobStatus.color,
-                    )}
-                  >
-                    {jobStatus.label}
-                  </Badge>
-                </div>
-              </div>
-            );
-          })}
+          {/* Legenda rápida */}
+          <p className="text-[10px] text-muted-foreground">
+            <span className="font-medium">Planeado</span> = agendado no
+            Planeador · <span className="font-medium">A Imprimir</span> = em
+            curso · <span className="font-medium">Concluído</span> = terminado
+          </p>
+          {order.printJobs.map((job) => (
+            <PrintJobCard key={job.id} job={job} onChanged={onRefresh} />
+          ))}
+        </div>
+      )}
+
+      {/* Estado vazio expandido — sem jobs ainda */}
+      {expanded && order.printJobs.length === 0 && (
+        <div className="border-t border-border bg-muted/20 p-4 text-center">
+          <p className="text-xs text-muted-foreground">
+            Sem print jobs lançados. Usa o{" "}
+            <span className="font-medium">Planeador</span> para atribuir esta OP
+            a uma impressora.
+          </p>
         </div>
       )}
     </div>

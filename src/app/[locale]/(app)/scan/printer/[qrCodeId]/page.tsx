@@ -31,6 +31,11 @@ export default function ScanPrinterPage() {
       try {
         const res = await fetch(
           `${SITE_URL}/api/printers/by-qr/${encodeURIComponent(qrCodeId)}`,
+          {
+            headers: {
+              "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+            },
+          },
         );
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));

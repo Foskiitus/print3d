@@ -2,212 +2,202 @@
 //
 // POST /api/production/jobs/manual
 //
-// Cria um PrintJob retroativo com dados inseridos manualmente.
-// Suporta múltiplas bobines (uma por requisito de material da BOM).
+// Registo retroativo de produção — chamado pelo ManualEntryModal quando
+// o utilizador conclui uma OP sem ter usado o Planeador.
 //
 // Body:
 //   {
-//     orderId:        string,
-//     printerId:      string,
-//     minutesPrinted: number,
-//     unitsProduced:  number,
-//     assignments: [{ spoolId: string, actualG: number }]
+//     orderId:        string
+//     printerId:      string
+//     minutesPrinted: number
+//     unitsProduced:  number
+//     assignments: [
+//       { spoolId: string, actualG: number }
+//     ]
 //   }
 //
-// Transação única:
-//   1. PrintJob (done) + PrintJobMaterials (uma por bobine) + PrintJobItems (BOM)
-//   2. Decrementa currentWeight de cada bobine
-//   3. Incrementa Printer.totalPrintTime
-//   4. Atualiza OrderItem.completed
+// Efeitos:
+//   1. Cria PrintJob { status: "done" } retroativo com finishedAt = now
+//   2. Cria PrintJobMaterial por cada assignment (registo de consumo)
+//   3. Abate filamento nas InventoryPurchase (currentWeight -= actualG)
+//   4. Incrementa Printer.totalPrintTime
 //   5. Avança OP para "assembly"
 
 import { requireApiAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-const ELECTRICITY_RATE = 0.2;
-
 export async function POST(req: Request) {
   const { userId, error } = await requireApiAuth();
   if (error) return error;
 
-  const body = await req.json();
-  const { orderId, printerId, minutesPrinted, unitsProduced, assignments } =
-    body as {
-      orderId: string;
-      printerId: string;
-      minutesPrinted: number;
-      unitsProduced: number;
-      assignments: { spoolId: string; actualG: number }[];
-    };
+  const body = (await req.json()) as {
+    orderId: string;
+    printerId: string;
+    minutesPrinted: number;
+    unitsProduced: number;
+    assignments: { spoolId: string; actualG: number }[];
+  };
 
-  if (!orderId || !printerId || !minutesPrinted || !unitsProduced) {
+  const {
+    orderId,
+    printerId,
+    minutesPrinted,
+    unitsProduced,
+    assignments = [],
+  } = body;
+
+  // ── Validação ─────────────────────────────────────────────────────────────
+  if (!orderId || !printerId || !minutesPrinted || minutesPrinted <= 0) {
     return NextResponse.json(
-      {
-        error:
-          "orderId, printerId, minutesPrinted e unitsProduced são obrigatórios.",
-      },
-      { status: 400 },
-    );
-  }
-  if (!Array.isArray(assignments) || assignments.length === 0) {
-    return NextResponse.json(
-      { error: "assignments deve conter pelo menos uma bobine." },
-      { status: 400 },
-    );
-  }
-  if (assignments.some((a) => !a.spoolId || a.actualG <= 0)) {
-    return NextResponse.json(
-      { error: "Cada assignment deve ter spoolId e actualG > 0." },
+      { error: "orderId, printerId e minutesPrinted são obrigatórios" },
       { status: 400 },
     );
   }
 
+  // ── Verificar OP ──────────────────────────────────────────────────────────
   const order = await prisma.productionOrder.findFirst({
     where: { id: orderId, userId },
-    include: { items: { include: { product: { include: { bom: true } } } } },
-  });
-  if (!order) {
-    return NextResponse.json({ error: "OP não encontrada." }, { status: 404 });
-  }
-  if (order.status === "done" || order.status === "cancelled") {
-    return NextResponse.json(
-      {
-        error:
-          "Não é possível registar consumo numa OP já concluída ou cancelada.",
+    include: {
+      items: {
+        include: {
+          product: {
+            include: {
+              bom: {
+                include: { component: { select: { id: true } } },
+              },
+            },
+          },
+        },
       },
-      { status: 409 },
+    },
+  });
+
+  if (!order) {
+    return NextResponse.json(
+      { error: "Ordem de produção não encontrada" },
+      { status: 404 },
     );
   }
 
+  // ── Verificar impressora ──────────────────────────────────────────────────
   const printer = await prisma.printer.findFirst({
     where: { id: printerId, userId },
+    select: { id: true },
   });
+
   if (!printer) {
     return NextResponse.json(
-      { error: "Impressora não encontrada." },
+      { error: "Impressora não encontrada" },
       { status: 404 },
     );
   }
 
-  const spoolIds = assignments.map((a) => a.spoolId);
-  const spools = await prisma.inventoryPurchase.findMany({
-    where: { id: { in: spoolIds }, userId, archivedAt: null },
-    include: { item: true },
-  });
-  if (spools.length !== new Set(spoolIds).size) {
-    return NextResponse.json(
-      { error: "Uma ou mais bobines não foram encontradas." },
-      { status: 404 },
-    );
+  // ── Validar spools ────────────────────────────────────────────────────────
+  if (assignments.length > 0) {
+    const spoolIds = assignments.map((a) => a.spoolId);
+    const validSpools = await prisma.inventoryPurchase.findMany({
+      where: { id: { in: spoolIds }, userId },
+      select: {
+        id: true,
+        item: { select: { material: true, colorHex: true, colorName: true } },
+      },
+    });
+    const validIds = new Set(validSpools.map((s) => s.id));
+    const invalid = spoolIds.filter((id) => !validIds.has(id));
+    if (invalid.length > 0) {
+      return NextResponse.json(
+        { error: "Uma ou mais bobines não encontradas no inventário" },
+        { status: 400 },
+      );
+    }
   }
-  const spoolMap = new Map(spools.map((s) => [s.id, s]));
 
-  // Calcular custos
-  const hours = minutesPrinted / 60;
-  const electricityCost =
-    (printer.powerWatts / 1000) * hours * ELECTRICITY_RATE;
-  const printerCost = printer.hourlyCost * hours;
-  const filamentCost = assignments.reduce((sum, a) => {
-    const s = spoolMap.get(a.spoolId)!;
-    return sum + a.actualG * (s.priceCents / 100 / s.initialWeight);
-  }, 0);
-  const totalCost = filamentCost + electricityCost + printerCost;
-  const totalPlanned = order.items.reduce((s, i) => s + i.quantity, 0);
+  // ── Primeiro componente da OP (para associar ao PrintJobItem) ────────────
+  const firstComponentId = order.items[0]?.product.bom[0]?.component.id ?? null;
 
-  const result = await prisma.$transaction(async (tx) => {
-    // 1. PrintJob retroativo
+  // ── Carregar info das bobines para os PrintJobMaterial ───────────────────
+  const spoolInfo =
+    assignments.length > 0
+      ? await prisma.inventoryPurchase.findMany({
+          where: { id: { in: assignments.map((a) => a.spoolId) } },
+          select: {
+            id: true,
+            item: {
+              select: { material: true, colorHex: true, colorName: true },
+            },
+          },
+        })
+      : [];
+
+  const spoolMap = new Map(spoolInfo.map((s) => [s.id, s]));
+
+  const now = new Date();
+
+  // ── Transação atómica ─────────────────────────────────────────────────────
+  await prisma.$transaction(async (tx) => {
+    // 1. Criar PrintJob retroativo
     const job = await tx.printJob.create({
       data: {
         userId,
         orderId,
         printerId,
         status: "done",
-        quantity: unitsProduced,
         estimatedMinutes: minutesPrinted,
-        filamentCost,
-        electricityCost,
-        printerCost,
-        totalCost,
-        startedAt: new Date(),
-        finishedAt: new Date(),
-        notes: "Registo manual de consumo",
-        items: {
-          create: order.items.flatMap((oi) =>
-            oi.product.bom.map((b) => ({
-              componentId: b.componentId,
-              quantity: Math.round(
-                (unitsProduced / totalPlanned) * oi.quantity * b.quantity,
-              ),
-              status: "done",
-              failedUnits: 0,
-            })),
-          ),
-        },
-        materials: {
-          create: assignments.map((a) => {
-            const s = spoolMap.get(a.spoolId)!;
-            return {
-              spoolId: a.spoolId,
-              material: s.item.material,
-              colorHex: s.item.colorHex,
-              colorName: s.item.colorName,
-              estimatedG: a.actualG,
-              actualG: a.actualG,
-            };
-          }),
-        },
+        quantity: unitsProduced,
+        startedAt: now,
+        finishedAt: now,
+        items: firstComponentId
+          ? {
+              create: [
+                {
+                  componentId: firstComponentId,
+                  quantity: unitsProduced,
+                },
+              ],
+            }
+          : undefined,
       },
     });
 
-    // 2. Abater filamento
-    const spoolResults: { id: string; newWeight: number }[] = [];
-    for (const a of assignments) {
-      const s = spoolMap.get(a.spoolId)!;
-      const newWeight = Math.max(0, s.currentWeight - a.actualG);
-      await tx.inventoryPurchase.update({
-        where: { id: a.spoolId },
+    // 2. Criar PrintJobMaterial por assignment + abater filamento
+    for (const { spoolId, actualG } of assignments) {
+      if (actualG <= 0) continue;
+
+      const spool = spoolMap.get(spoolId);
+
+      // Registar consumo
+      await tx.printJobMaterial.create({
         data: {
-          currentWeight: newWeight,
-          ...(newWeight === 0 && { archivedAt: new Date() }),
+          jobId: job.id,
+          spoolId,
+          material: spool?.item.material ?? "Desconhecido",
+          colorHex: spool?.item.colorHex ?? null,
+          colorName: spool?.item.colorName ?? null,
+          estimatedG: actualG,
+          actualG,
         },
       });
-      spoolResults.push({ id: a.spoolId, newWeight });
+
+      // Abater na bobine
+      await tx.inventoryPurchase.update({
+        where: { id: spoolId },
+        data: { currentWeight: { decrement: actualG } },
+      });
     }
 
-    // 3. Horas de impressora
+    // 3. Atualizar contador de manutenção da impressora
     await tx.printer.update({
       where: { id: printerId },
-      data: { totalPrintTime: { increment: minutesPrinted }, status: "idle" },
+      data: { totalPrintTime: { increment: minutesPrinted } },
     });
 
-    // 4. OrderItem.completed
-    for (const oi of order.items) {
-      const completed = Math.min(
-        oi.quantity,
-        Math.round((unitsProduced / totalPlanned) * oi.quantity),
-      );
-      await tx.orderItem.update({ where: { id: oi.id }, data: { completed } });
-    }
-
-    // 5. OP → assembly
+    // 4. Avançar OP para "assembly"
     await tx.productionOrder.update({
       where: { id: orderId },
       data: { status: "assembly" },
     });
-
-    return { job, spoolResults };
   });
 
-  return NextResponse.json(
-    {
-      jobId: result.job.id,
-      costs: { filamentCost, electricityCost, printerCost, totalCost },
-      spoolResults: result.spoolResults,
-      printerMinutesAdded: minutesPrinted,
-      unitsProduced,
-      message: "Job retroativo criado. OP em 'Montagem' — a concluir...",
-    },
-    { status: 201 },
-  );
+  return NextResponse.json({ success: true });
 }

@@ -59,6 +59,7 @@ interface ConfirmState {
   part: PendingPart;
   printer: PrinterType;
   recipe: "single" | "full";
+  platesNeeded: number; // quantas placas são necessárias para satisfazer quantityNeeded
 }
 
 interface AvailableSpool {
@@ -272,6 +273,8 @@ function SlotConfigModal({
 
   // NOTE: early return moved AFTER all hooks (Rules of Hooks)
   const batchSize = part?.profile?.batchSize ?? 1;
+  const quantityNeeded = part?.quantityNeeded ?? 1;
+  const platesNeeded = Math.ceil(quantityNeeded / batchSize);
   const requirements: FilamentReq[] = part?.profile?.filaments ?? [];
 
   const knownSpools = useMemo(() => {
@@ -854,22 +857,32 @@ function SlotConfigModal({
               Receita
             </p>
             <div className="flex gap-2">
-              {(["single", "full"] as const).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setRecipe(r)}
-                  className={cn(
-                    "flex-1 py-1.5 px-3 rounded-lg border text-xs font-medium transition-colors",
-                    recipe === r
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-border text-muted-foreground hover:border-border/80",
-                  )}
-                >
-                  {r === "single"
-                    ? "Individual (1 un)"
-                    : `Placa completa (×${batchSize})`}
-                </button>
-              ))}
+              {(["single", "full"] as const).map((r) => {
+                const plates = r === "full" ? platesNeeded : 1;
+                const pieces = plates * batchSize;
+                return (
+                  <button
+                    key={r}
+                    onClick={() => setRecipe(r)}
+                    className={cn(
+                      "flex-1 py-1.5 px-3 rounded-lg border text-xs font-medium transition-colors",
+                      recipe === r
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-border text-muted-foreground hover:border-border/80",
+                    )}
+                  >
+                    {r === "single"
+                      ? "1 placa"
+                      : `${platesNeeded} placa${platesNeeded > 1 ? "s" : ""}`}
+                    <span className="block text-[10px] font-normal opacity-70 mt-0.5">
+                      {pieces} peça{pieces > 1 ? "s" : ""}
+                      {r === "full" &&
+                        pieces < quantityNeeded &&
+                        " ⚠ incompleto"}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -1003,16 +1016,26 @@ function PendingPartCard({
 
       {profile && (
         <div className="flex items-center gap-2 flex-wrap">
+          {profile.batchSize > 1 && (
+            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+              <Layers size={9} />
+              {Math.ceil(part.quantityNeeded / profile.batchSize)} placa
+              {Math.ceil(part.quantityNeeded / profile.batchSize) > 1
+                ? "s"
+                : ""}{" "}
+              × {profile.batchSize} peças
+            </span>
+          )}
           {profile.printTime && (
             <span className="text-[10px] text-muted-foreground flex items-center gap-1">
               <Clock size={9} />
-              {fmtTime(profile.printTime)}
+              {fmtTime(profile.printTime)}/placa
             </span>
           )}
           {profile.filamentUsed && (
             <span className="text-[10px] text-muted-foreground flex items-center gap-1">
               <Layers size={9} />
-              {profile.filamentUsed}g
+              {profile.filamentUsed}g/placa
             </span>
           )}
           {profile.filaments.slice(0, 6).map((f, i) => (
@@ -1192,23 +1215,29 @@ function ConfirmPrintDialog({
   onCancel: () => void;
 }) {
   const c = useIntlayer("production");
-  const { part, printer } = state;
+  const { part, printer, platesNeeded } = state;
   const profile = part.profile;
   const [recipe, setRecipe] = useState<"single" | "full">(state.recipe);
   const [loading, setLoading] = useState(false);
 
   const batchSize = profile?.batchSize ?? 1;
-  const quantity = recipe === "full" ? batchSize : 1;
 
-  const filamentCost =
+  // Quantas placas vai imprimir neste job
+  const plates = recipe === "full" ? platesNeeded : 1;
+  // Peças que resultam deste job
+  const piecesProduced = plates * batchSize;
+  // Tempo total = tempo de 1 placa × nº de placas (NÃO × peças)
+  const estimatedMinutes = profile?.printTime
+    ? Math.round(profile.printTime * plates)
+    : null;
+
+  // Custo de filamento = custo por placa × nº de placas
+  const filamentCostPerPlate =
     profile?.filaments.reduce((acc, f) => {
       const pricePerG = materialPriceMap[f.material] ?? 0.025;
       return acc + f.estimatedG * pricePerG;
     }, 0) ?? 0;
-
-  const estimatedMinutes = profile?.printTime
-    ? Math.round(profile.printTime * (recipe === "full" ? 1 : 1 / batchSize))
-    : null;
+  const filamentCost = filamentCostPerPlate * plates;
 
   return (
     <div
@@ -1270,6 +1299,9 @@ function ConfirmPrintDialog({
                   )}
                 >
                   {c.planner.confirm.single.value}
+                  <span className="block text-[10px] font-normal opacity-70 mt-0.5">
+                    1 placa · {batchSize} peças
+                  </span>
                 </button>
                 <button
                   onClick={() => setRecipe("full")}
@@ -1280,7 +1312,11 @@ function ConfirmPrintDialog({
                       : "border-border text-muted-foreground",
                   )}
                 >
-                  {c.planner.confirm.fullPlate.value} (×{batchSize})
+                  {c.planner.confirm.fullPlate.value}
+                  <span className="block text-[10px] font-normal opacity-70 mt-0.5">
+                    {platesNeeded} placa{platesNeeded > 1 ? "s" : ""} ·{" "}
+                    {piecesProduced} peças
+                  </span>
                 </button>
               </div>
             </div>
@@ -1289,8 +1325,28 @@ function ConfirmPrintDialog({
           {/* Resumo */}
           <div className="rounded-lg bg-muted/30 border border-border p-3 space-y-1.5 text-xs">
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Unidades</span>
-              <span className="font-medium text-foreground">{quantity}</span>
+              <span className="text-muted-foreground">Placas a imprimir</span>
+              <span className="font-medium text-foreground">{plates}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Peças produzidas</span>
+              <span className="font-medium text-foreground">
+                {piecesProduced}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Peças necessárias</span>
+              <span
+                className={cn(
+                  "font-medium",
+                  piecesProduced < part.quantityNeeded
+                    ? "text-amber-600"
+                    : "text-emerald-600",
+                )}
+              >
+                {part.quantityNeeded}
+                {piecesProduced < part.quantityNeeded && " ⚠ incompleto"}
+              </span>
             </div>
             {estimatedMinutes && (
               <div className="flex items-center justify-between">
@@ -1299,6 +1355,11 @@ function ConfirmPrintDialog({
                 </span>
                 <span className="font-medium text-foreground">
                   {fmtTime(estimatedMinutes)}
+                  {batchSize > 1 && plates > 1 && (
+                    <span className="text-muted-foreground font-normal ml-1">
+                      ({fmtTime(profile!.printTime!)} × {plates})
+                    </span>
+                  )}
                 </span>
               </div>
             )}
@@ -1307,10 +1368,15 @@ function ConfirmPrintDialog({
                 <span className="text-muted-foreground">Custo filamento</span>
                 <span className="font-medium text-foreground">
                   €{filamentCost.toFixed(3)}
+                  {plates > 1 && (
+                    <span className="text-muted-foreground font-normal ml-1">
+                      (€{filamentCostPerPlate.toFixed(3)} × {plates})
+                    </span>
+                  )}
                 </span>
               </div>
             )}
-            {/* Filamentos */}
+            {/* Filamentos por placa */}
             {profile?.filaments && profile.filaments.length > 0 && (
               <div className="pt-1 border-t border-border flex flex-wrap gap-1.5">
                 {profile.filaments.map((f, i) => (
@@ -1320,7 +1386,7 @@ function ConfirmPrintDialog({
                       style={{ backgroundColor: f.colorHex ?? "#888" }}
                     />
                     <span className="text-muted-foreground">
-                      {f.material} {f.estimatedG}g
+                      {f.material} {f.estimatedG}g/placa
                     </span>
                   </span>
                 ))}
@@ -1416,15 +1482,17 @@ export function PlannerTab({
     setDragging(null);
     setSelected(null);
 
+    const batchSize = part.profile?.batchSize ?? 1;
+    // Quantas placas são necessárias para produzir todas as peças pedidas
+    const platesNeeded = Math.ceil(part.quantityNeeded / batchSize);
+    // Receita por defeito: placa completa se batchSize > 1
+    const defaultRecipe: "single" | "full" = batchSize > 1 ? "full" : "single";
+
     const requirements: FilamentReq[] = part.profile?.filaments ?? [];
 
     // Se não há requisitos de filamento, avançar directamente
     if (requirements.length === 0) {
-      setConfirm({
-        part,
-        printer,
-        recipe: (part.profile?.batchSize ?? 1) > 1 ? "full" : "single",
-      });
+      setConfirm({ part, printer, recipe: defaultRecipe, platesNeeded });
       return;
     }
 
@@ -1433,12 +1501,7 @@ export function PlannerTab({
     const preflight = runPreflightCheck(requirements, allSlots);
 
     if (preflight.ok) {
-      // Tudo OK — mostrar dialog de confirmação normal
-      setConfirm({
-        part,
-        printer,
-        recipe: (part.profile?.batchSize ?? 1) > 1 ? "full" : "single",
-      });
+      setConfirm({ part, printer, recipe: defaultRecipe, platesNeeded });
     } else {
       // Filamentos em falta — abrir modal de configuração de slots
       const missingList = preflight.missing
@@ -1479,9 +1542,17 @@ export function PlannerTab({
 
   async function handleConfirm(recipe: "single" | "full") {
     if (!confirm) return;
-    const { part, printer } = confirm;
+    const { part, printer, platesNeeded } = confirm;
     const batchSize = part.profile?.batchSize ?? 1;
-    const quantity = recipe === "full" ? batchSize : 1;
+
+    // "single" = 1 placa (batchSize peças), "full" = todas as placas necessárias
+    const plates = recipe === "full" ? platesNeeded : 1;
+    // Peças que vão ser produzidas neste job
+    const quantity = plates * batchSize;
+    // Tempo total = tempo de 1 placa × número de placas
+    const estimatedMinutes = part.profile?.printTime
+      ? Math.round(part.profile.printTime * plates)
+      : null;
 
     try {
       const res = await fetch(`${SITE_URL}/api/production/jobs`, {
@@ -1496,6 +1567,7 @@ export function PlannerTab({
           componentId: part.component.id,
           profileId: part.profile?.id ?? null,
           quantity,
+          estimatedMinutes,
           recipe,
         }),
       });
@@ -1517,7 +1589,12 @@ export function PlannerTab({
     const part = slotConfigPart;
     const printer = slotConfigPrinter;
     const batchSize = part.profile?.batchSize ?? 1;
-    const quantity = recipe === "full" ? batchSize : 1;
+    const platesNeeded = Math.ceil(part.quantityNeeded / batchSize);
+    const plates = recipe === "full" ? platesNeeded : 1;
+    const quantity = plates * batchSize;
+    const estimatedMinutes = part.profile?.printTime
+      ? Math.round(part.profile.printTime * plates)
+      : null;
 
     try {
       // 1. Persistir slots na BD
@@ -1550,6 +1627,7 @@ export function PlannerTab({
           componentId: part.component.id,
           profileId: part.profile?.id ?? null,
           quantity,
+          estimatedMinutes,
           recipe,
         }),
       });
