@@ -27,8 +27,10 @@ import { NextResponse } from "next/server";
 
 type TargetStatus = "printing" | "done" | "failed";
 
+// Jobs nascem directamente como "printing" — o passo "pending → printing"
+// foi eliminado. Só são válidas as transições de conclusão.
 const VALID_TRANSITIONS: Record<string, TargetStatus[]> = {
-  pending: ["printing", "failed"],
+  pending: ["printing", "failed"], // mantido para retrocompatibilidade
   printing: ["done", "failed"],
 };
 
@@ -128,6 +130,33 @@ export async function PATCH(
           },
         },
       });
+    }
+
+    // ── Abate de filamento apenas em jobs com SUCESSO ──────────────────────────
+    // Se a impressão falhou, não sabemos quanto filamento foi realmente gasto.
+    // O utilizador faz a correcção manualmente no inventário de spools.
+    // Apenas jobs "done" descontam o filamento automaticamente.
+    if (targetStatus === "done") {
+      const mats = await tx.printJobMaterial.findMany({
+        where: { jobId },
+        include: {
+          spool: { select: { id: true, currentWeight: true, userId: true } },
+        },
+      });
+      for (const mat of mats) {
+        if (!mat.spoolId || !mat.spool) continue;
+        if (mat.spool.userId !== userId) continue;
+        const grams = mat.actualG ?? mat.estimatedG;
+        if (grams <= 0) continue;
+        const newWeight = Math.max(0, mat.spool.currentWeight - grams);
+        await tx.inventoryPurchase.update({
+          where: { id: mat.spoolId },
+          data: {
+            currentWeight: newWeight,
+            ...(newWeight === 0 && { archivedAt: new Date() }),
+          },
+        });
+      }
     }
 
     // 3. Verificar avanço para "assembly" — só quando done/failed e há orderId

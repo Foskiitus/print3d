@@ -14,14 +14,12 @@
 //   PrinterDropZone.tsx   — zona de drop de impressora
 //   ConfirmPrintDialog.tsx — dialog de confirmação de lançamento
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "@/components/ui/toaster";
 import { useIntlayer } from "next-intlayer";
-import { runPreflightCheck } from "@/lib/preflight";
 import type {
   ProductionOrder,
   Printer as PrinterType,
-  FilamentReq,
 } from "../ProductionPageClient";
 
 import {
@@ -41,16 +39,44 @@ export function PlannerTab({
   printers,
   materialPriceMap,
   onRefresh,
+  filterPrinterId,
+  filterOrderId: filterOrderIdProp,
 }: {
   orders: ProductionOrder[];
   printers: PrinterType[];
   materialPriceMap: Record<string, number>;
   onRefresh: () => void;
+  // Foca numa impressora específica (vindo da página da impressora)
+  filterPrinterId?: string;
+  // Foca numa OP específica (vindo do botão "Imprimir Pendentes" na OrdersTab)
+  filterOrderId?: string;
 }) {
   const c = useIntlayer("production");
+  // filterOrderId pode vir como prop (URL) ou via evento (botão da OrdersTab)
+  const [filterOrderId, setFilterOrderId] = useState<string | undefined>(
+    filterOrderIdProp,
+  );
+
+  // Ouvir evento disparado pelo botão "Imprimir Pendentes" / "Resolver Falhas"
+  useEffect(() => {
+    function handleSwitchTab(e: Event) {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.orderId) setFilterOrderId(detail.orderId);
+    }
+    window.addEventListener("production:switch-tab", handleSwitchTab);
+    return () =>
+      window.removeEventListener("production:switch-tab", handleSwitchTab);
+  }, []);
+
   const [dragging, setDragging] = useState<PendingPart | null>(null);
   const [selected, setSelected] = useState<PendingPart | null>(null);
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
+
+  // Perfil seleccionado por componente — key: "{orderId}-{componentId}"
+  // Permite ao utilizador escolher qual perfil usar quando o componente tem múltiplos
+  const [selectedProfiles, setSelectedProfiles] = useState<
+    Record<string, string>
+  >({});
 
   // Pre-flight state
   const [slotConfigOpen, setSlotConfigOpen] = useState(false);
@@ -60,6 +86,11 @@ export function PlannerTab({
   const [slotConfigPrinter, setSlotConfigPrinter] =
     useState<PrinterType | null>(null);
   const [availableSpools, setAvailableSpools] = useState<AvailableSpool[]>([]);
+
+  // Impressora em foco (quando filterPrinterId está definido)
+  const focusedPrinter = filterPrinterId
+    ? (printers.find((p) => p.id === filterPrinterId) ?? null)
+    : null;
 
   // Extrair peças pendentes de todas as OPs ativas.
   //
@@ -78,28 +109,64 @@ export function PlannerTab({
     for (const item of order.items) {
       for (const bomEntry of item.product.bom) {
         const component = bomEntry.component;
-        const profile = component.profiles[0] ?? null;
+        // Usar o perfil seleccionado pelo utilizador, ou o primeiro por defeito
+        const partKey = `${order.id}-${component.id}`;
+        const selectedProfileId = selectedProfiles[partKey];
+        const profile = selectedProfileId
+          ? (component.profiles.find((p: any) => p.id === selectedProfileId) ??
+            component.profiles[0] ??
+            null)
+          : (component.profiles[0] ?? null);
         const quantityNeeded = item.quantity * bomEntry.quantity;
         const batchSize = profile?.batchSize ?? 1;
         const totalPrints = Math.ceil(quantityNeeded / batchSize);
 
-        // Contar quantos jobs já foram lançados para este componente nesta OP
-        const launchedJobs = order.printJobs.filter((j) =>
-          j.items.some((ji: any) => ji.componentId === component.id),
+        // Contar quantos jobs foram lançados com sucesso para este componente.
+        // Jobs "failed" NÃO contam — a mesa falhou e precisa de ser re-impressa.
+        // Jobs "cancelled" também não contam.
+        // Só "printing", "pending" e "done" bloqueiam o aparecimento do card.
+        const launchedJobs = order.printJobs.filter(
+          (j) =>
+            ["pending", "printing", "done"].includes(j.status) &&
+            j.items.some((ji: any) => ji.componentId === component.id),
         );
         const launchedCount = launchedJobs.length;
 
-        // Gerar um card por mesa ainda não lançada
+        // Calcular unidades já produzidas com sucesso para este componente
+        // (jobs done, descontando failedUnits)
+        const successUnits = order.printJobs
+          .filter(
+            (j) =>
+              j.status === "done" &&
+              j.items.some((ji: any) => ji.componentId === component.id),
+          )
+          .reduce((sum, j) => {
+            const item = j.items.find(
+              (ji: any) => ji.componentId === component.id,
+            );
+            return (
+              sum +
+              Math.max(0, (item?.quantity ?? 0) - (item?.failedUnits ?? 0))
+            );
+          }, 0);
+
+        // Quantas mesas ainda faltam (tendo em conta o que já foi produzido com sucesso)
+        const remainingUnits = Math.max(0, quantityNeeded - successUnits);
+        const totalPrintsRemaining = Math.ceil(remainingUnits / batchSize);
+
+        // Gerar um card por mesa ainda não lançada (incluindo retries de mesas falhadas)
+        // printIndex começa no número de jobs activos/concluídos (não falhados)
         for (
           let printIndex = launchedCount;
-          printIndex < totalPrints;
+          printIndex < launchedCount + totalPrintsRemaining;
           printIndex++
         ) {
           // Última mesa pode produzir menos se a quantidade não for múltiplo de batchSize
-          const isLastPrint = printIndex === totalPrints - 1;
-          const remainder = quantityNeeded % batchSize;
+          const remainderUnits = remainingUnits % batchSize;
+          const isLastPrint =
+            printIndex === launchedCount + totalPrintsRemaining - 1;
           const unitsThisPrint =
-            isLastPrint && remainder > 0 ? remainder : batchSize;
+            isLastPrint && remainderUnits > 0 ? remainderUnits : batchSize;
 
           pendingParts.push({
             orderId: order.id,
@@ -110,11 +177,24 @@ export function PlannerTab({
             quantityNeeded,
             batchSize,
             printIndex,
-            totalPrints,
+            totalPrints: launchedCount + totalPrintsRemaining, // total real (inclui retries)
             unitsThisPrint,
           });
         }
       }
+    }
+  }
+
+  // Mudar perfil de um card específico
+  function handleProfileChange(part: PendingPart, profileId: string) {
+    const partKey = `${part.orderId}-${part.component.id}`;
+    setSelectedProfiles((prev) => ({ ...prev, [partKey]: profileId }));
+    // Se o card estava seleccionado, limpar para evitar estado inconsistente
+    if (
+      selected?.orderId === part.orderId &&
+      selected?.component.id === part.component.id
+    ) {
+      setSelected(null);
     }
   }
 
@@ -124,6 +204,32 @@ export function PlannerTab({
     if (!a.isUrgent && b.isUrgent) return 1;
     return 0;
   });
+
+  // Filtrar cards por impressora (foco de impressora)
+  const partsFilteredByPrinter = focusedPrinter
+    ? pendingParts.filter((part) => {
+        const profilePresetId = (part.profile as any)?.printerPresetId ?? null;
+        if (!profilePresetId) return true;
+        return profilePresetId === focusedPrinter.preset?.id;
+      })
+    : pendingParts;
+
+  // Filtrar cards por OP (vindo do botão "Imprimir Pendentes" / "Resolver Falhas")
+  const visibleParts = filterOrderId
+    ? partsFilteredByPrinter.filter((part) => part.orderId === filterOrderId)
+    : partsFilteredByPrinter;
+
+  // OP em foco (para mostrar banner)
+  const focusedOrder = filterOrderId
+    ? (orders.find((o) => o.id === filterOrderId) ?? null)
+    : null;
+
+  // Quando o utilizador clica num card no modo foco, usa a impressora filtrada
+  // directamente em vez de precisar de drag-and-drop
+  async function handleCardClickFocused(part: PendingPart) {
+    if (!focusedPrinter) return;
+    await handleDrop(focusedPrinter, part);
+  }
 
   async function handleDrop(printer: PrinterType, part: PendingPart) {
     setDragging(null);
@@ -150,66 +256,33 @@ export function PlannerTab({
             },
           ];
 
-    const requirements: FilamentReq[] = part.profile?.filaments ?? [];
+    // O modal de slots abre SEMPRE — o utilizador confirma explicitamente
+    // qual spool vai em cada slot antes de lançar, independentemente do preflight.
 
-    if (requirements.length === 0) {
-      setConfirm({
-        part,
-        printer,
-        recipe: defaultRecipe,
-        platesNeeded,
-        profilePlates,
+    // Carregar inventário de bobines (lazy)
+    try {
+      const res = await fetch(`${SITE_URL}/api/inventory`, {
+        headers: {
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
       });
-      return;
-    }
+      if (res.ok) {
+        const data = await res.json();
+        setAvailableSpools(
+          data.map((p: any) => ({
+            id: p.id,
+            qrCodeId: p.qrCodeId,
+            currentWeight: p.currentWeight,
+            initialWeight: p.initialWeight,
+            item: p.item,
+          })),
+        );
+      }
+    } catch {}
 
-    const allSlots = printer.units.flatMap((u) => u.slots);
-    const preflight = runPreflightCheck(requirements, allSlots);
-
-    if (preflight.ok) {
-      setConfirm({
-        part,
-        printer,
-        recipe: defaultRecipe,
-        platesNeeded,
-        profilePlates,
-      });
-    } else {
-      // Filamentos em falta — abrir modal de configuração de slots
-      const missingList = preflight.missing
-        .map((r) => `${r.material}${r.colorName ? ` ${r.colorName}` : ""}`)
-        .join(", ");
-      toast({
-        title: "Filamento em falta nos slots",
-        description: `Necessário: ${missingList}. Configura os slots para continuar.`,
-        variant: "destructive",
-      });
-
-      // Carregar inventário de bobines (lazy)
-      try {
-        const res = await fetch(`${SITE_URL}/api/inventory`, {
-          headers: {
-            "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
-          },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setAvailableSpools(
-            data.map((p: any) => ({
-              id: p.id,
-              qrCodeId: p.qrCodeId,
-              currentWeight: p.currentWeight,
-              initialWeight: p.initialWeight,
-              item: p.item,
-            })),
-          );
-        }
-      } catch {}
-
-      setSlotConfigPart(part);
-      setSlotConfigPrinter(printer);
-      setSlotConfigOpen(true);
-    }
+    setSlotConfigPart(part);
+    setSlotConfigPrinter(printer);
+    setSlotConfigOpen(true);
   }
 
   async function handleConfirm() {
@@ -349,7 +422,38 @@ export function PlannerTab({
 
   return (
     <div className="space-y-6">
-      {pendingParts.length > 0 && (
+      {/* Banner de foco numa OP específica */}
+      {focusedOrder && (
+        <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-destructive/5 border border-destructive/20">
+          <div className="w-2 h-2 rounded-full bg-destructive flex-shrink-0" />
+          <p className="text-xs text-destructive font-medium">
+            A mostrar pendentes da OP{" "}
+            <span className="font-semibold">#{focusedOrder.reference}</span>
+          </p>
+          <button
+            onClick={() => setFilterOrderId(undefined)}
+            className="ml-auto text-[10px] text-muted-foreground hover:text-foreground underline"
+          >
+            ver todas
+          </button>
+        </div>
+      )}
+
+      {/* Banner de foco numa impressora específica */}
+      {focusedPrinter && (
+        <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-primary/5 border border-primary/20">
+          <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
+          <p className="text-xs text-primary font-medium">
+            A mostrar apenas peças compatíveis com{" "}
+            <span className="font-semibold">{focusedPrinter.name}</span>
+          </p>
+          <span className="text-[10px] text-muted-foreground ml-auto">
+            {visibleParts.length} de {pendingParts.length} peças
+          </span>
+        </div>
+      )}
+
+      {!focusedPrinter && visibleParts.length > 0 && (
         <p className="text-xs text-muted-foreground">
           {c.planner.dragHint.value}
         </p>
@@ -360,35 +464,50 @@ export function PlannerTab({
         <div className="space-y-3">
           <h2 className="text-sm font-semibold text-foreground">
             {c.planner.pending.value}
-            {pendingParts.length > 0 && (
+            {visibleParts.length > 0 && (
               <span className="ml-2 text-xs text-muted-foreground font-normal">
-                ({pendingParts.length})
+                ({visibleParts.length})
               </span>
             )}
           </h2>
 
-          {pendingParts.length === 0 ? (
+          {visibleParts.length === 0 ? (
             <div className="border border-dashed rounded-xl py-10 text-center">
               <p className="text-xs text-muted-foreground">
-                {c.planner.noPending.value}
+                {focusedPrinter
+                  ? "Sem peças pendentes compatíveis com esta impressora."
+                  : c.planner.noPending.value}
               </p>
               <p className="text-[10px] text-muted-foreground/60 mt-1">
-                {c.planner.noPendingDesc.value}
+                {focusedPrinter
+                  ? "Os perfis dos componentes pendentes são para outro modelo."
+                  : c.planner.noPendingDesc.value}
               </p>
             </div>
           ) : (
             <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
-              {pendingParts.map((part, i) => (
+              {visibleParts.map((part) => (
                 <PendingPartCard
                   key={`${part.orderId}-${part.component.id}-${part.printIndex}`}
                   part={part}
-                  onDragStart={setDragging}
-                  onSelect={(p) =>
-                    setSelected((prev) =>
-                      prev?.component.id === p.component.id ? null : p,
-                    )
+                  onDragStart={focusedPrinter ? () => {} : setDragging}
+                  onSelect={(p) => {
+                    if (focusedPrinter) {
+                      // Modo foco: clicar no card abre directamente o modal desta impressora
+                      handleCardClickFocused(p);
+                    } else {
+                      setSelected((prev) =>
+                        prev?.component.id === p.component.id ? null : p,
+                      );
+                    }
+                  }}
+                  selected={
+                    !focusedPrinter &&
+                    selected?.component.id === part.component.id
                   }
-                  selected={selected?.component.id === part.component.id}
+                  onProfileChange={(profileId) =>
+                    handleProfileChange(part, profileId)
+                  }
                 />
               ))}
             </div>
@@ -406,27 +525,43 @@ export function PlannerTab({
             )}
           </h2>
 
-          {printers.length === 0 ? (
-            <div className="border border-dashed rounded-xl py-10 text-center">
-              <p className="text-xs text-muted-foreground">
-                {c.planner.noprinters.value}
-              </p>
-              <p className="text-[10px] text-muted-foreground/60 mt-1">
-                {c.planner.noPrintersDesc.value}
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {printers.map((printer) => (
-                <PrinterDropZone
-                  key={printer.id}
-                  printer={printer}
-                  selectedPart={selected ?? dragging}
-                  onDrop={handleDrop}
-                />
-              ))}
-            </div>
-          )}
+          {(() => {
+            const visiblePrinters = focusedPrinter
+              ? [focusedPrinter]
+              : printers;
+            if (visiblePrinters.length === 0) {
+              return (
+                <div className="border border-dashed rounded-xl py-10 text-center">
+                  <p className="text-xs text-muted-foreground">
+                    {c.planner.noprinters.value}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground/60 mt-1">
+                    {c.planner.noPrintersDesc.value}
+                  </p>
+                </div>
+              );
+            }
+            return (
+              <div
+                className={
+                  focusedPrinter
+                    ? "space-y-3"
+                    : "grid grid-cols-1 sm:grid-cols-2 gap-3"
+                }
+              >
+                {visiblePrinters.map((printer) => (
+                  <PrinterDropZone
+                    key={printer.id}
+                    printer={printer}
+                    selectedPart={
+                      focusedPrinter ? null : (selected ?? dragging)
+                    }
+                    onDrop={handleDrop}
+                  />
+                ))}
+              </div>
+            );
+          })()}
         </div>
       </div>
 

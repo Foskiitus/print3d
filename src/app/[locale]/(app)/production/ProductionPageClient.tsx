@@ -177,6 +177,7 @@ interface ProductionPageClientProps {
   products: Product[];
   printers: Printer[];
   materialPriceMap: Record<string, number>;
+  filterPrinterId?: string | null;
   locale: string;
 }
 

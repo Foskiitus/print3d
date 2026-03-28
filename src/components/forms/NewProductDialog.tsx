@@ -59,6 +59,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
     [],
   );
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -100,6 +101,7 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
       alertThreshold: "",
     });
     setImageFile(null);
+    setImagePreview(null);
     setErrors({});
   }
 
@@ -287,18 +289,47 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
           {/* Imagem de capa */}
           <div className="space-y-1.5">
             <Label>{d.image}</Label>
-            {imageFile ? (
-              <div className="flex items-center gap-2 p-2 rounded-lg border border-border bg-muted/30">
-                <span className="text-xs text-foreground flex-1 truncate">
-                  {imageFile.name}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setImageFile(null)}
-                  className="text-muted-foreground hover:text-destructive"
-                >
-                  <X size={13} />
-                </button>
+            {imageFile && imagePreview ? (
+              <div className="space-y-2">
+                {/* Preview */}
+                <div className="relative rounded-lg overflow-hidden border border-border bg-muted/20 aspect-video w-full">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full h-full object-contain"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImageFile(null);
+                      setImagePreview(null);
+                    }}
+                    className="absolute top-2 right-2 p-1 rounded-full bg-background/80 border border-border text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {imageFile.name}
+                  </p>
+                  <label className="flex items-center gap-1 cursor-pointer text-[10px] text-primary hover:underline flex-shrink-0">
+                    <Upload size={10} />
+                    Substituir
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setImageFile(file);
+                          setImagePreview(URL.createObjectURL(file));
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
               </div>
             ) : (
               <label className="flex items-center gap-2 cursor-pointer border border-dashed rounded-lg px-4 py-2.5 text-sm text-muted-foreground hover:border-primary/40 hover:bg-muted/20 transition-colors w-full">
@@ -309,7 +340,11 @@ export function NewProductDialog({ onCreated }: { onCreated: () => void }) {
                   accept="image/*"
                   className="hidden"
                   onChange={(e) => {
-                    if (e.target.files?.[0]) setImageFile(e.target.files[0]);
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setImageFile(file);
+                      setImagePreview(URL.createObjectURL(file));
+                    }
                   }}
                 />
               </label>

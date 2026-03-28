@@ -4,7 +4,14 @@
 // Card arrastável de uma peça pendente no Planeador.
 // Mostra OP, componente, perfil de impressão e badge "Mesa X/Y".
 
-import { AlertTriangle, Clock, Layers, BadgeCheck, Wrench } from "lucide-react";
+import {
+  AlertTriangle,
+  Clock,
+  Layers,
+  BadgeCheck,
+  Wrench,
+  Printer,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { PendingPart, ProfilePlate } from "./types";
@@ -16,14 +23,19 @@ export function PendingPartCard({
   onDragStart,
   onSelect,
   selected,
+  onProfileChange,
 }: {
   part: PendingPart;
   onDragStart: (part: PendingPart) => void;
   onSelect: (part: PendingPart) => void;
   selected: boolean;
+  // Chamado quando o utilizador escolhe um perfil diferente (multi-perfil)
+  onProfileChange?: (profileId: string) => void;
 }) {
   const c = useIntlayer("production");
   const profile = part.profile;
+  const allProfiles = part.component.profiles ?? [];
+  const hasMultipleProfiles = allProfiles.length > 1;
 
   return (
     <div
@@ -74,6 +86,37 @@ export function PendingPartCard({
           </span>
         </div>
       </div>
+
+      {/* Seletor de perfil — só quando há múltiplos */}
+      {hasMultipleProfiles && onProfileChange && (
+        <div
+          className="flex gap-1 flex-wrap"
+          onClick={(e) => e.stopPropagation()} // evitar activar onSelect
+          onMouseDown={(e) => e.stopPropagation()} // evitar drag
+        >
+          {allProfiles.map((p: any) => {
+            const isActive = profile?.id === p.id;
+            const modelLabel =
+              p.printerPreset?.model ?? p.printerPreset?.name ?? null;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => onProfileChange(p.id)}
+                className={cn(
+                  "flex items-center gap-1 px-2 py-0.5 rounded-md border text-[9px] font-medium transition-colors",
+                  isActive
+                    ? "border-primary/50 bg-primary/10 text-primary"
+                    : "border-border/60 text-muted-foreground hover:border-primary/30 hover:text-foreground",
+                )}
+              >
+                <Printer size={8} />
+                {modelLabel ? modelLabel : p.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {profile && (
         <div className="flex items-center gap-2 flex-wrap">

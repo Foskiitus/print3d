@@ -250,6 +250,7 @@ model PrinterPreset {
   user             User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
   printers         Printer[]
   maintenanceTasks MaintenanceTask[]
+  componentProfiles ComponentPrintProfile[]
 }
 
 //////////////////////////////////////////////////////////
@@ -390,22 +391,28 @@ model ProductBOM {
 //////////////////////////////////////////////////////////
 
 model ComponentPrintProfile {
-  id           String   @id @default(cuid())
-  componentId  String
-  name         String
-  filePath     String
-  slicer       String?
-  printTime    Int?
-  filamentUsed Float?
-  batchSize    Int      @default(1)
-  createdAt    DateTime @default(now())
+  id              String   @id @default(cuid())
+  componentId     String
+  name            String
+  filePath        String
+  slicer          String?
+  printTime       Int?
+  filamentUsed    Float?
+  batchSize       Int      @default(1)
+  // Modelo de impressora compatível — limita a que impressoras este perfil pode ser enviado.
+  // Corresponde a PrinterPreset.model (ex: "P1S", "A1", "X1C").
+  // null = compatível com qualquer impressora.
+  printerPresetId String?
+  createdAt       DateTime @default(now())
 
-  component    Component              @relation(fields: [componentId], references: [id], onDelete: Cascade)
-  filaments    ProfileFilamentReq[]
-  jobItems     PrintJobItem[]
-  plates       ProfilePlate[]  
+  component     Component              @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  printerPreset PrinterPreset?         @relation(fields: [printerPresetId], references: [id], onDelete: SetNull)
+  filaments     ProfileFilamentReq[]
+  jobItems      PrintJobItem[]
+  plates        ProfilePlate[]
 
   @@index([componentId])
+  @@index([printerPresetId])
 }
 
 //////////////////////////////////////////////////////////

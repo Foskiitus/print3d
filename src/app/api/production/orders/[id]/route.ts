@@ -142,6 +142,73 @@ export async function PATCH(
       });
     }
 
+    // ── Ação: Cancelar OP ────────────────────────────────────────────────────
+    if (body.action === "cancel") {
+      if (["done", "cancelled"].includes(existing.status)) {
+        return NextResponse.json(
+          {
+            error: `Não é possível cancelar uma OP com estado "${existing.status}".`,
+          },
+          { status: 409 },
+        );
+      }
+
+      const doneJobs = await prisma.printJob.findMany({
+        where: { orderId: id, status: "done" },
+        include: {
+          items: {
+            select: { componentId: true, quantity: true, failedUnits: true },
+          },
+        },
+      });
+
+      const producedByComponent = new Map<string, number>();
+      for (const job of doneJobs) {
+        for (const item of job.items) {
+          const success = Math.max(0, item.quantity - (item.failedUnits ?? 0));
+          producedByComponent.set(
+            item.componentId,
+            (producedByComponent.get(item.componentId) ?? 0) + success,
+          );
+        }
+      }
+
+      await prisma.$transaction(async (tx) => {
+        await tx.printJob.updateMany({
+          where: { orderId: id, status: { in: ["pending", "printing"] } },
+          data: { status: "cancelled" },
+        });
+        for (const [componentId, qty] of producedByComponent.entries()) {
+          if (qty <= 0) continue;
+          await tx.componentStock.upsert({
+            where: { componentId },
+            create: { componentId, quantity: qty },
+            update: { quantity: { increment: qty } },
+          });
+        }
+        await tx.productionOrder.update({
+          where: { id },
+          data: { status: "cancelled" },
+        });
+        if (existing.salesOrderId) {
+          await tx.sale.updateMany({
+            where: { id: existing.salesOrderId, userId },
+            data: { status: "cancelled" },
+          });
+        }
+      });
+
+      const credited = Array.from(producedByComponent.entries())
+        .filter(([, q]) => q > 0)
+        .map(([componentId, qty]) => ({ componentId, qty }));
+
+      return NextResponse.json({
+        success: true,
+        message: `OP ${existing.reference} cancelada.`,
+        creditedComponents: credited,
+      });
+    }
+
     // ── Atualização simples de status/notes ──────────────────────────────────
 
     if (body.status === "done") {
@@ -230,9 +297,22 @@ export async function DELETE(
       return NextResponse.json(
         {
           error:
-            "OPs concluídas não podem ser eliminadas — ficam preservadas no histórico de produção.",
+            "OPs concluídas não podem ser eliminadas — ficam preservadas no histórico.",
         },
         { status: 403 },
+      );
+    }
+
+    const jobCount = await prisma.printJob.count({ where: { orderId: id } });
+    if (jobCount > 0) {
+      return NextResponse.json(
+        {
+          error:
+            "Esta OP tem jobs associados. Usa 'Cancelar OP' em vez de eliminar.",
+          code: "HAS_JOBS",
+          jobCount,
+        },
+        { status: 409 },
       );
     }
 

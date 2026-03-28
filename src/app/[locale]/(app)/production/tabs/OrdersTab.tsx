@@ -107,7 +107,7 @@ const JOB_STATUS_CONFIG: Record<
   { label: string; color: string; bg: string }
 > = {
   pending: {
-    label: "Planeado",
+    label: "Planeado (legado)",
     color: "text-muted-foreground",
     bg: "bg-muted/50",
   },
@@ -1265,6 +1265,7 @@ function PrintJobCard({
       </div>
 
       {/* Action buttons — only for active jobs */}
+      {/* Retrocompatibilidade: jobs antigos em "pending" ainda podem avançar */}
       {job.status === "pending" && (
         <div className="flex gap-2">
           <button
@@ -1283,7 +1284,7 @@ function PrintJobCard({
             onClick={() => transition("failed")}
             disabled={busy}
             className="px-3 py-1.5 rounded-md border border-destructive/30 bg-destructive/10 text-destructive text-[11px] hover:bg-destructive/20 transition-colors disabled:opacity-50"
-            title="Cancelar / falhou antes de começar"
+            title="Cancelar"
           >
             <StopCircle size={11} />
           </button>
@@ -1604,7 +1605,8 @@ function OrderCard({
     canComplete && order.status === "in_progress" ? s !== "assembly" : true,
   );
 
-  // Progresso global da OP: componentes prontos / total necessário
+  // Progresso global da OP: só conta unidades em jobs DONE (excluindo failedUnits).
+  // Jobs FAILED não contam para o progresso — a mesa precisa de ser re-impressa.
   const componentProgress = (() => {
     const allComponents: { id: string; needed: number }[] = [];
     for (const item of order.items ?? []) {
@@ -1619,7 +1621,7 @@ function OrderCard({
 
     const totalNeeded = allComponents.reduce((s, c) => s + c.needed, 0);
     const totalDone = allComponents.reduce((s, comp) => {
-      const produced = order.printJobs
+      const successUnits = order.printJobs
         .filter(
           (j) =>
             j.status === "done" &&
@@ -1628,16 +1630,32 @@ function OrderCard({
                 ji.component?.id === comp.id || ji.componentId === comp.id,
             ),
         )
-        .reduce((sum, j) => sum + j.quantity, 0);
-      return s + Math.min(produced, comp.needed);
+        .reduce((sum, j) => {
+          const item = (j.items as any[]).find(
+            (ji) => ji.component?.id === comp.id || ji.componentId === comp.id,
+          );
+          return (
+            sum + Math.max(0, (item?.quantity ?? 0) - (item?.failedUnits ?? 0))
+          );
+        }, 0);
+      return s + Math.min(successUnits, comp.needed);
     }, 0);
+
+    // Contar jobs falhados para mostrar no UI
+    const failedJobs = order.printJobs.filter(
+      (j) => j.status === "failed",
+    ).length;
 
     return {
       done: totalDone,
       total: totalNeeded,
-      pct: Math.round((totalDone / totalNeeded) * 100),
+      pct: totalNeeded > 0 ? Math.round((totalDone / totalNeeded) * 100) : 0,
+      failedJobs,
     };
   })();
+
+  // Há mesas falhadas que precisam de retry?
+  const hasFailedJobs = order.printJobs.some((j) => j.status === "failed");
 
   async function handleStatusChange(newStatus: string) {
     if (newStatus === "in_progress") {
@@ -1878,21 +1896,30 @@ function OrderCard({
           {/* Progresso global + filamento */}
           <div className="flex items-center gap-3 mt-2.5 flex-wrap">
             {componentProgress && (
-              <div className="flex items-center gap-1.5">
-                <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-all",
-                      componentProgress.pct === 100
-                        ? "bg-emerald-500"
-                        : "bg-primary",
-                    )}
-                    style={{ width: `${componentProgress.pct}%` }}
-                  />
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all",
+                        componentProgress.pct === 100
+                          ? "bg-emerald-500"
+                          : "bg-primary",
+                      )}
+                      style={{ width: `${componentProgress.pct}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">
+                    {componentProgress.done}/{componentProgress.total} unid.
+                  </span>
                 </div>
-                <span className="text-[10px] text-muted-foreground">
-                  {componentProgress.done}/{componentProgress.total} componentes
-                </span>
+                {(componentProgress.failedJobs ?? 0) > 0 && (
+                  <span className="text-[10px] text-destructive flex items-center gap-0.5">
+                    <AlertTriangle size={9} />
+                    {componentProgress.failedJobs} falhada
+                    {componentProgress.failedJobs! > 1 ? "s" : ""}
+                  </span>
+                )}
               </div>
             )}
             {totalG > 0 && (
@@ -1930,31 +1957,105 @@ function OrderCard({
       {/* Checklist de montagem — só em assembly */}
       {order.status === "assembly" && <AssemblyChecklist order={order} />}
 
-      {/* Concluir OP */}
-      {canComplete && (
+      {/* Acção principal — dinâmica consoante o estado real da OP */}
+      {["pending", "in_progress", "assembly"].includes(order.status) && (
         <div className="px-4 pb-3 space-y-1.5">
-          <button
-            onClick={handleComplete}
-            disabled={completing}
-            className={cn(
-              "w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors",
-              hasDoneJobs
-                ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/20"
-                : "bg-warning/10 text-warning border-warning/30 hover:bg-warning/20",
-              completing && "opacity-60 cursor-not-allowed",
-            )}
-          >
-            {hasDoneJobs ? <CheckCircle2 size={14} /> : <Pencil size={14} />}
-            {completing
-              ? "A concluir..."
-              : hasDoneJobs
-                ? "Concluir OP — Creditar Stock"
-                : "Concluir OP — Registo Manual"}
-          </button>
-          {!hasDoneJobs && (
-            <p className="text-[10px] text-warning/80 text-center flex items-center justify-center gap-1">
+          {/* Jobs activos em curso */}
+          {hasPendingJobs && (
+            <button
+              onClick={() => setExpanded(true)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-blue-500/30 bg-blue-500/5 text-blue-700 text-sm font-medium hover:bg-blue-500/10 transition-colors"
+            >
+              <Loader2 size={14} className="animate-spin" />
+              Impressão em curso — ver jobs activos
+            </button>
+          )}
+
+          {/* Mesas falhadas ou em falta → botão de retry/continuar */}
+          {!hasPendingJobs && !allQuantitiesMet && (
+            <button
+              onClick={() => {
+                window.dispatchEvent(
+                  new CustomEvent("production:switch-tab", {
+                    detail: { tab: "planner", orderId: order.id },
+                  }),
+                );
+              }}
+              className={cn(
+                "w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors",
+                hasFailedJobs
+                  ? "border-destructive/40 bg-destructive/5 text-destructive hover:bg-destructive/10"
+                  : "border-primary/40 bg-primary/5 text-primary hover:bg-primary/10",
+              )}
+            >
+              <PlayCircle size={14} />
+              {hasFailedJobs
+                ? "Resolver Falhas — Re-imprimir"
+                : "Imprimir Pendentes"}
+            </button>
+          )}
+
+          {/* Aviso de falha: filamento NÃO foi descontado automaticamente */}
+          {hasFailedJobs && !hasPendingJobs && (
+            <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2 flex items-start gap-2">
+              <AlertTriangle
+                size={11}
+                className="text-amber-600 flex-shrink-0 mt-0.5"
+              />
+              <p className="text-[10px] text-amber-700 leading-relaxed">
+                <span className="font-medium">
+                  Impressão falhada registada.
+                </span>{" "}
+                O filamento não foi descontado automaticamente — verifica o peso
+                real da bobine no Inventário para manter o stock preciso.
+              </p>
+            </div>
+          )}
+
+          {/* Progresso visual quando há componentes */}
+          {componentProgress && !hasPendingJobs && (
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground px-1">
+              <span>Progresso</span>
+              <span
+                className={cn(
+                  "font-semibold",
+                  componentProgress.pct === 100
+                    ? "text-emerald-600"
+                    : "text-foreground",
+                )}
+              >
+                {componentProgress.done}/{componentProgress.total} unidades (
+                {componentProgress.pct}%)
+              </span>
+            </div>
+          )}
+
+          {/* Tudo produzido → Concluir */}
+          {canComplete && allQuantitiesMet && !hasPendingJobs && (
+            <button
+              onClick={handleComplete}
+              disabled={completing}
+              className={cn(
+                "w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors",
+                hasDoneJobs
+                  ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/20"
+                  : "bg-muted/40 text-muted-foreground border-border hover:bg-muted/60",
+                completing && "opacity-60 cursor-not-allowed",
+              )}
+            >
+              {hasDoneJobs ? <CheckCircle2 size={14} /> : <Pencil size={14} />}
+              {completing
+                ? "A concluir..."
+                : hasDoneJobs
+                  ? "Concluir OP — Creditar Stock"
+                  : "Concluir OP — Registo Manual"}
+            </button>
+          )}
+
+          {canComplete && !hasDoneJobs && allQuantitiesMet && (
+            <p className="text-[10px] text-muted-foreground text-center flex items-center justify-center gap-1">
               <AlertTriangle size={9} />
-              Sem jobs de impressão registados — será pedido o consumo manual.
+              Sem jobs registados — será pedido o consumo manual.
             </p>
           )}
         </div>

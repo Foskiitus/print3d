@@ -14,7 +14,6 @@ export const SITE_URL =
 
 // ─── ProfilePlate ─────────────────────────────────────────────────────────────
 
-// Placa individual de um perfil multi-mesa
 export interface ProfilePlate {
   plateNumber: number;
   name: string | null;
@@ -31,11 +30,11 @@ export interface PendingPart {
   isUrgent: boolean;
   component: Component;
   profile: ComponentProfile | null;
-  quantityNeeded: number; // unidades totais pedidas para este componente nesta OP
-  batchSize: number; // unidades por mesa (yield)
-  printIndex: number; // qual das mesas necessárias este card representa (0-based)
-  totalPrints: number; // total de mesas necessárias = ceil(quantityNeeded / batchSize)
-  unitsThisPrint: number; // unidades que esta mesa produz (batchSize, excepto na última)
+  quantityNeeded: number;
+  batchSize: number;
+  printIndex: number;
+  totalPrints: number;
+  unitsThisPrint: number;
 }
 
 // ─── ConfirmState ─────────────────────────────────────────────────────────────
@@ -44,8 +43,8 @@ export interface ConfirmState {
   part: PendingPart;
   printer: import("../../ProductionPageClient").Printer;
   recipe: "single" | "full";
-  platesNeeded: number; // quantas vezes o perfil completo é corrido
-  profilePlates: ProfilePlate[]; // placas do perfil (1 se mono-mesa)
+  platesNeeded: number;
+  profilePlates: ProfilePlate[];
 }
 
 // ─── AvailableSpool ───────────────────────────────────────────────────────────
@@ -61,4 +60,21 @@ export interface AvailableSpool {
     colorName: string;
     colorHex: string;
   };
+}
+
+// ─── PrinterCompat ────────────────────────────────────────────────────────────
+//
+// Resultado da verificação de compatibilidade entre um perfil e uma impressora.
+//   "compatible"   — sem restrição, ou modelo coincide
+//   "incompatible" — perfil tem printerPresetId diferente do preset desta impressora
+//   "no-profile"   — componente não tem perfil definido (não é possível validar)
+
+export type PrinterCompatibility = "compatible" | "incompatible" | "no-profile";
+
+export interface PrinterCompatResult {
+  compat: PrinterCompatibility;
+  // Modelo esperado pelo perfil (ex: "P1S") — para mostrar no aviso
+  expectedModel: string | null;
+  // Modelo real da impressora (ex: "A1")
+  actualModel: string | null;
 }

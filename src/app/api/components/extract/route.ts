@@ -8,9 +8,6 @@
 
 import { getAuthUserId } from "@/lib/auth";
 import { NextResponse } from "next/server";
-import { GetObjectCommand } from "@aws-sdk/client-s3";
-import { r2 } from "@/lib/r2"; // cliente partilhado — usa as mesmas env vars que /api/upload
-import { extractFrom3mf } from "@/lib/preflight/extractor";
 
 export async function POST(req: Request) {
   const userId = await getAuthUserId();
@@ -48,49 +45,30 @@ export async function POST(req: Request) {
       });
     }
 
-    // ── Descarregar do R2 para extrair metadados ──────────────────────────────
+    // Descarregar do R2 e tentar extrair o máximo possível.
+    // O extractor preenche o que conseguir — mesas, cores, materiais,
+    // tempo e gramas se o ficheiro estiver fatiado. O que ficar vazio
+    // o utilizador preenche manualmente no modal.
     try {
+      const { GetObjectCommand } = await import("@aws-sdk/client-s3");
+      const { r2 } = await import("@/lib/r2");
+      const { extractFrom3mf } = await import("@/lib/preflight/extractor");
+
       const obj = await r2.send(
-        new GetObjectCommand({
-          Bucket: "models", // mesmo bucket que /api/upload usa para ficheiros 3mf
-          Key: fileKey,
-        }),
+        new GetObjectCommand({ Bucket: "models", Key: fileKey }),
       );
-
       const buffer = Buffer.from(await obj.Body!.transformToByteArray());
-      const filaments = await extractFrom3mf(buffer);
-      const totalG = filaments.reduce((acc, f) => acc + f.estimatedG, 0);
+      const result = await extractFrom3mf(buffer);
 
-      // Se extraiu filamentos mas sem gramas (ficheiro não fatiado),
-      // devolve source "3mf_no_weight" — o modal pré-preenche cores
-      // e pede ao utilizador apenas as gramas e o tempo
-      if (filaments.length > 0 && totalG === 0) {
-        return NextResponse.json({
-          source: "3mf_no_weight",
-          filePath: fileKey,
-          filamentUsed: null,
-          printTime: null,
-          filaments,
-          message: "Cores extraídas. Indica o peso e o tempo de impressão.",
-        });
-      }
-
-      return NextResponse.json({
-        source: "3mf",
-        filePath: fileKey,
-        filamentUsed: totalG > 0 ? Math.round(totalG) : null,
-        printTime: null,
-        filaments,
-      });
+      return NextResponse.json({ ...result, filePath: fileKey });
     } catch (extractErr: any) {
-      console.error(
-        "[extract] erro ao descarregar/extrair:",
-        extractErr?.message ?? extractErr,
-      );
+      console.error("[extract]", extractErr?.message ?? extractErr);
+      // Mesmo em erro, devolver o filePath para o modal guardar o ficheiro
       return NextResponse.json({
         source: "manual_required",
-        message: "Ficheiro carregado mas não foi possível extrair metadados.",
         filePath: fileKey,
+        message:
+          "Ficheiro guardado. Não foi possível extrair metadados — preenche manualmente.",
       });
     }
   } catch (error: any) {

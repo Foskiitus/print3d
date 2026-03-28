@@ -127,7 +127,8 @@ export async function completeProductionOrder(
     totalFilamentCost += job.filamentCost ?? 0;
     totalElectricityCost += job.electricityCost ?? 0;
     totalPrinterCost += job.printerCost ?? 0;
-
+    // Nota: consumo de filamento já foi abatido por job — spoolConsumption
+    // é mantido apenas para o registo histórico no resultado da OP.
     for (const mat of job.materials) {
       if (!mat.spoolId) continue;
       const grams = mat.actualG ?? mat.estimatedG;
@@ -237,25 +238,10 @@ export async function completeProductionOrder(
     const extrasDeducted: CompleteOrderResult["extrasDeducted"] = [];
     const itemsCompleted: CompleteOrderResult["itemsCompleted"] = [];
 
-    // ── FASE 1A: Abater filamento ────────────────────────────────────────────
-    for (const [spoolId, grams] of spoolConsumption.entries()) {
-      const spool = await tx.inventoryPurchase.findUnique({
-        where: { id: spoolId },
-        select: { currentWeight: true, userId: true },
-      });
-      // Nunca abater rolo de outro utilizador
-      if (!spool || spool.userId !== userId) continue;
-
-      const newWeight = Math.max(0, spool.currentWeight - grams);
-      await tx.inventoryPurchase.update({
-        where: { id: spoolId },
-        data: {
-          currentWeight: newWeight,
-          ...(newWeight === 0 && { archivedAt: new Date() }),
-        },
-      });
-      filamentDeducted.push({ spoolId, gramsDeducted: grams });
-    }
+    // ── FASE 1A: Filamento já abatido por job ──────────────────────────────────
+    // O abate de filamento é feito imediatamente ao marcar cada PrintJob como
+    // "done" (em jobs/[id]/route.ts). Não repetimos aqui para evitar duplo abate.
+    // filamentDeducted fica vazio mas é mantido para retrocompatibilidade da resposta.
 
     // ── FASE 1B: Abater extras/hardware ─────────────────────────────────────
     for (const [extraId, { name, quantity }] of extrasConsumption.entries()) {

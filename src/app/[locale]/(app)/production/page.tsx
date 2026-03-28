@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getIntlayer } from "intlayer";
 import type { LocalesValues } from "intlayer";
 import { ProductionPageClient } from "./ProductionPageClient";
+import { validatePrinterAccess } from "./validatePrinterAccess";
 
 export async function generateMetadata({
   params,
@@ -17,12 +18,20 @@ export async function generateMetadata({
 
 export default async function ProductionPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: LocalesValues }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { locale } = await params;
+  const sp = await searchParams;
   const userId = await requirePageAuth();
   if (!userId) redirect(`/${locale}/sign-in`);
+
+  // Validar no servidor que o printer pertence ao utilizador autenticado.
+  // Se o ID for inválido ou de outro utilizador, devolve null silenciosamente.
+  const rawPrinterId = typeof sp.printer === "string" ? sp.printer : null;
+  const filterPrinterId = await validatePrinterAccess(rawPrinterId);
 
   const [orders, products, printers, inventory] = await Promise.all([
     // Ordens de produção com itens e print jobs
@@ -131,6 +140,7 @@ export default async function ProductionPage({
       printers={printers as any}
       materialPriceMap={materialPriceMap}
       locale={locale}
+      filterPrinterId={filterPrinterId ?? undefined}
     />
   );
 }

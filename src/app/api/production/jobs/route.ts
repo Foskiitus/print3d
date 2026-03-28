@@ -189,13 +189,14 @@ export async function POST(req: Request) {
       const job = await tx.printJob.create({
         data: {
           userId,
-          status: "pending",
+          status: "printing",
           orderId,
           printerId,
           estimatedMinutes: plateMinutes,
           quantity: plate.batchSize,
           plateNumber: plate.plateNumber,
           totalPlates,
+          startedAt: new Date(),
           notes: plate.name
             ? `Mesa ${plate.plateNumber}: ${plate.name}`
             : totalPlates > 1
