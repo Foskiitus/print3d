@@ -1063,7 +1063,7 @@ function OrderCard({
   const [manualEntryOpen, setManualEntryOpen] = useState(false);
   const status = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.draft;
   const transitions = STATUS_TRANSITIONS[order.status] ?? [];
-  const { totalG } = calcNeeds(order.items);
+  const { totalG } = calcNeeds(order.items ?? []);
 
   const isLinkedToSale = !!(order as any).salesOrderId;
 
@@ -1071,7 +1071,9 @@ function OrderCard({
   const hasPendingJobs = hasActiveJobs;
   const hasDoneJobs = order.printJobs.some((j) => j.status === "done");
 
-  // Pode mostrar o botão "Concluir" em assembly ou in_progress sem jobs pendentes
+  // Pode mostrar o botão "Concluir" em assembly ou in_progress sem jobs pendentes.
+  // OPs ad-hoc (sem items) também podem ser concluídas assim que não haja jobs ativos.
+  const isAdHoc = (order.items ?? []).length === 0;
   const canComplete =
     (order.status === "assembly" || order.status === "in_progress") &&
     !hasPendingJobs;
@@ -1279,16 +1281,23 @@ function OrderCard({
 
           {/* Produtos */}
           <div className="mt-1.5 space-y-0.5">
-            {order.items.map((item) => (
-              <p key={item.id} className="text-xs text-muted-foreground">
-                {item.quantity}× {item.product.name}
-                {item.completed > 0 && (
-                  <span className="text-emerald-600 ml-1">
-                    ({item.completed} feitos)
-                  </span>
-                )}
+            {(order.items ?? []).length === 0 ? (
+              <p className="text-xs text-muted-foreground italic flex items-center gap-1">
+                <PlayCircle size={10} className="text-blue-500 flex-shrink-0" />
+                Impressão direta — sem produto associado
               </p>
-            ))}
+            ) : (
+              (order.items ?? []).map((item) => (
+                <p key={item.id} className="text-xs text-muted-foreground">
+                  {item.quantity}× {item.product.name}
+                  {item.completed > 0 && (
+                    <span className="text-emerald-600 ml-1">
+                      ({item.completed} feitos)
+                    </span>
+                  )}
+                </p>
+              ))
+            )}
           </div>
 
           {/* Necessidades */}
@@ -1449,7 +1458,7 @@ export function OrdersTab({
     const matchSearch =
       !q ||
       o.reference.toLowerCase().includes(q) ||
-      o.items.some((i) => i.product.name.toLowerCase().includes(q));
+      (o.items ?? []).some((i) => i.product.name.toLowerCase().includes(q));
     const matchStatus = !filterStatus || o.status === filterStatus;
     return matchSearch && matchStatus;
   });

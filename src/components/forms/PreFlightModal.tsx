@@ -68,7 +68,12 @@ interface PreFlightModalProps {
   printerId: string;
   printerName: string;
   onClose: () => void;
-  onDispatched: () => void;
+  // Chamado após dispatch bem-sucedido com os dados da OP criada
+  onDispatched: (result: {
+    jobId: string;
+    orderId: string;
+    orderReference: string;
+  }) => void;
 }
 
 // ─── Step indicator ───────────────────────────────────────────────────────────
@@ -102,17 +107,26 @@ function Steps({ current }: { current: 1 | 2 | 3 }) {
 }
 
 // ─── Material row ─────────────────────────────────────────────────────────────
+//
+// Mostra sempre a lista de candidatos em linha para o utilizador poder
+// escolher explicitamente qual slot usar para cada requisito de material.
+// O candidato atribuído fica destacado; os restantes ficam como opção.
 
 function MaterialRow({
   match,
   onAssign,
+  conflictSlotIds = new Set(),
 }: {
   match: MaterialMatch;
   onAssign: (candidate: SlotCandidate | null) => void;
+  conflictSlotIds?: Set<string>;
 }) {
-  const [expanded, setExpanded] = useState(false);
   const req = match.required;
   const assigned = match.assigned;
+
+  const hasConflict = assigned !== null && conflictSlotIds.has(assigned.slotId);
+
+  const effectiveStatus = hasConflict ? "missing" : match.status;
 
   const statusIcon = {
     ok: <CheckCircle2 size={14} className="text-emerald-500" />,
@@ -121,29 +135,26 @@ function MaterialRow({
     insufficient_weight: (
       <AlertTriangle size={14} className="text-destructive" />
     ),
-  }[match.status];
+  }[effectiveStatus];
 
   const statusColor = {
     ok: "border-emerald-500/30 bg-emerald-500/5",
     partial: "border-amber-500/30 bg-amber-500/5",
     missing: "border-destructive/30 bg-destructive/5",
     insufficient_weight: "border-destructive/30 bg-destructive/5",
-  }[match.status];
+  }[effectiveStatus];
 
   return (
     <div className={`rounded-lg border ${statusColor} overflow-hidden`}>
-      {/* Row header */}
-      <div className="flex items-center gap-3 p-3">
+      {/* Cabeçalho: requisito */}
+      <div className="flex items-center gap-3 px-3 pt-3 pb-2">
         {statusIcon}
-
-        {/* Cor do material */}
         <div
-          className="w-6 h-6 rounded-full flex-shrink-0 border border-white/20"
+          className="w-5 h-5 rounded-full flex-shrink-0 border border-white/20"
           style={{ backgroundColor: req.colorHex ?? "#888" }}
         />
-
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-foreground">
+          <p className="text-sm font-medium text-foreground leading-tight">
             {req.material}
             {req.colorName && (
               <span className="text-muted-foreground font-normal">
@@ -156,57 +167,22 @@ function MaterialRow({
             {req.estimatedG}g estimados
           </p>
         </div>
-
-        {/* Slot atribuído */}
-        {assigned ? (
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <div
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: assigned.itemColorHex }}
-            />
-            <span className="text-xs text-foreground">
-              {assigned.unitName} · P{assigned.position}
-            </span>
-            {assigned.score === 50 && (
-              <Badge className="text-[9px] bg-amber-500/10 text-amber-600 border-amber-500/20">
-                cor ≠
-              </Badge>
-            )}
-            {!assigned.hasSufficientWeight && (
-              <Badge className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
-                peso ⚠
-              </Badge>
-            )}
-          </div>
-        ) : (
-          <span className="text-xs text-destructive flex-shrink-0">
-            Não encontrado
-          </span>
+        {hasConflict && (
+          <Badge className="text-[9px] bg-destructive/10 text-destructive border-destructive/20 flex-shrink-0">
+            slot duplicado
+          </Badge>
         )}
-
-        {/* Aviso adaptador */}
-        {assigned?.warning?.includes("adaptador") && (
+        {assigned?.warning?.includes("adaptador") && !hasConflict && (
           <Badge className="text-[9px] bg-amber-500/10 text-amber-600 border-amber-500/20 flex-shrink-0">
             <Wrench size={9} className="mr-0.5" />
             adaptador
           </Badge>
         )}
-
-        {/* Toggle expandir candidatos */}
-        {match.candidates.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            className="text-muted-foreground hover:text-foreground flex-shrink-0"
-          >
-            {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
-        )}
       </div>
 
-      {/* Aviso expandido */}
-      {assigned?.warning && (
-        <div className="px-3 pb-2 flex items-start gap-1.5">
+      {/* Aviso de warning do slot */}
+      {assigned?.warning && !hasConflict && (
+        <div className="px-3 pb-1.5 flex items-start gap-1.5">
           <AlertTriangle
             size={11}
             className="text-amber-500 flex-shrink-0 mt-0.5"
@@ -215,70 +191,125 @@ function MaterialRow({
         </div>
       )}
 
-      {/* Lista de candidatos */}
-      {expanded && (
-        <div className="border-t border-border/50 divide-y divide-border/30">
-          <div className="px-3 py-1.5">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-              Trocar para:
-            </p>
-          </div>
-          {match.candidates.map((c) => (
-            <button
-              key={c.slotId}
-              type="button"
-              onClick={() => {
-                onAssign(c);
-                setExpanded(false);
-              }}
-              className={`flex items-center gap-3 w-full px-3 py-2.5 hover:bg-muted/40 transition-colors text-left ${assigned?.slotId === c.slotId ? "bg-primary/5" : ""}`}
-            >
-              <div
-                className="w-4 h-4 rounded-full flex-shrink-0"
-                style={{ backgroundColor: c.itemColorHex }}
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-foreground">
-                  {c.unitName} · Posição {c.position}
-                </p>
-                <p className="text-[10px] text-muted-foreground">
-                  {c.itemBrand} {c.itemMaterial} {c.itemColorName} ·{" "}
-                  {c.spoolCurrentWeight}g
-                </p>
-              </div>
-              <div className="flex items-center gap-1 flex-shrink-0">
-                {c.score === 100 ? (
-                  <Badge className="text-[9px] bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
-                    perfeito
-                  </Badge>
-                ) : (
-                  <Badge className="text-[9px] bg-amber-500/10 text-amber-600 border-amber-500/20">
-                    cor ≠
-                  </Badge>
-                )}
-                {!c.hasSufficientWeight && (
-                  <Badge className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
-                    peso ⚠
-                  </Badge>
-                )}
-              </div>
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => {
-              onAssign(null);
-              setExpanded(false);
-            }}
-            className="flex items-center gap-2 w-full px-3 py-2 hover:bg-muted/40 transition-colors text-left"
-          >
-            <XCircle size={12} className="text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">
-              Deixar sem atribuir
-            </span>
-          </button>
+      {/* Aviso de conflito */}
+      {hasConflict && (
+        <div className="px-3 pb-1.5 flex items-start gap-1.5">
+          <AlertTriangle
+            size={11}
+            className="text-destructive flex-shrink-0 mt-0.5"
+          />
+          <p className="text-[10px] text-destructive">
+            Este slot está atribuído a outro requisito. Escolhe um diferente
+            abaixo.
+          </p>
         </div>
       )}
+
+      {/* Seletor de slot — sempre visível */}
+      <div className="border-t border-border/40 divide-y divide-border/20">
+        {match.candidates.length === 0 ? (
+          <p className="px-3 py-2 text-[10px] text-muted-foreground italic">
+            Nenhum slot com este material carregado.
+          </p>
+        ) : (
+          match.candidates.map((c) => {
+            const isSelected = assigned?.slotId === c.slotId;
+            const isConflicted = !isSelected && conflictSlotIds.has(c.slotId);
+            return (
+              <button
+                key={c.slotId}
+                type="button"
+                onClick={() => onAssign(isSelected ? null : c)}
+                className={[
+                  "flex items-center gap-3 w-full px-3 py-2.5 transition-colors text-left",
+                  isSelected
+                    ? "bg-primary/10 border-l-2 border-l-primary"
+                    : isConflicted
+                      ? "opacity-50 hover:bg-muted/30"
+                      : "hover:bg-muted/40",
+                ].join(" ")}
+              >
+                {/* Indicador de seleção */}
+                <div
+                  className="w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 flex items-center justify-center"
+                  style={{
+                    borderColor: isSelected
+                      ? "hsl(var(--primary))"
+                      : "hsl(var(--border))",
+                    backgroundColor: isSelected
+                      ? "hsl(var(--primary))"
+                      : "transparent",
+                  }}
+                >
+                  {isSelected && (
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />
+                  )}
+                </div>
+
+                {/* Cor do spool */}
+                <div
+                  className="w-4 h-4 rounded-full flex-shrink-0 border border-white/20"
+                  style={{ backgroundColor: c.itemColorHex }}
+                />
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-foreground leading-tight">
+                    {c.unitName} · P{c.position}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {c.itemBrand} {c.itemMaterial} {c.itemColorName} ·{" "}
+                    {c.spoolCurrentWeight}g
+                  </p>
+                </div>
+
+                {/* Badges */}
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {isConflicted && (
+                    <Badge className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
+                      em uso
+                    </Badge>
+                  )}
+                  {c.score === 100 ? (
+                    <Badge className="text-[9px] bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                      cor ✓
+                    </Badge>
+                  ) : (
+                    <Badge className="text-[9px] bg-amber-500/10 text-amber-600 border-amber-500/20">
+                      cor ≠
+                    </Badge>
+                  )}
+                  {!c.hasSufficientWeight && (
+                    <Badge className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
+                      peso ⚠
+                    </Badge>
+                  )}
+                </div>
+              </button>
+            );
+          })
+        )}
+
+        {/* Opção: deixar sem atribuir */}
+        <button
+          type="button"
+          onClick={() => onAssign(null)}
+          className={[
+            "flex items-center gap-2 w-full px-3 py-2 transition-colors text-left",
+            !assigned ? "bg-muted/30" : "hover:bg-muted/30",
+          ].join(" ")}
+        >
+          <XCircle
+            size={12}
+            className={!assigned ? "text-foreground" : "text-muted-foreground"}
+          />
+          <span
+            className={`text-xs ${!assigned ? "text-foreground font-medium" : "text-muted-foreground"}`}
+          >
+            Sem atribuição
+          </span>
+        </button>
+      </div>
     </div>
   );
 }
@@ -314,12 +345,25 @@ export function PreFlightModal({
     }[]
   >([{ material: "", colorHex: "#000000", colorName: "", estimatedG: 0 }]);
 
+  // Pesquisa de produto no Step 1
+  const [productSearch, setProductSearch] = useState("");
+
   // Step 2 — verificação
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
   const [materials, setMaterials] = useState<MaterialMatch[]>([]);
 
+  // Modo de cor (partilhado entre step 1 e 2 — pode ser alterado em step 2)
+  const [colorMode, setColorMode] = useState<
+    "strict" | "approximate" | "ignore"
+  >("strict");
+
   // Step 3 — confirmação
   const [apiMessage, setApiMessage] = useState<string | null>(null);
+  const [dispatchResult, setDispatchResult] = useState<{
+    jobId: string;
+    orderId: string;
+    orderReference: string;
+  } | null>(null);
 
   useEffect(() => {
     fetch("/api/products?withProfiles=1", {
@@ -347,12 +391,14 @@ export function PreFlightModal({
             quantity,
             productId: selectedProduct?.id,
             estimatedMinutes: selectedProfile?.printTime,
+            colorMode,
           }
         : {
             profileId: selectedProfile?.id,
             productId: selectedProduct?.id,
             quantity,
             estimatedMinutes: selectedProfile?.printTime,
+            colorMode,
           };
 
       const res = await fetch(
@@ -421,14 +467,21 @@ export function PreFlightModal({
         },
       );
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      console.log("[PreFlightModal] dispatch response:", data);
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
 
-      setApiMessage(data.apiMessage);
+      setApiMessage(data.apiMessage ?? null);
+      setDispatchResult({
+        jobId: data.jobId,
+        orderId: data.orderId,
+        orderReference: data.orderReference,
+      });
       setStep(3);
     } catch (e: any) {
+      console.error("[PreFlightModal] dispatch error:", e);
       toast({
         title: "Erro ao iniciar impressão",
-        description: e.message,
+        description: e.message ?? String(e),
         variant: "destructive",
       });
     } finally {
@@ -440,7 +493,15 @@ export function PreFlightModal({
     ? manualMaterials.some((m) => m.material && m.estimatedG > 0)
     : selectedProfile !== null;
 
-  const canProceedStep2 = materials.every((m) => m.status !== "missing");
+  const canProceedStep2 = (() => {
+    // Bloquear se algum requisito não tem slot atribuído
+    if (!materials.every((m) => m.status !== "missing")) return false;
+    // Bloquear se há slots duplicados (mesmo slot para dois requisitos)
+    const slotIds = materials
+      .map((m) => m.assigned?.slotId)
+      .filter((id): id is string => !!id);
+    return slotIds.length === new Set(slotIds).size;
+  })();
 
   return (
     <div
@@ -484,30 +545,75 @@ export function PreFlightModal({
                 {loadingProducts ? (
                   <p className="text-xs text-muted-foreground">A carregar…</p>
                 ) : (
-                  <div className="max-h-36 overflow-y-auto space-y-1 border border-border rounded-lg p-2">
-                    {products.length === 0 && (
-                      <p className="text-xs text-muted-foreground text-center py-4">
-                        Sem produtos criados.
-                      </p>
-                    )}
-                    {products.map((p) => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedProduct(p === selectedProduct ? null : p);
-                          setSelectedProfile(null);
-                        }}
-                        className={`flex items-center justify-between w-full px-3 py-2 rounded-md text-sm transition-colors ${selectedProduct?.id === p.id ? "bg-primary/10 text-primary" : "hover:bg-muted/40 text-foreground"}`}
-                      >
-                        <span>{p.name}</span>
-                        {getProductProfiles(p).length > 0 && (
-                          <Badge variant="outline" className="text-[10px]">
-                            {getProductProfiles(p).length} perfis
-                          </Badge>
+                  <div className="space-y-1.5">
+                    {/* Campo de pesquisa */}
+                    <div className="relative">
+                      <Search
+                        size={12}
+                        className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+                      />
+                      <Input
+                        placeholder="Pesquisar produto…"
+                        value={productSearch}
+                        onChange={(e) => setProductSearch(e.target.value)}
+                        className="pl-7 h-8 text-xs"
+                        autoComplete="off"
+                      />
+                      {productSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setProductSearch("")}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
+                    {/* Lista filtrada */}
+                    <div className="max-h-40 overflow-y-auto space-y-0.5 border border-border rounded-lg p-1.5">
+                      {products.length === 0 && (
+                        <p className="text-xs text-muted-foreground text-center py-4">
+                          Sem produtos criados.
+                        </p>
+                      )}
+                      {products
+                        .filter((p) =>
+                          p.name
+                            .toLowerCase()
+                            .includes(productSearch.toLowerCase()),
+                        )
+                        .map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedProduct(
+                                p === selectedProduct ? null : p,
+                              );
+                              setSelectedProfile(null);
+                              setProductSearch("");
+                            }}
+                            className={`flex items-center justify-between w-full px-3 py-2 rounded-md text-sm transition-colors ${selectedProduct?.id === p.id ? "bg-primary/10 text-primary" : "hover:bg-muted/40 text-foreground"}`}
+                          >
+                            <span>{p.name}</span>
+                            {getProductProfiles(p).length > 0 && (
+                              <Badge variant="outline" className="text-[10px]">
+                                {getProductProfiles(p).length} perfis
+                              </Badge>
+                            )}
+                          </button>
+                        ))}
+                      {products.length > 0 &&
+                        products.filter((p) =>
+                          p.name
+                            .toLowerCase()
+                            .includes(productSearch.toLowerCase()),
+                        ).length === 0 && (
+                          <p className="text-xs text-muted-foreground text-center py-3">
+                            Sem resultados para "{productSearch}"
+                          </p>
                         )}
-                      </button>
-                    ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -756,32 +862,139 @@ export function PreFlightModal({
                 </div>
               </div>
 
-              {/* Lista de materiais */}
-              <div className="space-y-2">
-                {materials.map((m, i) => (
-                  <MaterialRow
-                    key={i}
-                    match={m}
-                    onAssign={(candidate) => {
-                      setMaterials((prev) =>
-                        prev.map((mat, j) =>
-                          j === i
+              {/* Toggle de modo de cor */}
+              <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  Modo de cor
+                </p>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(
+                    [
+                      {
+                        value: "strict",
+                        label: "Estrita",
+                        hint: "Cor muito próxima",
+                      },
+                      {
+                        value: "approximate",
+                        label: "Aproximada",
+                        hint: "Tons semelhantes",
+                      },
+                      {
+                        value: "ignore",
+                        label: "Ignorar",
+                        hint: "Só valida material",
+                      },
+                    ] as const
+                  ).map((mode) => (
+                    <button
+                      key={mode.value}
+                      type="button"
+                      onClick={async () => {
+                        setColorMode(mode.value);
+                        // Re-analisar automaticamente com o novo modo
+                        setLoading(true);
+                        try {
+                          const body = manualMode
                             ? {
-                                ...mat,
-                                assigned: candidate,
-                                status: candidate
-                                  ? candidate.score === 100
-                                    ? "ok"
-                                    : "partial"
-                                  : "missing",
+                                materials: manualMaterials.filter(
+                                  (m) => m.material && m.estimatedG > 0,
+                                ),
+                                quantity,
+                                productId: selectedProduct?.id,
+                                estimatedMinutes: selectedProfile?.printTime,
+                                colorMode: mode.value,
                               }
-                            : mat,
-                        ),
-                      );
-                    }}
-                  />
-                ))}
+                            : {
+                                profileId: selectedProfile?.id,
+                                productId: selectedProduct?.id,
+                                quantity,
+                                estimatedMinutes: selectedProfile?.printTime,
+                                colorMode: mode.value,
+                              };
+                          const res = await fetch(
+                            `${SITE_URL}/api/printers/${printerId}/preflight/analyze`,
+                            {
+                              method: "POST",
+                              headers: {
+                                "Content-Type": "application/json",
+                                "x-api-key":
+                                  process.env.NEXT_PUBLIC_MY_API_SECRET_KEY ||
+                                  "",
+                              },
+                              body: JSON.stringify(body),
+                            },
+                          );
+                          const data = await res.json();
+                          if (res.ok && data.matchResult) {
+                            setMatchResult(data.matchResult);
+                            setMaterials(data.matchResult.materials);
+                          }
+                        } catch {
+                          // silencioso — o utilizador pode tentar manualmente
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      className={`rounded-md border px-2 py-1.5 text-left transition-colors ${colorMode === mode.value ? "border-primary bg-primary/10" : "border-border hover:border-border/80 bg-background/30"}`}
+                    >
+                      <p className="text-[10px] font-medium text-foreground">
+                        {mode.label}
+                      </p>
+                      <p className="text-[9px] text-muted-foreground">
+                        {mode.hint}
+                      </p>
+                    </button>
+                  ))}
+                </div>
               </div>
+
+              {/* Lista de materiais */}
+              {(() => {
+                // Calcular quais slotIds estão duplicados (atribuídos a mais de 1 requisito)
+                const slotCounts = new Map<string, number>();
+                for (const m of materials) {
+                  if (m.assigned?.slotId) {
+                    slotCounts.set(
+                      m.assigned.slotId,
+                      (slotCounts.get(m.assigned.slotId) ?? 0) + 1,
+                    );
+                  }
+                }
+                const conflictSlotIds = new Set(
+                  [...slotCounts.entries()]
+                    .filter(([, count]) => count > 1)
+                    .map(([slotId]) => slotId),
+                );
+                return (
+                  <div className="space-y-2">
+                    {materials.map((m, i) => (
+                      <MaterialRow
+                        key={i}
+                        match={m}
+                        conflictSlotIds={conflictSlotIds}
+                        onAssign={(candidate) => {
+                          setMaterials((prev) =>
+                            prev.map((mat, j) =>
+                              j === i
+                                ? {
+                                    ...mat,
+                                    assigned: candidate,
+                                    status: candidate
+                                      ? candidate.score === 100
+                                        ? "ok"
+                                        : "partial"
+                                      : "missing",
+                                  }
+                                : mat,
+                            ),
+                          );
+                        }}
+                      />
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           )}
 
@@ -799,6 +1012,26 @@ export function PreFlightModal({
                   {printerName} passou para estado "A Imprimir".
                 </p>
               </div>
+              {dispatchResult && (
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20 text-left">
+                  <Info
+                    size={13}
+                    className="text-primary mt-0.5 flex-shrink-0"
+                  />
+                  <div>
+                    <p className="text-xs font-medium text-foreground">
+                      OP criada:{" "}
+                      <span className="font-mono">
+                        {dispatchResult.orderReference}
+                      </span>
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      Podes acompanhar e concluir a impressão na página de
+                      Produção.
+                    </p>
+                  </div>
+                </div>
+              )}
               {apiMessage && (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/40 border border-border text-left">
                   <Info
@@ -861,7 +1094,7 @@ export function PreFlightModal({
             <Button
               size="sm"
               onClick={() => {
-                onDispatched();
+                if (dispatchResult) onDispatched(dispatchResult);
                 onClose();
               }}
               className="gap-1.5"

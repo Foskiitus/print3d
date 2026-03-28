@@ -30,14 +30,15 @@ import {
   ScanLine,
   ChevronRight,
   PackageX,
-  Loader2,
   CameraOff,
+  Loader2,
 } from "lucide-react";
 import { useQrScanner } from "@/hooks/useQrScanner";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { toast } from "@/components/ui/toaster";
 import { PreFlightModal } from "@/components/forms/PreFlightModal";
+import { useRouter } from "next/navigation";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -791,7 +792,124 @@ export function PrinterDashboardClient({
   const [maintenanceLogs, setMaintenanceLogs] = useState(
     printer.maintenanceLogs,
   );
+  const router = useRouter();
   const [showPreFlight, setShowPreFlight] = useState(false);
+
+  // ── Job ativo — fetched no cliente para ter dados em tempo real ──────────
+  const [activeJob, setActiveJob] = useState<{
+    id: string;
+    status: string;
+    quantity: number;
+    estimatedMinutes: number | null;
+    startedAt: string | null;
+    createdAt: string;
+    orderId: string | null;
+    items: { id: string; quantity: number; component: { name: string } }[];
+    materials: {
+      id: string;
+      material: string;
+      estimatedG: number;
+      colorName: string | null;
+      colorHex: string | null;
+    }[];
+  } | null>(null);
+  const [activeJobLoading, setActiveJobLoading] = useState(false);
+
+  // Ref com IDs de jobs já concluídos localmente — evita que o router.refresh()
+  // volte a mostrar o job antes de o servidor propagar o novo estado.
+  const finishedJobIds = useRef<Set<string>>(new Set());
+
+  // Buscar job ativo desta impressora (status = "printing" | "pending")
+  const fetchActiveJob = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `${SITE_URL}/api/printers/${printer.id}/active-job`,
+        {
+          headers: {
+            "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+          },
+        },
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      const job = data.job ?? null;
+
+      // Ignorar jobs que já concluímos localmente nesta sessão
+      if (job && finishedJobIds.current.has(job.id)) return;
+
+      setActiveJob(job);
+      if (job?.status === "printing") setStatus("printing");
+      else if (!job) setStatus("idle");
+    } catch {}
+  }, [printer.id]);
+
+  // Fetch inicial
+  useEffect(() => {
+    fetchActiveJob();
+  }, [fetchActiveJob]);
+
+  async function handleFinishJob(
+    jobId: string,
+    outcome: "done" | "failed" | "cancelled",
+  ) {
+    setActiveJobLoading(true);
+    try {
+      const res = await fetch(`${SITE_URL}/api/print-jobs/${jobId}/complete`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
+        body: JSON.stringify({
+          status: outcome === "cancelled" ? "failed" : outcome,
+          items: (activeJob?.items ?? []).map((item) => ({
+            jobItemId: item.id,
+            status: outcome === "done" ? "done" : "failed",
+            failedUnits: outcome === "done" ? 0 : item.quantity,
+          })),
+          materials: (activeJob?.materials ?? []).map((mat) => ({
+            materialId: mat.id,
+            actualG: mat.estimatedG,
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Erro ao concluir job");
+
+      // Marcar localmente antes do router.refresh() para evitar re-aparecimento
+      finishedJobIds.current.add(jobId);
+      setActiveJob(null);
+      setStatus("idle");
+
+      // Se o job tinha uma OP ad-hoc associada e o outcome é "done",
+      // completar a OP automaticamente para abater o spool e creditar o stock
+      if (outcome === "done" && activeJob?.orderId) {
+        try {
+          await fetch(
+            `${SITE_URL}/api/production/orders/${activeJob.orderId}`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+                "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+              },
+              body: JSON.stringify({ action: "complete" }),
+            },
+          );
+          // Não bloquear em caso de erro — o utilizador pode completar manualmente
+        } catch {}
+      }
+
+      toast({
+        title: outcome === "done" ? "✓ Impressão concluída" : "Job cancelado",
+      });
+      router.refresh();
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setActiveJobLoading(false);
+    }
+  }
   const [activeSlot, setActiveSlot] = useState<{
     slot: PrinterSlot;
     unit: PrinterUnit;
@@ -1004,7 +1122,11 @@ export function PrinterDashboardClient({
           printerId={printer.id}
           printerName={name}
           onClose={() => setShowPreFlight(false)}
-          onDispatched={() => setStatus("printing")}
+          onDispatched={(result) => {
+            setStatus("printing");
+            // Refresh dos Server Components para a OP aparecer na página de produção
+            router.refresh();
+          }}
         />
       )}
       {activeSlot && (
@@ -1536,47 +1658,107 @@ export function PrinterDashboardClient({
                   </h3>
                   <Layers size={14} className="text-muted-foreground" />
                 </div>
-                {printer.printJobs.length === 0 ? (
+                {/* Job ativo — em tempo real */}
+                {activeJob && activeJob.status === "printing" && (
+                  <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-3 space-y-2.5 mb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                        <span className="text-xs font-semibold text-blue-600">
+                          A Imprimir
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground font-mono">
+                        #{activeJob.id.slice(-6).toUpperCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        {activeJob.items
+                          .map((i) => i.component.name)
+                          .join(", ") || "Impressão direta"}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {activeJob.quantity} unid.
+                        {activeJob.estimatedMinutes &&
+                          ` · ~${Math.round((activeJob.estimatedMinutes / 60) * 10) / 10}h`}
+                        {activeJob.startedAt &&
+                          ` · iniciado ${format(new Date(activeJob.startedAt), "HH:mm")}`}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 pt-0.5">
+                      <button
+                        onClick={() => handleFinishJob(activeJob.id, "done")}
+                        disabled={activeJobLoading}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 text-xs font-medium hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
+                      >
+                        {activeJobLoading ? (
+                          <Loader2 size={11} className="animate-spin" />
+                        ) : (
+                          <CheckCircle2 size={11} />
+                        )}
+                        Concluir Impressão
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleFinishJob(activeJob.id, "cancelled")
+                        }
+                        disabled={activeJobLoading}
+                        className="px-3 py-1.5 rounded-md border border-destructive/30 bg-destructive/10 text-destructive text-xs hover:bg-destructive/20 transition-colors disabled:opacity-50"
+                        title="Cancelar job"
+                      >
+                        <X size={11} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Jobs recentes (dados estáticos do servidor) */}
+                {!activeJob && printer.printJobs.length === 0 ? (
                   <p className="text-xs text-muted-foreground text-center py-4">
                     Sem jobs de impressão ainda.
                   </p>
                 ) : (
                   <div className="space-y-2">
-                    {printer.printJobs.map((job) => {
-                      const componentNames = job.items
-                        .map((i) => i.component.name)
-                        .join(", ");
-                      const statusColor =
-                        job.status === "done"
-                          ? "text-emerald-500"
-                          : job.status === "failed"
-                            ? "text-destructive"
-                            : job.status === "printing"
-                              ? "text-blue-500"
-                              : "text-muted-foreground";
-                      return (
-                        <div
-                          key={job.id}
-                          className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors"
-                        >
-                          <div>
-                            <p className="text-sm font-medium text-foreground truncate max-w-[180px]">
-                              {componentNames || "Job sem componentes"}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground">
-                              {format(new Date(job.createdAt), "dd/MM/yy")} ·{" "}
-                              {job.quantity} unid. ·{" "}
-                              <span className={statusColor}>{job.status}</span>
-                            </p>
+                    {printer.printJobs
+                      .filter((j) => j.id !== activeJob?.id)
+                      .map((job) => {
+                        const componentNames = job.items
+                          .map((i) => i.component.name)
+                          .join(", ");
+                        const statusColor =
+                          job.status === "done"
+                            ? "text-emerald-500"
+                            : job.status === "failed"
+                              ? "text-destructive"
+                              : job.status === "printing"
+                                ? "text-blue-500"
+                                : "text-muted-foreground";
+                        return (
+                          <div
+                            key={job.id}
+                            className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors"
+                          >
+                            <div>
+                              <p className="text-sm font-medium text-foreground truncate max-w-[180px]">
+                                {componentNames || "Job sem componentes"}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {format(new Date(job.createdAt), "dd/MM/yy")} ·{" "}
+                                {job.quantity} unid. ·{" "}
+                                <span className={statusColor}>
+                                  {job.status}
+                                </span>
+                              </p>
+                            </div>
+                            {job.totalCost != null && (
+                              <span className="text-xs font-semibold text-foreground">
+                                {formatCurrency(job.totalCost)}
+                              </span>
+                            )}
                           </div>
-                          {job.totalCost != null && (
-                            <span className="text-xs font-semibold text-foreground">
-                              {formatCurrency(job.totalCost)}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
                   </div>
                 )}
               </CardContent>
