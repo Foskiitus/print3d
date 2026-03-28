@@ -26,7 +26,8 @@ interface CompleteOrderResult {
   itemsCompleted: {
     productId: string;
     productName: string;
-    quantityProduced: number;
+    quantityProduced: number; // unidades realmente produzidas (pode ser > ordered por causa do batchSize)
+    surplusToStock: number; // unidades excedentes que vão para stock livre (produzidas - ordered)
     stockAfter: number;
   }[];
   filamentDeducted: { spoolId: string; gramsDeducted: number }[];
@@ -42,6 +43,30 @@ interface CompleteOrderResult {
     printer: number;
     total: number;
   };
+}
+
+// ─── Validação de quantidade ────────────────────────────────────────────────
+
+export interface QuantityShortfall {
+  productId: string;
+  productName: string;
+  ordered: number;
+  produced: number;
+  shortage: number;
+}
+
+export class ProductionShortfallError extends Error {
+  shortfalls: QuantityShortfall[];
+  constructor(shortfalls: QuantityShortfall[]) {
+    super(
+      "Quantidade produzida inferior à encomendada: " +
+        shortfalls
+          .map((s) => `${s.productName} (${s.produced}/${s.ordered})`)
+          .join(", "),
+    );
+    this.name = "ProductionShortfallError";
+    this.shortfalls = shortfalls;
+  }
 }
 
 // ─── Função principal ─────────────────────────────────────────────────────────
@@ -159,6 +184,30 @@ export async function completeProductionOrder(
     }
   }
 
+  // ── 2b. Validar quantidades produzidas ──────────────────────────────────
+  // Se algum produto tem produção inferior ao encomendado, lançar erro
+  // ANTES de entrar na transação — não creditar stock parcial silenciosamente.
+  //
+  // Excepção: OPs ad-hoc (sem OrderItems) não têm quantidade a validar.
+  if (order.items.length > 0) {
+    const shortfalls: QuantityShortfall[] = [];
+    for (const orderItem of order.items) {
+      const produced = successUnitsByProduct.get(orderItem.productId) ?? 0;
+      if (produced < orderItem.quantity) {
+        shortfalls.push({
+          productId: orderItem.productId,
+          productName: orderItem.product.name,
+          ordered: orderItem.quantity,
+          produced,
+          shortage: orderItem.quantity - produced,
+        });
+      }
+    }
+    if (shortfalls.length > 0) {
+      throw new ProductionShortfallError(shortfalls);
+    }
+  }
+
   // ── 3. Abates de extras ───────────────────────────────────────────────────
   // Usa unidades reais; fallback ao planeado se não houver jobs registados.
   const extrasConsumption = new Map<
@@ -166,8 +215,9 @@ export async function completeProductionOrder(
     { name: string; quantity: number }
   >();
   for (const orderItem of order.items) {
-    const unitsProduced =
-      successUnitsByProduct.get(orderItem.productId) ?? orderItem.quantity;
+    const unitsProduced = successUnitsByProduct.get(orderItem.productId) ?? 0;
+
+    if (unitsProduced <= 0) continue;
 
     for (const pe of orderItem.product.extras) {
       const qty = pe.quantity * unitsProduced;
@@ -225,10 +275,23 @@ export async function completeProductionOrder(
     }
 
     // ── FASE 2: Creditar ProductStock ────────────────────────────────────────
+    //
+    // Lógica de excedente de batchSize:
+    //   - A OP pede N unidades (ex: 10 leões)
+    //   - O batchSize pode implicar impressão de M > N (ex: 2 × 9 = 18)
+    //   - Creditamos M unidades ao stock total
+    //   - A reserva para a venda é feita na Fase 3 com base em sale.quantity (10)
+    //   - Os M − N excedentes (8) ficam como stock livre disponível
+    //
+    // NUNCA limitamos o crédito a orderItem.quantity — isso desperdiçaria
+    // os excedentes produzidos legitimamente pela impressão em mesa cheia.
     for (const orderItem of order.items) {
-      const unitsProduced =
-        successUnitsByProduct.get(orderItem.productId) ?? orderItem.quantity;
+      // successUnitsByProduct contém as unidades REALMENTE impressas (ex: 18)
+      const unitsProduced = successUnitsByProduct.get(orderItem.productId) ?? 0;
 
+      if (unitsProduced <= 0) continue;
+
+      // Creditar tudo ao stock — excedentes incluídos
       await tx.productStock.upsert({
         where: { productId: orderItem.productId },
         create: {
@@ -240,13 +303,14 @@ export async function completeProductionOrder(
         update: { quantity: { increment: unitsProduced } },
       });
 
-      // Ler APÓS o upsert para devolver o valor correcto
       const stockAfterRecord = await tx.productStock.findUnique({
         where: { productId: orderItem.productId },
         select: { quantity: true },
       });
 
-      // Gravar unidades reais no OrderItem
+      const surplus = unitsProduced - orderItem.quantity;
+
+      // Gravar unidades reais no OrderItem (pode ser > quantity se batchSize > 1)
       await tx.orderItem.update({
         where: { id: orderItem.id },
         data: { completed: unitsProduced },
@@ -256,6 +320,7 @@ export async function completeProductionOrder(
         productId: orderItem.productId,
         productName: orderItem.product.name,
         quantityProduced: unitsProduced,
+        surplusToStock: surplus > 0 ? surplus : 0,
         stockAfter: stockAfterRecord?.quantity ?? unitsProduced,
       });
     }

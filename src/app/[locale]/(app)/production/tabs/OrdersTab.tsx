@@ -187,25 +187,44 @@ function NewOrderDialog({
 }) {
   const c = useIntlayer("production");
   const [loading, setLoading] = useState(false);
-  const [items, setItems] = useState<{ productId: string; quantity: number }[]>(
-    [{ productId: "", quantity: 1 }],
-  );
+  const [productId, setProductId] = useState("");
+  // Modo "Para Stock": quantidade = número de mesas a imprimir
+  // Modo "Encomenda": quantidade = unidades pedidas pelo cliente (calculado automaticamente)
+  const [plates, setPlates] = useState(1); // nº de mesas (modo stock)
   const [origin, setOrigin] = useState<"manual" | "sale">("manual");
   const [notes, setNotes] = useState("");
   const [productSearch, setProductSearch] = useState("");
 
   function reset() {
-    setItems([{ productId: "", quantity: 1 }]);
+    setProductId("");
+    setPlates(1);
     setOrigin("manual");
     setNotes("");
     setProductSearch("");
   }
 
+  // ── Derivar info do produto seleccionado ─────────────────────────────────
+  const selectedProduct = products.find((p) => p.id === productId) ?? null;
+  const bom = (selectedProduct as any)?.bom ?? [];
+
+  // batchSize = menor batchSize de todos os componentes da BOM
+  const batchSizes: number[] = bom
+    .map((e: any) => e.component?.profiles?.[0]?.batchSize ?? 1)
+    .filter((n: number) => n > 0);
+  const batchSize = batchSizes.length > 0 ? Math.min(...batchSizes) : 1;
+
+  // Quantidade total que vai para a OP = mesas × batchSize
+  const totalUnits = plates * batchSize;
+
+  // ── Submit ───────────────────────────────────────────────────────────────
   async function handleSubmit() {
-    const validItems = items.filter((i) => i.productId && i.quantity > 0);
-    if (validItems.length === 0) {
+    if (!productId) {
+      toast({ title: "Selecciona um produto", variant: "destructive" });
+      return;
+    }
+    if (plates < 1) {
       toast({
-        title: "Adiciona pelo menos um produto",
+        title: "A quantidade tem de ser pelo menos 1 mesa",
         variant: "destructive",
       });
       return;
@@ -219,7 +238,7 @@ function NewOrderDialog({
           "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
         },
         body: JSON.stringify({
-          items: validItems,
+          items: [{ productId, quantity: totalUnits }],
           origin,
           notes: notes || null,
         }),
@@ -241,40 +260,16 @@ function NewOrderDialog({
     }
   }
 
-  // Produto seleccionado (só um de cada vez no picker — adicionamos à lista)
-  function handleSelectProduct(productId: string) {
-    const alreadyInList = items.some((i) => i.productId === productId);
-    if (alreadyInList) {
-      // Se já está, incrementar quantidade
-      setItems((prev) =>
-        prev.map((it) =>
-          it.productId === productId
-            ? { ...it, quantity: it.quantity + 1 }
-            : it,
-        ),
-      );
-    } else {
-      // Substituir o primeiro item vazio, ou adicionar novo
-      const emptyIdx = items.findIndex((i) => !i.productId);
-      if (emptyIdx >= 0) {
-        setItems((prev) =>
-          prev.map((it, idx) =>
-            idx === emptyIdx ? { productId, quantity: 1 } : it,
-          ),
-        );
-      } else {
-        setItems((prev) => [...prev, { productId, quantity: 1 }]);
-      }
-    }
+  // Seleção de produto — clicar de novo deseleciona, repõe mesas para 1
+  function handleSelectProduct(pid: string) {
+    const isAlreadySelected = productId === pid;
+    setProductId(isAlreadySelected ? "" : pid);
+    setPlates(1);
     setProductSearch("");
   }
 
   const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(productSearch.toLowerCase()),
-  );
-
-  const selectedProductIds = new Set(
-    items.map((i) => i.productId).filter(Boolean),
   );
 
   return (
@@ -297,87 +292,65 @@ function NewOrderDialog({
               Destino
             </Label>
             <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setOrigin("manual")}
-                className={cn(
-                  "flex items-center gap-2.5 px-3 py-3 rounded-lg border text-left transition-colors",
-                  origin === "manual"
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:bg-muted/40",
-                )}
-              >
-                <div
+              {(["manual", "sale"] as const).map((o) => (
+                <button
+                  key={o}
+                  type="button"
+                  onClick={() => setOrigin(o)}
                   className={cn(
-                    "w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 flex items-center justify-center",
-                    origin === "manual"
-                      ? "border-primary bg-primary"
-                      : "border-border",
+                    "flex items-center gap-2.5 px-3 py-3 rounded-lg border text-left transition-colors",
+                    origin === o
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-muted/40",
                   )}
                 >
-                  {origin === "manual" && (
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <p
+                  <div
                     className={cn(
-                      "text-xs font-medium",
-                      origin === "manual" ? "text-primary" : "text-foreground",
+                      "w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 flex items-center justify-center",
+                      origin === o
+                        ? "border-primary bg-primary"
+                        : "border-border",
                     )}
                   >
-                    Para Stock
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">
-                    Produção interna
-                  </p>
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setOrigin("sale")}
-                className={cn(
-                  "flex items-center gap-2.5 px-3 py-3 rounded-lg border text-left transition-colors",
-                  origin === "sale"
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:bg-muted/40",
-                )}
-              >
-                <div
-                  className={cn(
-                    "w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 flex items-center justify-center",
-                    origin === "sale"
-                      ? "border-primary bg-primary"
-                      : "border-border",
-                  )}
-                >
-                  {origin === "sale" && (
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <p
-                    className={cn(
-                      "text-xs font-medium",
-                      origin === "sale" ? "text-primary" : "text-foreground",
+                    {origin === o && (
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />
                     )}
-                  >
-                    Encomenda
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">
-                    Para cliente
-                  </p>
-                </div>
-              </button>
+                  </div>
+                  <div className="min-w-0">
+                    <p
+                      className={cn(
+                        "text-xs font-medium",
+                        origin === o ? "text-primary" : "text-foreground",
+                      )}
+                    >
+                      {o === "manual" ? "Para Stock" : "Encomenda"}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {o === "manual" ? "Produção interna" : "Para cliente"}
+                    </p>
+                  </div>
+                </button>
+              ))}
             </div>
+            {/* Encomenda: em breve */}
+            {origin === "sale" && (
+              <div className="rounded-lg bg-muted/30 border border-dashed border-border px-3 py-2.5 text-center">
+                <p className="text-xs text-muted-foreground">
+                  Criação de OP a partir de encomenda de cliente ainda não
+                  disponível.
+                </p>
+                <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                  Usa o fluxo de Vendas para criar automaticamente uma OP.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* ── Pesquisa e seleção de produto ── */}
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Produtos
+              Produto
             </Label>
-            {/* Campo de pesquisa */}
             <div className="relative">
               <Search
                 size={12}
@@ -401,7 +374,6 @@ function NewOrderDialog({
               )}
             </div>
 
-            {/* Lista de produtos — estilo PreFlight */}
             <div className="max-h-40 overflow-y-auto border border-border rounded-lg divide-y divide-border/50">
               {products.length === 0 && (
                 <p className="text-xs text-muted-foreground text-center py-4">
@@ -414,7 +386,7 @@ function NewOrderDialog({
                 </p>
               )}
               {filteredProducts.map((p) => {
-                const isSelected = selectedProductIds.has(p.id);
+                const isSelected = productId === p.id;
                 const profileCount = getProductProfiles(p).length;
                 const hasProfiles = profileCount > 0;
                 return (
@@ -432,7 +404,6 @@ function NewOrderDialog({
                           : "hover:bg-muted/40",
                     )}
                   >
-                    {/* Radio indicator */}
                     <div
                       className="w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 flex items-center justify-center"
                       style={{
@@ -473,195 +444,158 @@ function NewOrderDialog({
             </div>
           </div>
 
-          {/* ── Itens selecionados com quantidade ── */}
-          {items.some((i) => i.productId) && (
-            <div className="space-y-1.5">
+          {/* ── Quantidade de mesas (só Para Stock) ─────────────────────────── */}
+          {productId && origin === "manual" && (
+            <div className="space-y-2">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Quantidades
+                Nº de Mesas
               </Label>
-              <div className="space-y-2">
-                {items
-                  .filter((i) => i.productId)
-                  .map((item, i) => {
-                    const product = products.find(
-                      (p) => p.id === item.productId,
-                    );
-                    if (!product) return null;
-                    const realIdx = items.indexOf(item);
-                    return (
-                      <div
-                        key={item.productId}
-                        className="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted/40 border border-border"
-                      >
-                        <span className="text-xs text-foreground flex-1 truncate">
-                          {product.name}
-                        </span>
-                        {/* Stepper +/- igual ao PreFlight */}
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setItems((prev) =>
-                                prev.map((it, idx) =>
-                                  idx === realIdx
-                                    ? {
-                                        ...it,
-                                        quantity: Math.max(1, it.quantity - 1),
-                                      }
-                                    : it,
-                                ),
-                              )
-                            }
-                            className="w-6 h-6 rounded border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
-                          >
-                            <Minus size={10} />
-                          </button>
-                          <span className="w-7 text-center text-xs font-semibold text-foreground">
-                            {item.quantity}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setItems((prev) =>
-                                prev.map((it, idx) =>
-                                  idx === realIdx
-                                    ? { ...it, quantity: it.quantity + 1 }
-                                    : it,
-                                ),
-                              )
-                            }
-                            className="w-6 h-6 rounded border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
-                          >
-                            <Plus size={10} />
-                          </button>
-                        </div>
-                        {/* Remover */}
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setItems((prev) =>
-                              prev.filter((_, idx) => idx !== realIdx),
-                            )
-                          }
-                          className="text-muted-foreground/40 hover:text-destructive transition-colors"
-                        >
-                          <X size={13} />
-                        </button>
-                      </div>
-                    );
-                  })}
+
+              {/* Stepper */}
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPlates((n) => Math.max(1, n - 1))}
+                  className="w-8 h-8 rounded border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+                >
+                  <Minus size={11} />
+                </button>
+                <div className="text-center">
+                  <span className="text-sm font-semibold text-foreground">
+                    {plates}
+                  </span>
+                  <span className="text-xs text-muted-foreground ml-1">
+                    mesa{plates > 1 ? "s" : ""}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPlates((n) => n + 1)}
+                  className="w-8 h-8 rounded border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+                >
+                  <Plus size={11} />
+                </button>
+              </div>
+
+              {/* Preview de unidades */}
+              <div className="rounded-lg bg-muted/30 border border-border/50 px-3 py-2 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-muted-foreground">
+                    Unidades produzidas
+                  </span>
+                  <span className="text-[10px] font-semibold text-foreground">
+                    {plates} × {batchSize} ={" "}
+                    <span className="text-primary">{totalUnits}</span> peças
+                  </span>
+                </div>
+                {batchSize > 1 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-muted-foreground">
+                      Peças por mesa
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {batchSize}
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-emerald-600">
+                    → Stock após produção
+                  </span>
+                  <span className="text-[10px] font-medium text-emerald-600">
+                    +{totalUnits} peças
+                  </span>
+                </div>
               </div>
             </div>
           )}
 
           {/* ── Preview da BOM ── */}
-          {items.some((i) => i.productId) && (
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Receita (BOM)
-              </Label>
-              <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-3 max-h-48 overflow-y-auto">
-                {items
-                  .filter((i) => i.productId)
-                  .map((item) => {
-                    const product = products.find(
-                      (p) => p.id === item.productId,
-                    );
-                    if (!product) return null;
-                    const bom = (product as any).bom ?? [];
-                    const extras = (product as any).extras ?? [];
-                    if (bom.length === 0 && extras.length === 0) {
-                      return (
-                        <p
-                          key={item.productId}
-                          className="text-[10px] text-muted-foreground italic"
-                        >
-                          {product.name}: sem BOM definida.
-                        </p>
-                      );
-                    }
-                    return (
-                      <div key={item.productId} className="space-y-1.5">
-                        <p className="text-[10px] font-semibold text-foreground flex items-center gap-1">
-                          <Box size={10} className="text-muted-foreground" />
-                          {item.quantity}× {product.name}
-                        </p>
-                        <div className="pl-3 space-y-1">
-                          {bom.map((entry: any) => {
-                            const needed = entry.quantity * item.quantity;
-                            const profile = entry.component?.profiles?.[0];
-                            return (
-                              <div
-                                key={entry.id ?? entry.component?.id}
-                                className="flex items-start gap-2"
-                              >
-                                <Cpu
-                                  size={9}
-                                  className="text-muted-foreground flex-shrink-0 mt-0.5"
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-[10px] text-foreground">
-                                    <span className="font-medium">
-                                      {needed}×
-                                    </span>{" "}
-                                    {entry.component?.name}
-                                  </p>
-                                  {profile?.filaments?.length > 0 && (
-                                    <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-                                      {profile.filaments
-                                        .slice(0, 4)
-                                        .map((f: any, i: number) => (
-                                          <span
-                                            key={i}
-                                            className="flex items-center gap-0.5"
-                                          >
-                                            <div
-                                              className="w-1.5 h-1.5 rounded-full"
-                                              style={{
-                                                backgroundColor:
-                                                  f.colorHex ?? "#888",
-                                              }}
-                                            />
-                                            <span className="text-[9px] text-muted-foreground">
-                                              {f.material} {f.estimatedG}g
-                                            </span>
-                                          </span>
-                                        ))}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                          {extras.map((pe: any) => (
-                            <div
-                              key={pe.id ?? pe.extra?.id}
-                              className="flex items-center gap-2"
-                            >
-                              <Package
-                                size={9}
-                                className="text-muted-foreground flex-shrink-0"
-                              />
-                              <p className="text-[10px] text-muted-foreground">
-                                <span className="font-medium">
-                                  {pe.quantity * item.quantity}×
-                                </span>{" "}
-                                {pe.extra?.name}
-                                {pe.extra?.unit && (
-                                  <span className="ml-1">
-                                    ({pe.extra.unit})
-                                  </span>
-                                )}
+          {productId &&
+            selectedProduct &&
+            (() => {
+              const extras = (selectedProduct as any).extras ?? [];
+              if (bom.length === 0 && extras.length === 0) return null;
+              return (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Receita (BOM)
+                  </Label>
+                  <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2 max-h-48 overflow-y-auto">
+                    <p className="text-[10px] font-semibold text-foreground flex items-center gap-1">
+                      <Box size={10} className="text-muted-foreground" />
+                      {totalUnits}× {selectedProduct.name}
+                    </p>
+                    <div className="pl-3 space-y-1">
+                      {bom.map((entry: any) => {
+                        const needed = entry.quantity * totalUnits;
+                        const profile = entry.component?.profiles?.[0];
+                        return (
+                          <div
+                            key={entry.id ?? entry.component?.id}
+                            className="flex items-start gap-2"
+                          >
+                            <Cpu
+                              size={9}
+                              className="text-muted-foreground flex-shrink-0 mt-0.5"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[10px] text-foreground">
+                                <span className="font-medium">{needed}×</span>{" "}
+                                {entry.component?.name}
                               </p>
+                              {profile?.filaments?.length > 0 && (
+                                <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                                  {profile.filaments
+                                    .slice(0, 4)
+                                    .map((f: any, i: number) => (
+                                      <span
+                                        key={i}
+                                        className="flex items-center gap-0.5"
+                                      >
+                                        <div
+                                          className="w-1.5 h-1.5 rounded-full"
+                                          style={{
+                                            backgroundColor:
+                                              f.colorHex ?? "#888",
+                                          }}
+                                        />
+                                        <span className="text-[9px] text-muted-foreground">
+                                          {f.material} {f.estimatedG}g
+                                        </span>
+                                      </span>
+                                    ))}
+                                </div>
+                              )}
                             </div>
-                          ))}
+                          </div>
+                        );
+                      })}
+                      {extras.map((pe: any) => (
+                        <div
+                          key={pe.id ?? pe.extra?.id}
+                          className="flex items-center gap-2"
+                        >
+                          <Package
+                            size={9}
+                            className="text-muted-foreground flex-shrink-0"
+                          />
+                          <p className="text-[10px] text-muted-foreground">
+                            <span className="font-medium">
+                              {pe.quantity * totalUnits}×
+                            </span>{" "}
+                            {pe.extra?.name}
+                            {pe.extra?.unit && (
+                              <span className="ml-1">({pe.extra.unit})</span>
+                            )}
+                          </p>
                         </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            </div>
-          )}
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
           {/* Notas */}
           <div className="space-y-1.5">
@@ -686,7 +620,7 @@ function NewOrderDialog({
             <Button
               className="flex-1"
               onClick={handleSubmit}
-              disabled={loading || !items.some((i) => i.productId)}
+              disabled={loading || !productId || origin === "sale"}
             >
               {loading
                 ? c.orders.dialog.submitting.value
@@ -1630,6 +1564,38 @@ function OrderCard({
   const hasPendingJobs = hasActiveJobs;
   const hasDoneJobs = order.printJobs.some((j) => j.status === "done");
   const isAdHoc = (order.items ?? []).length === 0;
+  // Calcular unidades produzidas por produto para mostrar no UI
+  const producedByComponent = (() => {
+    const map = new Map<string, number>();
+    for (const job of order.printJobs) {
+      if (job.status !== "done") continue;
+      for (const item of job.items as any[]) {
+        const success = Math.max(0, item.quantity - (item.failedUnits ?? 0));
+        map.set(
+          item.componentId ?? item.component?.id,
+          (map.get(item.componentId ?? item.component?.id) ?? 0) + success,
+        );
+      }
+    }
+    return map;
+  })();
+
+  // Uma OP com OrderItems só pode ser concluída se todas as quantidades foram atingidas
+  const allQuantitiesMet = (() => {
+    if ((order.items ?? []).length === 0) return true; // OP ad-hoc
+    return (order.items ?? []).every((item) => {
+      const bom = (item.product as any).bom ?? [];
+      if (bom.length === 0) return true; // sem BOM definida
+      return bom.every((entry: any) => {
+        const needed = entry.quantity * item.quantity;
+        const produced =
+          producedByComponent.get(entry.component?.id ?? entry.componentId) ??
+          0;
+        return produced >= needed;
+      });
+    });
+  })();
+
   const canComplete =
     (order.status === "assembly" || order.status === "in_progress") &&
     !hasPendingJobs;
@@ -1738,12 +1704,32 @@ function OrderCard({
         body: JSON.stringify({ action: "complete" }),
       });
       const data = await res.json();
+
+      // Erro específico de quantidades insuficientes — mensagem clara
+      if (!res.ok && data.code === "QUANTITY_SHORTFALL") {
+        const detail = (data.shortfalls ?? [])
+          .map(
+            (s: any) =>
+              `${s.productName}: ${s.produced}/${s.ordered} produzidos`,
+          )
+          .join("\n");
+        toast({
+          title: "Quantidade insuficiente para concluir",
+          description: detail || data.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
       if (!res.ok) throw new Error(data.error);
       const itemsSummary = (data.itemsCompleted ?? [])
-        .map(
-          (i: any) =>
-            `${i.quantityProduced}× ${i.productName} → stock: ${i.stockAfter}`,
-        )
+        .map((i: any) => {
+          const surplus =
+            i.surplusToStock > 0
+              ? ` (+${i.surplusToStock} excedente para stock)`
+              : "";
+          return `${i.quantityProduced}× ${i.productName} → stock: ${i.stockAfter}${surplus}`;
+        })
         .join("\n");
       const salesMsg = data.salesOrder
         ? `\nVenda marcada como "Pronta a Enviar" (${data.salesOrder.unitsReserved} un. reservadas)`

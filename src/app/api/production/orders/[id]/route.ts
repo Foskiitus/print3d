@@ -2,7 +2,10 @@
 
 import { requireApiAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { completeProductionOrder } from "@/lib/production";
+import {
+  completeProductionOrder,
+  ProductionShortfallError,
+} from "@/lib/production";
 import { NextResponse } from "next/server";
 
 // PATCH /api/production/orders/[id]
@@ -11,6 +14,7 @@ import { NextResponse } from "next/server";
 //   { status, notes }             → atualização simples de estado/notas
 //   { action: "complete" }        → executa a transação de conclusão completa da OP:
 //                                   abate filamento, credita stock, atualiza venda vinculada
+
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -22,7 +26,27 @@ export async function PATCH(
 
   const existing = await prisma.productionOrder.findFirst({
     where: { id, userId },
+    include: {
+      items: {
+        include: {
+          product: {
+            include: {
+              bom: { select: { componentId: true, quantity: true } },
+            },
+          },
+        },
+      },
+      printJobs: {
+        where: { status: "done" },
+        include: {
+          items: {
+            select: { componentId: true, quantity: true, failedUnits: true },
+          },
+        },
+      },
+    },
   });
+
   if (!existing) {
     return NextResponse.json({ error: "Não encontrada" }, { status: 404 });
   }
@@ -31,17 +55,14 @@ export async function PATCH(
     const body = await req.json();
 
     // ── Ação: Concluir OP ────────────────────────────────────────────────────
-    // Executa a transação atómica de 3 fases definida em lib/production.ts
     if (body.action === "complete") {
-      // Verificar se todos os PrintJobs estão concluídos (done ou cancelled)
-      // antes de permitir a conclusão da OP
+      // Validação 1: sem jobs activos
       const pendingJobs = await prisma.printJob.count({
         where: {
           orderId: id,
           status: { in: ["pending", "printing"] },
         },
       });
-
       if (pendingJobs > 0) {
         return NextResponse.json(
           {
@@ -50,6 +71,66 @@ export async function PATCH(
           },
           { status: 409 },
         );
+      }
+
+      // Validação 2: quantidades produzidas vs encomendadas
+      // Só para OPs com OrderItems (OPs ad-hoc sem items são sempre válidas)
+      if (existing.items.length > 0) {
+        // Construir mapa componentId → unidades produzidas com sucesso
+        const producedByComponent = new Map<string, number>();
+        for (const job of existing.printJobs) {
+          for (const item of job.items) {
+            const success = Math.max(0, item.quantity - item.failedUnits);
+            producedByComponent.set(
+              item.componentId,
+              (producedByComponent.get(item.componentId) ?? 0) + success,
+            );
+          }
+        }
+
+        const shortfalls: Array<{
+          productName: string;
+          ordered: number;
+          produced: number;
+        }> = [];
+
+        for (const orderItem of existing.items) {
+          let minProductUnits = Infinity;
+          for (const bomEntry of orderItem.product.bom) {
+            const neededComponents = bomEntry.quantity * orderItem.quantity;
+            const producedComponents =
+              producedByComponent.get(bomEntry.componentId) ?? 0;
+            const units = Math.floor(producedComponents / bomEntry.quantity);
+            minProductUnits = Math.min(minProductUnits, units);
+          }
+          // Se não há BOM, tratar como produção manual (sem componentes a validar)
+          if (orderItem.product.bom.length === 0) continue;
+
+          const produced = minProductUnits === Infinity ? 0 : minProductUnits;
+          if (produced < orderItem.quantity) {
+            shortfalls.push({
+              productName: orderItem.product.name,
+              ordered: orderItem.quantity,
+              produced,
+            });
+          }
+        }
+
+        if (shortfalls.length > 0) {
+          const detail = shortfalls
+            .map(
+              (s) => `${s.productName}: ${s.produced}/${s.ordered} produzidos`,
+            )
+            .join("; ");
+          return NextResponse.json(
+            {
+              error: `Quantidade insuficiente para concluir a OP. ${detail}.`,
+              shortfalls,
+              code: "QUANTITY_SHORTFALL",
+            },
+            { status: 409 },
+          );
+        }
       }
 
       const result = await completeProductionOrder(id, userId);
@@ -63,7 +144,6 @@ export async function PATCH(
 
     // ── Atualização simples de status/notes ──────────────────────────────────
 
-    // Bloqueio 1: "done" só via action: "complete"
     if (body.status === "done") {
       return NextResponse.json(
         {
@@ -74,8 +154,6 @@ export async function PATCH(
       );
     }
 
-    // Bloqueio 2: "in_progress" só via Planeador (criação de PrintJob)
-    // O backend rejeita tentativas directas para manter integridade dos dados.
     if (body.status === "in_progress") {
       const hasPendingOrActiveJobs = await prisma.printJob.count({
         where: { orderId: id, status: { in: ["pending", "printing", "done"] } },
@@ -84,8 +162,7 @@ export async function PATCH(
         return NextResponse.json(
           {
             error:
-              "A OP só pode avançar para 'Em Produção' através do Planeador de Mesas. " +
-              "Cria um job de impressão primeiro.",
+              "A OP só pode avançar para 'Em Produção' através do Planeador de Mesas.",
             code: "REQUIRES_PLANNER",
           },
           { status: 409 },
@@ -105,7 +182,18 @@ export async function PATCH(
   } catch (err: any) {
     console.error("[PATCH /api/production/orders/[id]]", err);
 
-    // Erros de negócio lançados por completeProductionOrder
+    // Erro estruturado de shortfall lançado por completeProductionOrder
+    if (err instanceof ProductionShortfallError) {
+      return NextResponse.json(
+        {
+          error: err.message,
+          shortfalls: err.shortfalls,
+          code: "QUANTITY_SHORTFALL",
+        },
+        { status: 409 },
+      );
+    }
+
     if (
       err.message === "Esta OP já foi concluída." ||
       err.message === "Não é possível concluir uma OP cancelada."
@@ -121,9 +209,6 @@ export async function PATCH(
 }
 
 // DELETE /api/production/orders/[id]
-//
-// Apenas permite eliminar OPs em estado "draft", "pending" ou "cancelled".
-// OPs concluídas (done) são preservadas no histórico — não podem ser eliminadas.
 export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -141,7 +226,6 @@ export async function DELETE(
       return NextResponse.json({ error: "Não encontrada" }, { status: 404 });
     }
 
-    // Proteger histórico: OPs concluídas não podem ser eliminadas
     if (existing.status === "done") {
       return NextResponse.json(
         {
@@ -152,15 +236,9 @@ export async function DELETE(
       );
     }
 
-    // Se a OP tinha uma venda vinculada com status "pending",
-    // repor a venda para que o utilizador saiba que a produção foi cancelada
     if (existing.salesOrderId) {
       await prisma.sale.updateMany({
-        where: {
-          id: existing.salesOrderId,
-          status: "pending",
-          userId,
-        },
+        where: { id: existing.salesOrderId, status: "pending", userId },
         data: {
           status: "cancelled",
           notes: `OP ${existing.reference} cancelada pelo utilizador.`,

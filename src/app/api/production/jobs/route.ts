@@ -77,12 +77,25 @@ export async function POST(req: Request) {
   // ── Verificar impressora ──────────────────────────────────────────────────
   const printer = await prisma.printer.findFirst({
     where: { id: printerId, userId },
-    select: { id: true },
+    select: { id: true, status: true },
   });
   if (!printer) {
     return NextResponse.json(
       { error: "Impressora não encontrada" },
       { status: 404 },
+    );
+  }
+
+  // Bloquear se a impressora já está ocupada.
+  // O utilizador deve concluir ou cancelar o job activo antes de lançar outro.
+  if (printer.status === "printing") {
+    return NextResponse.json(
+      {
+        error:
+          "A impressora está ocupada. Conclui ou cancela o job actual antes de lançar outro.",
+        code: "PRINTER_BUSY",
+      },
+      { status: 409 },
     );
   }
 

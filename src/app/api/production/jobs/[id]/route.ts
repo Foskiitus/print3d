@@ -12,11 +12,11 @@
 //   → printing : Printer.status = "printing", PrintJob.startedAt = now
 //   → done     : Printer.status = "idle", PrintJob.finishedAt = now
 //                Printer.totalPrintTime += estimatedMinutes
-//                Verificar se a OP pode avançar para "assembly":
-//                  — Para componentes multi-mesa: só quando TODAS as mesas
-//                    do mesmo componente (mesmo componentId) estiverem done.
-//                  — Depois disso, verificar se todos os componentes da OP
-//                    estão done (sem jobs pending/printing).
+//                Atualiza OrderItem.completed com unidades deste job.
+//                Verifica se a OP pode avançar para "assembly":
+//                  — Todos os jobs devem estar done/failed.
+//                  — A soma de unidades produzidas deve ≥ quantidade encomendada
+//                    para TODOS os componentes/produtos da OP.
 //   → failed   : Printer.status = "idle", PrintJob.finishedAt = now
 //
 // Body: { status: "printing" | "done" | "failed" }
@@ -53,9 +53,23 @@ export async function PATCH(
   const job = await prisma.printJob.findFirst({
     where: { id: jobId, userId },
     include: {
-      order: { select: { id: true, status: true } },
+      order: {
+        include: {
+          items: {
+            include: {
+              product: {
+                include: {
+                  bom: { select: { componentId: true, quantity: true } },
+                },
+              },
+            },
+          },
+        },
+      },
       printer: { select: { id: true, status: true } },
-      items: { select: { componentId: true } },
+      items: {
+        select: { componentId: true, quantity: true, failedUnits: true },
+      },
     },
   });
 
@@ -104,45 +118,35 @@ export async function PATCH(
     }
 
     if (targetStatus === "done" || targetStatus === "failed") {
-      const additionalMinutes =
-        targetStatus === "done" ? (job.estimatedMinutes ?? 0) : 0;
-
       await tx.printer.update({
         where: { id: job.printerId },
         data: {
           status: "idle",
-          totalPrintTime: { increment: additionalMinutes },
+          totalPrintTime: {
+            increment:
+              targetStatus === "done" ? (job.estimatedMinutes ?? 0) : 0,
+          },
         },
       });
     }
 
     // 3. Verificar avanço para "assembly" — só quando done/failed e há orderId
     if ((targetStatus === "done" || targetStatus === "failed") && job.orderId) {
-      // ── Verificação multi-mesa ─────────────────────────────────────────────
-      // Se este job pertence a um componente multi-mesa (totalPlates > 1),
-      // verificar se todas as mesas deste componente já terminaram.
-      // As mesas são identificadas pelo mesmo componentId + mesmo orderId.
+      // ── 3a. Multi-mesa: esperar que todas as placas do componente acabem ──
       const componentIds = job.items.map((i) => i.componentId);
-
       if (job.totalPlates && job.totalPlates > 1 && componentIds.length > 0) {
-        // Mesas ainda activas deste componente (excluindo o job atual)
         const pendingPlatesForComponent = await tx.printJob.count({
           where: {
             orderId: job.orderId,
             id: { not: jobId },
             status: { in: ["pending", "printing"] },
-            items: {
-              some: { componentId: { in: componentIds } },
-            },
+            items: { some: { componentId: { in: componentIds } } },
           },
         });
-
-        // Se ainda há mesas por terminar, não avançar a OP
         if (pendingPlatesForComponent > 0) return;
       }
 
-      // ── Verificação global da OP ───────────────────────────────────────────
-      // Todos os jobs da OP (excluindo o atual) devem estar done/failed
+      // ── 3b. Verificar se ainda há jobs activos ────────────────────────────
       const remainingActive = await tx.printJob.count({
         where: {
           orderId: job.orderId,
@@ -151,21 +155,82 @@ export async function PATCH(
         },
       });
 
-      const anyDone = await tx.printJob.findFirst({
-        where: { orderId: job.orderId, status: "done" },
-        select: { id: true },
-      });
+      if (remainingActive > 0) return; // ainda há jobs a correr — não avançar
 
-      if (
-        remainingActive === 0 &&
-        (anyDone || targetStatus === "done") &&
-        order.status === "in_progress"
-      ) {
+      // ── 3c. Verificar se as quantidades produzidas chegam ao encomendado ──
+      //
+      // Agregar todos os jobs done (incluindo o actual) por componentId.
+      // Mapear componente → produto via BOM.
+      // Só avançar para "assembly" se todos os produtos têm unidades suficientes.
+      //
+      // FIX: Era possível chegar aqui com remainingActive=0 após apenas 1 job
+      // de uma OP com quantity=2, porque a verificação não contava unidades.
+
+      const allDoneJobs = await tx.printJob.findMany({
+        where: {
+          orderId: job.orderId,
+          status: "done",
+          // incluir o job atual que acabou de ser marcado done nesta transação
+        },
+        include: {
+          items: {
+            select: { componentId: true, quantity: true, failedUnits: true },
+          },
+        },
+      });
+      // Também incluir o job actual (ainda não confirmado na query acima
+      // porque a transação pode não ter committed o status)
+      const currentJobItems = targetStatus === "done" ? job.items : [];
+
+      // Construir mapa componentId → unidades produzidas com sucesso
+      const producedByComponent = new Map<string, number>();
+      for (const doneJob of allDoneJobs) {
+        for (const item of doneJob.items) {
+          const success = Math.max(0, item.quantity - item.failedUnits);
+          producedByComponent.set(
+            item.componentId,
+            (producedByComponent.get(item.componentId) ?? 0) + success,
+          );
+        }
+      }
+      // Garantir que o job actual conta (pode ainda não estar reflectido na query)
+      for (const item of currentJobItems) {
+        const success = Math.max(0, item.quantity - item.failedUnits);
+        producedByComponent.set(
+          item.componentId,
+          (producedByComponent.get(item.componentId) ?? 0) + success,
+        );
+      }
+
+      // Verificar se cada OrderItem tem as suas unidades satisfeitas
+      let allQuantitiesMet = true;
+      for (const orderItem of order.items) {
+        for (const bomEntry of orderItem.product.bom) {
+          const neededComponents = bomEntry.quantity * orderItem.quantity;
+          const producedComponents =
+            producedByComponent.get(bomEntry.componentId) ?? 0;
+          if (producedComponents < neededComponents) {
+            allQuantitiesMet = false;
+            break;
+          }
+        }
+        if (!allQuantitiesMet) break;
+      }
+
+      // Se a OP não tem OrderItems (OP ad-hoc), verificar apenas se há algum job done
+      const hasOrderItems = order.items.length > 0;
+      const anyDone = allDoneJobs.length > 0 || targetStatus === "done";
+
+      const canAdvance = hasOrderItems ? allQuantitiesMet : anyDone;
+
+      if (canAdvance && order.status === "in_progress") {
         await tx.productionOrder.update({
           where: { id: job.orderId },
           data: { status: "assembly" },
         });
       }
+      // Se não pode avançar: fica em "in_progress" — o utilizador precisa de
+      // lançar mais jobs para cobrir a quantidade em falta.
     }
   });
 
