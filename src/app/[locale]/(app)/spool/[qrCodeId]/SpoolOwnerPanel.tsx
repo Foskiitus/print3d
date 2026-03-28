@@ -54,6 +54,8 @@ interface ProductionEntry {
   quantity: number;
   filamentUsed?: number;
   totalCost?: number;
+  orderId?: string | null;
+  orderReference?: string | null;
 }
 
 function WeightBar({
@@ -515,10 +517,21 @@ export function SpoolOwnerPanel({
                     <p className="text-sm text-theme truncate">
                       {entry.productName}
                     </p>
-                    <p className="text-xs text-navy-400">
-                      {entry.printerName} ·{" "}
-                      {new Date(entry.date).toLocaleDateString("pt-PT")}
-                    </p>
+                    <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                      <p className="text-xs text-navy-400">
+                        {entry.printerName} ·{" "}
+                        {new Date(entry.date).toLocaleDateString("pt-PT")}
+                      </p>
+                      {entry.orderReference && (
+                        <a
+                          href={`/${locale}/production?order=${entry.orderId ?? ""}`}
+                          className="text-[10px] font-mono text-brand-400 hover:text-brand-300 hover:underline transition-colors"
+                          title="Ver ordem de produção"
+                        >
+                          #{entry.orderReference}
+                        </a>
+                      )}
+                    </div>
                   </div>
                   <div className="text-right text-xs text-navy-400 flex-shrink-0">
                     {entry.filamentUsed != null && <p>{entry.filamentUsed}g</p>}

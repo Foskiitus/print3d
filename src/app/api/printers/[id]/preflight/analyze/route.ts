@@ -8,8 +8,6 @@ interface Params {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type ColorMode = "strict" | "approximate" | "ignore";
-
 interface MaterialReq {
   material: string;
   colorHex?: string | null;
@@ -36,7 +34,7 @@ interface MaterialMatch {
   required: MaterialReq;
   candidates: SlotCandidate[];
   assigned: SlotCandidate | null;
-  status: "ok" | "partial" | "missing" | "insufficient_weight";
+  status: "ok" | "missing" | "insufficient_weight";
 }
 
 interface MatchResult {
@@ -47,15 +45,14 @@ interface MatchResult {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-// Mesmas tolerâncias do PlannerTab
-const COLOR_TOLERANCE_STRICT = 30;
-const COLOR_TOLERANCE_APPROX = 80;
+// A cor é sempre ignorada na análise — o utilizador escolhe explicitamente
+// qual spool usar no Step 2 do modal. O matching é só por material-base.
 
 function normalizeMaterial(m: string) {
   return m.trim().toUpperCase();
 }
 
-// Aceita variantes do mesmo material-base (igual ao PlannerTab):
+// Aceita variantes do mesmo material-base:
 // ex.: requisito "PLA" aceita "PLA MATTE", "PLA+", "PLA-CF"
 function materialsAreCompatible(spoolMat: string, reqMat: string): boolean {
   const spool = normalizeMaterial(spoolMat);
@@ -70,29 +67,8 @@ function materialsAreCompatible(spoolMat: string, reqMat: string): boolean {
   return false;
 }
 
-function hexDistance(a: string, b: string): number {
-  const parse = (h: string) => {
-    const c = h.replace("#", "");
-    return [
-      parseInt(c.slice(0, 2), 16),
-      parseInt(c.slice(2, 4), 16),
-      parseInt(c.slice(4, 6), 16),
-    ];
-  };
-  try {
-    const [r1, g1, b1] = parse(a);
-    const [r2, g2, b2] = parse(b);
-    return Math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2);
-  } catch {
-    return 999;
-  }
-}
-
-// Devolve score 0-100 para um slot vs. um requisito de material.
-// colorMode controla como a cor é validada:
-//   strict      → tolerância 30 (cor muito próxima)
-//   approximate → tolerância 80 (tons semelhantes)
-//   ignore      → só valida material, ignora cor completamente
+// Score binário — 100 se o material é compatível, 0 caso contrário.
+// Cor ignorada: o utilizador decide qual cor usar no Step 2.
 function scoreSlot(
   slot: {
     currentSpool: {
@@ -106,24 +82,11 @@ function scoreSlot(
     } | null;
   },
   req: MaterialReq,
-  colorMode: ColorMode = "strict",
 ): number {
   if (!slot.currentSpool) return 0;
-  const { item } = slot.currentSpool;
-
-  if (!materialsAreCompatible(item.material, req.material)) return 0;
-
-  // Sem requisito de cor, ou modo ignore → material é suficiente
-  if (!req.colorHex || colorMode === "ignore") return 100;
-
-  const dist = hexDistance(item.colorHex, req.colorHex);
-  const tolerance =
-    colorMode === "approximate"
-      ? COLOR_TOLERANCE_APPROX
-      : COLOR_TOLERANCE_STRICT;
-
-  if (dist <= tolerance) return 100; // cor dentro da tolerância
-  return 50; // material certo, cor fora da tolerância
+  return materialsAreCompatible(slot.currentSpool.item.material, req.material)
+    ? 100
+    : 0;
 }
 
 // ─── Prisma result types ──────────────────────────────────────────────────────
@@ -191,14 +154,8 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const units = printer.units as UnitWithSlots[];
 
-  // 2. Ler body e extrair colorMode
+  // 2. Ler body
   const body = await req.json().catch(() => ({}));
-
-  // Modo de cor enviado pelo cliente (default: strict)
-  const colorMode: ColorMode =
-    body.colorMode === "approximate" || body.colorMode === "ignore"
-      ? body.colorMode
-      : "strict";
 
   // 3. Obter requisitos de material
   let requirements: MaterialReq[] = [];
@@ -340,7 +297,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   ): SlotCandidate[] {
     return slots
       .map((slot) => {
-        const score = scoreSlot(slot, req, colorMode);
+        const score = scoreSlot(slot, req);
         if (score === 0) return null;
 
         const spool = slot.currentSpool!;
@@ -430,11 +387,10 @@ export async function POST(req: NextRequest, { params }: Params) {
     ({ req, originalIndex, candidates }) => {
       const best = assignments.get(originalIndex) ?? null;
 
+      // score é 100 ou 0 — sem "partial"
       let status: MaterialMatch["status"] = "missing";
       if (best) {
-        if (!best.hasSufficientWeight) status = "insufficient_weight";
-        else if (best.score === 100) status = "ok";
-        else status = "partial";
+        status = best.hasSufficientWeight ? "ok" : "insufficient_weight";
       }
 
       // Devolver todos os candidatos para que o utilizador possa escolher
@@ -444,40 +400,26 @@ export async function POST(req: NextRequest, { params }: Params) {
   );
 
   // 6. Construir resultado global
-  const colorModeLabel =
-    colorMode === "ignore"
-      ? " (cor ignorada)"
-      : colorMode === "approximate"
-        ? " (cor aproximada)"
-        : "";
-
   const warnings: string[] = [];
   for (const m of materials) {
     if (m.status === "missing") {
       warnings.push(
-        `${m.required.material}${m.required.colorName ? ` (${m.required.colorName})` : ""}${colorModeLabel} — sem slot compatível carregado.`,
+        `${m.required.material} — sem slot com material compatível carregado.`,
       );
     } else if (m.status === "insufficient_weight") {
       warnings.push(
         `${m.required.material} — peso insuficiente (necessário ${m.required.estimatedG}g, disponível ${m.assigned?.spoolCurrentWeight ?? 0}g).`,
       );
-    } else if (m.status === "partial") {
-      warnings.push(
-        `${m.required.material} — cor diferente do requisito (${m.assigned?.unitName} P${m.assigned?.position}).`,
-      );
     }
     if (m.assigned?.warning) warnings.push(m.assigned.warning);
   }
 
-  const canProceed = materials.every(
-    (m) => m.status === "ok" || m.status === "partial",
-  );
+  const canProceed = materials.every((m) => m.status === "ok");
 
   const matchResult: MatchResult = { canProceed, warnings, materials };
 
   return NextResponse.json({
     source: "profile",
-    colorMode,
     estimatedMinutes,
     matchResult,
   });

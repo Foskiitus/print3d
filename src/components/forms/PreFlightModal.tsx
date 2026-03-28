@@ -270,15 +270,9 @@ function MaterialRow({
                       em uso
                     </Badge>
                   )}
-                  {c.score === 100 ? (
-                    <Badge className="text-[9px] bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
-                      cor ✓
-                    </Badge>
-                  ) : (
-                    <Badge className="text-[9px] bg-amber-500/10 text-amber-600 border-amber-500/20">
-                      cor ≠
-                    </Badge>
-                  )}
+                  <Badge className="text-[9px] bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                    ✓
+                  </Badge>
                   {!c.hasSufficientWeight && (
                     <Badge className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
                       peso ⚠
@@ -289,26 +283,6 @@ function MaterialRow({
             );
           })
         )}
-
-        {/* Opção: deixar sem atribuir */}
-        <button
-          type="button"
-          onClick={() => onAssign(null)}
-          className={[
-            "flex items-center gap-2 w-full px-3 py-2 transition-colors text-left",
-            !assigned ? "bg-muted/30" : "hover:bg-muted/30",
-          ].join(" ")}
-        >
-          <XCircle
-            size={12}
-            className={!assigned ? "text-foreground" : "text-muted-foreground"}
-          />
-          <span
-            className={`text-xs ${!assigned ? "text-foreground font-medium" : "text-muted-foreground"}`}
-          >
-            Sem atribuição
-          </span>
-        </button>
       </div>
     </div>
   );
@@ -352,10 +326,9 @@ export function PreFlightModal({
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
   const [materials, setMaterials] = useState<MaterialMatch[]>([]);
 
-  // Modo de cor (partilhado entre step 1 e 2 — pode ser alterado em step 2)
-  const [colorMode, setColorMode] = useState<
-    "strict" | "approximate" | "ignore"
-  >("strict");
+  // Modo de cor fixo em "ignore" — a associação slot→material é por material base,
+  // a cor é escolhida pelo utilizador no Step 2.
+  const colorMode = "ignore" as const;
 
   // Step 3 — confirmação
   const [apiMessage, setApiMessage] = useState<string | null>(null);
@@ -494,12 +467,10 @@ export function PreFlightModal({
     : selectedProfile !== null;
 
   const canProceedStep2 = (() => {
-    // Bloquear se algum requisito não tem slot atribuído
-    if (!materials.every((m) => m.status !== "missing")) return false;
-    // Bloquear se há slots duplicados (mesmo slot para dois requisitos)
-    const slotIds = materials
-      .map((m) => m.assigned?.slotId)
-      .filter((id): id is string => !!id);
+    // Todos os materiais têm de ter um spool atribuído — sem exceções
+    if (!materials.every((m) => m.assigned !== null)) return false;
+    // Não pode haver slots duplicados (mesmo slot para dois requisitos)
+    const slotIds = materials.map((m) => m.assigned!.slotId);
     return slotIds.length === new Set(slotIds).size;
   })();
 
@@ -862,93 +833,6 @@ export function PreFlightModal({
                 </div>
               </div>
 
-              {/* Toggle de modo de cor */}
-              <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  Modo de cor
-                </p>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {(
-                    [
-                      {
-                        value: "strict",
-                        label: "Estrita",
-                        hint: "Cor muito próxima",
-                      },
-                      {
-                        value: "approximate",
-                        label: "Aproximada",
-                        hint: "Tons semelhantes",
-                      },
-                      {
-                        value: "ignore",
-                        label: "Ignorar",
-                        hint: "Só valida material",
-                      },
-                    ] as const
-                  ).map((mode) => (
-                    <button
-                      key={mode.value}
-                      type="button"
-                      onClick={async () => {
-                        setColorMode(mode.value);
-                        // Re-analisar automaticamente com o novo modo
-                        setLoading(true);
-                        try {
-                          const body = manualMode
-                            ? {
-                                materials: manualMaterials.filter(
-                                  (m) => m.material && m.estimatedG > 0,
-                                ),
-                                quantity,
-                                productId: selectedProduct?.id,
-                                estimatedMinutes: selectedProfile?.printTime,
-                                colorMode: mode.value,
-                              }
-                            : {
-                                profileId: selectedProfile?.id,
-                                productId: selectedProduct?.id,
-                                quantity,
-                                estimatedMinutes: selectedProfile?.printTime,
-                                colorMode: mode.value,
-                              };
-                          const res = await fetch(
-                            `${SITE_URL}/api/printers/${printerId}/preflight/analyze`,
-                            {
-                              method: "POST",
-                              headers: {
-                                "Content-Type": "application/json",
-                                "x-api-key":
-                                  process.env.NEXT_PUBLIC_MY_API_SECRET_KEY ||
-                                  "",
-                              },
-                              body: JSON.stringify(body),
-                            },
-                          );
-                          const data = await res.json();
-                          if (res.ok && data.matchResult) {
-                            setMatchResult(data.matchResult);
-                            setMaterials(data.matchResult.materials);
-                          }
-                        } catch {
-                          // silencioso — o utilizador pode tentar manualmente
-                        } finally {
-                          setLoading(false);
-                        }
-                      }}
-                      className={`rounded-md border px-2 py-1.5 text-left transition-colors ${colorMode === mode.value ? "border-primary bg-primary/10" : "border-border hover:border-border/80 bg-background/30"}`}
-                    >
-                      <p className="text-[10px] font-medium text-foreground">
-                        {mode.label}
-                      </p>
-                      <p className="text-[9px] text-muted-foreground">
-                        {mode.hint}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Lista de materiais */}
               {(() => {
                 // Calcular quais slotIds estão duplicados (atribuídos a mais de 1 requisito)
@@ -1086,7 +970,9 @@ export function PreFlightModal({
               ) : (
                 <PlayCircle size={14} />
               )}
-              {canProceedStep2 ? "Confirmar e Iniciar" : "Materiais em falta"}
+              {canProceedStep2
+                ? "Confirmar e Iniciar"
+                : "Atribui todos os slots"}
             </Button>
           )}
 

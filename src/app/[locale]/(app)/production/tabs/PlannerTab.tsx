@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import {
   AlertTriangle,
   Clock,
@@ -19,10 +19,17 @@ import {
   Loader2,
   BadgeCheck,
   TriangleAlert,
+  Plus,
+  Search,
+  Minus,
+  Package,
+  ClipboardList,
 } from "lucide-react";
 import { useIntlayer } from "next-intlayer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import { runPreflightCheck } from "@/lib/preflight";
@@ -989,6 +996,444 @@ function checkAdapterConflict(
   return { hasConflict: false, slotInfo: "" };
 }
 
+// ─── NewOrderFromPlannerModal ─────────────────────────────────────────────────
+//
+// Criação rápida de OP diretamente no Planner — com pesquisa de produto,
+// destino (stock vs encomenda), seleção de perfil e quantidade.
+
+interface PlannerProduct {
+  id: string;
+  name: string;
+  bom?: {
+    component: {
+      profiles: {
+        id: string;
+        name: string;
+        printTime?: number | null;
+        filamentUsed?: number | null;
+        filaments?: { colorHex?: string | null; material: string }[];
+      }[];
+    };
+  }[];
+  printProfiles?: {
+    id: string;
+    name: string;
+    printTime?: number | null;
+    filamentUsed?: number | null;
+  }[];
+}
+
+function getPlannerProfiles(p: PlannerProduct): {
+  id: string;
+  name: string;
+  printTime?: number | null;
+  filamentUsed?: number | null;
+  filaments?: { colorHex?: string | null; material: string }[];
+}[] {
+  if (p.printProfiles && p.printProfiles.length > 0) return p.printProfiles;
+  return p.bom?.flatMap((e) => e.component?.profiles ?? []) ?? [];
+}
+
+function NewOrderFromPlannerModal({
+  open,
+  onClose,
+  onCreated,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const [products, setProducts] = useState<PlannerProduct[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [productSearch, setProductSearch] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<PlannerProduct | null>(
+    null,
+  );
+  const [selectedProfile, setSelectedProfile] = useState<{
+    id: string;
+    name: string;
+    printTime?: number | null;
+  } | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [origin, setOrigin] = useState<"manual" | "sale">("manual");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setLoadingProducts(true);
+    fetch(`${SITE_URL}/api/products?withProfiles=1`, {
+      headers: { "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "" },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        setProducts(data);
+        setLoadingProducts(false);
+      })
+      .catch(() => setLoadingProducts(false));
+  }, [open]);
+
+  function reset() {
+    setProductSearch("");
+    setSelectedProduct(null);
+    setSelectedProfile(null);
+    setQuantity(1);
+    setOrigin("manual");
+  }
+
+  const profiles = selectedProduct ? getPlannerProfiles(selectedProduct) : [];
+  const filteredProducts = products.filter((p) =>
+    p.name.toLowerCase().includes(productSearch.toLowerCase()),
+  );
+
+  // canProceed: produto + perfil selecionados
+  const canCreate = selectedProduct !== null && selectedProfile !== null;
+
+  async function handleCreate() {
+    if (!canCreate) return;
+    setLoading(true);
+    try {
+      const count = await fetch(`${SITE_URL}/api/production/orders`, {
+        headers: {
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
+      })
+        .then((r) => r.json())
+        .then((d: any[]) => d.length)
+        .catch(() => 0);
+
+      const res = await fetch(`${SITE_URL}/api/production/orders`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
+        body: JSON.stringify({
+          items: [{ productId: selectedProduct!.id, quantity }],
+          origin,
+          notes: null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Erro ao criar OP");
+      toast({ title: `OP ${data.reference} criada — aparece no Planeador.` });
+      reset();
+      onClose();
+      onCreated();
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50"
+      onClick={onClose}
+    >
+      <div
+        className="bg-background border border-border rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[92vh] flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-border flex-shrink-0">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">
+              Nova Ordem de Produção
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              A OP aparece no Planeador depois de criada
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* ── Destino ── */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Destino
+            </Label>
+            <div className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  {
+                    value: "manual",
+                    label: "Para Stock",
+                    hint: "Produção interna",
+                    icon: Package,
+                  },
+                  {
+                    value: "sale",
+                    label: "Encomenda",
+                    hint: "Para cliente",
+                    icon: ShoppingCart,
+                  },
+                ] as const
+              ).map(({ value, label, hint, icon: Icon }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setOrigin(value)}
+                  className={`flex items-center gap-2.5 px-3 py-3 rounded-lg border text-left transition-colors ${origin === value ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40"}`}
+                >
+                  <div
+                    className={`w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${origin === value ? "border-primary bg-primary" : "border-border"}`}
+                  >
+                    {origin === value && (
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p
+                      className={`text-xs font-medium ${origin === value ? "text-primary" : "text-foreground"}`}
+                    >
+                      {label}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">{hint}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Produto ── */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Produto
+            </Label>
+            {loadingProducts ? (
+              <p className="text-xs text-muted-foreground">A carregar…</p>
+            ) : (
+              <div className="space-y-1.5">
+                {/* Campo de pesquisa */}
+                <div className="relative">
+                  <Search
+                    size={12}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+                  />
+                  <Input
+                    placeholder="Pesquisar produto…"
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    className="pl-7 h-8 text-xs"
+                    autoComplete="off"
+                  />
+                  {productSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setProductSearch("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Lista filtrada — estilo PreFlight */}
+                <div className="max-h-44 overflow-y-auto border border-border rounded-lg divide-y divide-border/50">
+                  {products.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-4">
+                      Sem produtos criados.
+                    </p>
+                  )}
+                  {filteredProducts.length === 0 && products.length > 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-3">
+                      Sem resultados para "{productSearch}"
+                    </p>
+                  )}
+                  {filteredProducts.map((p) => {
+                    const isSelected = selectedProduct?.id === p.id;
+                    const profileCount = getPlannerProfiles(p).length;
+                    const hasProfiles = profileCount > 0;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        disabled={!hasProfiles}
+                        onClick={() => {
+                          setSelectedProduct(isSelected ? null : p);
+                          setSelectedProfile(null);
+                          setProductSearch("");
+                        }}
+                        className={`flex items-center gap-3 w-full px-3 py-2.5 text-left transition-colors ${!hasProfiles ? "opacity-40 cursor-not-allowed" : isSelected ? "bg-primary/10 border-l-2 border-l-primary" : "hover:bg-muted/40"}`}
+                      >
+                        <div
+                          className="w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 flex items-center justify-center"
+                          style={{
+                            borderColor: isSelected
+                              ? "hsl(var(--primary))"
+                              : "hsl(var(--border))",
+                            backgroundColor: isSelected
+                              ? "hsl(var(--primary))"
+                              : "transparent",
+                          }}
+                        >
+                          {isSelected && (
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />
+                          )}
+                        </div>
+                        <span
+                          className={`text-sm flex-1 truncate ${isSelected ? "text-primary font-medium" : "text-foreground"}`}
+                        >
+                          {p.name}
+                        </span>
+                        {hasProfiles ? (
+                          <span className="text-[10px] text-muted-foreground flex-shrink-0">
+                            {profileCount} perfil{profileCount > 1 ? "s" : ""}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground/60 flex-shrink-0 italic">
+                            sem perfil
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── Perfil de impressão — estilo PreFlight ── */}
+          {selectedProduct && profiles.length > 0 && (
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Perfil de Impressão
+              </Label>
+              <div className="space-y-1.5">
+                {profiles.map((profile) => {
+                  const isSelected = selectedProfile?.id === profile.id;
+                  return (
+                    <button
+                      key={profile.id}
+                      type="button"
+                      onClick={() =>
+                        setSelectedProfile(isSelected ? null : profile)
+                      }
+                      className={`flex items-center gap-3 w-full p-3 rounded-lg border text-left transition-colors ${isSelected ? "border-primary bg-primary/10 border-l-2 border-l-primary" : "border-border hover:border-primary/40"}`}
+                    >
+                      {/* Radio indicator */}
+                      <div
+                        className="w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 flex items-center justify-center"
+                        style={{
+                          borderColor: isSelected
+                            ? "hsl(var(--primary))"
+                            : "hsl(var(--border))",
+                          backgroundColor: isSelected
+                            ? "hsl(var(--primary))"
+                            : "transparent",
+                        }}
+                      >
+                        {isSelected && (
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />
+                        )}
+                      </div>
+                      <span
+                        className={`text-sm font-medium flex-1 truncate ${isSelected ? "text-primary" : "text-foreground"}`}
+                      >
+                        {profile.name}
+                      </span>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-shrink-0">
+                        {profile.printTime && (
+                          <span className="flex items-center gap-1">
+                            <Clock size={11} />
+                            {Math.round(profile.printTime / 60)}h
+                          </span>
+                        )}
+                        {profile.filamentUsed && (
+                          <span className="flex items-center gap-1">
+                            <Layers size={11} />
+                            {profile.filamentUsed}g
+                          </span>
+                        )}
+                        {/* Bolhas de cor dos filamentos */}
+                        {(profile as any).filaments
+                          ?.slice(0, 4)
+                          .map((f: any, i: number) => (
+                            <span key={i} className="flex items-center gap-0.5">
+                              <div
+                                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                                style={{
+                                  backgroundColor: f.colorHex ?? "#888",
+                                }}
+                              />
+                            </span>
+                          ))}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── Quantidade ── */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Quantidade
+            </Label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                className="w-8 h-8 rounded border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+              >
+                <Minus size={12} />
+              </button>
+              <span className="w-10 text-center text-sm font-semibold text-foreground">
+                {quantity}
+              </span>
+              <button
+                type="button"
+                onClick={() => setQuantity((q) => q + 1)}
+                className="w-8 h-8 rounded border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+              >
+                <Plus size={12} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between p-4 border-t border-border flex-shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              reset();
+              onClose();
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleCreate}
+            disabled={loading || !canCreate}
+            className="gap-1.5"
+          >
+            {loading ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <ClipboardList size={14} />
+            )}
+            Criar OP
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── PendingPartCard ──────────────────────────────────────────────────────────
 
 function PendingPartCard({
@@ -1568,6 +2013,7 @@ export function PlannerTab({
   const [dragging, setDragging] = useState<PendingPart | null>(null);
   const [selected, setSelected] = useState<PendingPart | null>(null);
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
+  const [newOrderOpen, setNewOrderOpen] = useState(false);
 
   // Pre-flight state
   const [slotConfigOpen, setSlotConfigOpen] = useState(false);
@@ -1830,14 +2276,24 @@ export function PlannerTab({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Coluna esquerda: peças pendentes */}
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-foreground">
-            {c.planner.pending.value}
-            {pendingParts.length > 0 && (
-              <span className="ml-2 text-xs text-muted-foreground font-normal">
-                ({pendingParts.length})
-              </span>
-            )}
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-foreground">
+              {c.planner.pending.value}
+              {pendingParts.length > 0 && (
+                <span className="ml-2 text-xs text-muted-foreground font-normal">
+                  ({pendingParts.length})
+                </span>
+              )}
+            </h2>
+            <button
+              type="button"
+              onClick={() => setNewOrderOpen(true)}
+              className="flex items-center gap-1 text-[10px] text-primary hover:underline"
+            >
+              <Plus size={10} />
+              Nova OP
+            </button>
+          </div>
 
           {pendingParts.length === 0 ? (
             <div className="border border-dashed rounded-xl py-10 text-center">
@@ -1924,6 +2380,13 @@ export function PlannerTab({
           setSlotConfigPart(null);
           setSlotConfigPrinter(null);
         }}
+      />
+
+      {/* Modal de criação de nova OP */}
+      <NewOrderFromPlannerModal
+        open={newOrderOpen}
+        onClose={() => setNewOrderOpen(false)}
+        onCreated={onRefresh}
       />
     </div>
   );

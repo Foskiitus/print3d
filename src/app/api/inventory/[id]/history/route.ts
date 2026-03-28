@@ -3,7 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth";
 
 // GET /api/inventory/[id]/history
-// Devolve o histórico de produções que usaram o mesmo InventoryItem deste rolo
+// Devolve o histórico de jobs de impressão que usaram este spool específico.
+// A ligação é directa: PrintJobMaterial.spoolId = purchase.id
+
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -13,41 +15,73 @@ export async function GET(
 
   const { id } = await params;
 
-  // Busca o rolo para obter o itemId
+  // Verificar que o spool pertence ao utilizador
   const purchase = await prisma.inventoryPurchase.findUnique({
     where: { id },
-    select: { userId: true, itemId: true, item: true },
+    select: { userId: true, item: true },
   });
 
   if (!purchase || purchase.userId !== userId) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Busca produções do utilizador que usaram filamentos com a mesma marca/material/cor
-  // (ligação por ProductionLog → Product → ProductFilamentUsage → FilamentType)
-  // Como a nova estrutura não tem ainda a ligação directa, devolvemos as produções recentes
-  // const productions = await prisma.productionLog.findMany({
-  //   where: { userId },
-  //   include: {
-  //     product: { select: { name: true } },
-  //     printer: { select: { name: true } },
-  //   },
-  //   orderBy: { date: "desc" },
-  //   take: 20,
-  // });
+  // Buscar todos os PrintJobMaterial que referenciam este spool
+  const jobMaterials = await prisma.printJobMaterial.findMany({
+    where: { spoolId: id },
+    include: {
+      job: {
+        include: {
+          printer: { select: { name: true } },
+          // Componentes impressos neste job
+          items: {
+            include: {
+              component: { select: { name: true } },
+            },
+          },
+          // OP associada → para obter o nome do produto
+          order: {
+            include: {
+              items: {
+                include: {
+                  product: { select: { name: true } },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    orderBy: { job: { createdAt: "desc" } },
+  });
 
-  const productions = [] as any[];
+  const productions = jobMaterials.map((mat) => {
+    const job = mat.job;
+
+    // Nome do produto: preferir produto da OP, senão componente do job
+    const productName =
+      job.order?.items?.[0]?.product?.name ??
+      job.items?.[0]?.component?.name ??
+      "Impressão direta";
+
+    // Referência da OP para contexto
+    const orderRef = job.order?.reference ?? null;
+
+    return {
+      id: mat.id,
+      date: job.finishedAt ?? job.createdAt,
+      productName,
+      printerName: job.printer.name,
+      quantity: job.quantity,
+      filamentUsed: mat.actualG ?? mat.estimatedG,
+      totalCost: job.totalCost ?? null,
+      // Campos para o link à OP
+      orderId: job.orderId ?? null,
+      orderReference: orderRef,
+    };
+  });
 
   return NextResponse.json({
     item: purchase.item,
-    productions: productions.map((p) => ({
-      id: p.id,
-      date: p.date,
-      productName: p.product.name,
-      printerName: p.printer.name,
-      quantity: p.quantity,
-      filamentUsed: p.filamentUsed,
-      totalCost: p.totalCost,
-    })),
+    productions,
   });
 }

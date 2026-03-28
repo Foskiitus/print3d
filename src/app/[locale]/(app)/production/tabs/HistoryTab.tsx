@@ -23,12 +23,12 @@ export function HistoryTab({
     return (
       !q ||
       o.reference.toLowerCase().includes(q) ||
-      o.items.some((i) => i.product.name.toLowerCase().includes(q))
+      (o.items ?? []).some((i) => i.product.name.toLowerCase().includes(q))
     );
   });
 
   const totalUnits = orders.reduce(
-    (acc, o) => acc + o.items.reduce((a, i) => a + i.completed, 0),
+    (acc, o) => acc + (o.items ?? []).reduce((a, i) => a + i.completed, 0),
     0,
   );
 
@@ -102,7 +102,7 @@ export function HistoryTab({
               (a, j) => a + (j.totalCost ?? 0),
               0,
             );
-            const unitsCompleted = order.items.reduce(
+            const unitsCompleted = (order.items ?? []).reduce(
               (a, i) => a + i.completed,
               0,
             );
@@ -132,14 +132,21 @@ export function HistoryTab({
                     </div>
 
                     <div className="mt-1 space-y-0.5">
-                      {order.items.map((item) => (
-                        <p
-                          key={item.id}
-                          className="text-xs text-muted-foreground"
-                        >
-                          {item.completed}/{item.quantity}× {item.product.name}
+                      {(order.items ?? []).length === 0 ? (
+                        <p className="text-xs text-muted-foreground italic">
+                          Impressão direta
                         </p>
-                      ))}
+                      ) : (
+                        (order.items ?? []).map((item) => (
+                          <p
+                            key={item.id}
+                            className="text-xs text-muted-foreground"
+                          >
+                            {item.completed}/{item.quantity}×{" "}
+                            {item.product.name}
+                          </p>
+                        ))
+                      )}
                     </div>
 
                     <div className="flex items-center gap-3 mt-2 flex-wrap text-[11px] text-muted-foreground">
@@ -185,31 +192,43 @@ export function HistoryTab({
                         {/* Rastreabilidade: rolos usados */}
                         {job.materials.length > 0 && (
                           <div className="flex flex-wrap gap-1.5">
-                            {job.materials.map((mat) => (
-                              <div
-                                key={mat.id}
-                                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted/60 border border-border"
-                              >
-                                {mat.colorHex && (
-                                  <div
-                                    className="w-2 h-2 rounded-full flex-shrink-0"
-                                    style={{ backgroundColor: mat.colorHex }}
-                                  />
-                                )}
-                                <span className="text-[10px] text-muted-foreground">
-                                  {mat.material}
-                                </span>
-                                <span className="text-[10px] text-foreground">
-                                  {mat.actualG ?? mat.estimatedG}g
-                                </span>
-                                {mat.spool && (
-                                  <span className="text-[9px] text-muted-foreground/60 flex items-center gap-0.5 font-mono">
-                                    <QrCode size={8} />
-                                    {mat.spool.qrCodeId.slice(-6)}
+                            {job.materials.map((mat) => {
+                              const badge = (
+                                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted/60 border border-border">
+                                  {mat.colorHex && (
+                                    <div
+                                      className="w-2 h-2 rounded-full flex-shrink-0"
+                                      style={{ backgroundColor: mat.colorHex }}
+                                    />
+                                  )}
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {mat.material}
                                   </span>
-                                )}
-                              </div>
-                            ))}
+                                  <span className="text-[10px] text-foreground">
+                                    {mat.actualG ?? mat.estimatedG}g
+                                  </span>
+                                  {mat.spool && (
+                                    <span className="text-[9px] text-muted-foreground/60 flex items-center gap-0.5 font-mono">
+                                      <QrCode size={8} />
+                                      {mat.spool.qrCodeId.slice(-6)}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+
+                              return mat.spool ? (
+                                <a
+                                  key={mat.id}
+                                  href={`/${locale}/spool/${mat.spool.qrCodeId}`}
+                                  className="hover:opacity-70 transition-opacity"
+                                  title={`Ver rolo ${mat.spool.qrCodeId}`}
+                                >
+                                  {badge}
+                                </a>
+                              ) : (
+                                <div key={mat.id}>{badge}</div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
