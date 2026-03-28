@@ -1,7 +1,7 @@
 import { getAuthUserId } from "@/lib/auth";
 import { r2 } from "@/lib/r2";
 import { prisma } from "@/lib/prisma"; // Não te esqueças de importar o Prisma
-import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NextResponse } from "next/server";
 
@@ -77,6 +77,43 @@ export async function POST(req: Request) {
     console.error("[POST /api/upload]", error);
     return NextResponse.json(
       { error: "Erro ao gerar URL de upload", details: error.message },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(req: Request) {
+  const userId = await getAuthUserId();
+  if (!userId)
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+
+  try {
+    const { fileKey } = await req.json();
+
+    if (!fileKey)
+      return NextResponse.json(
+        { error: "fileKey obrigatório" },
+        { status: 400 },
+      );
+
+    // Garantir que a key pertence ao utilizador — nunca apagar ficheiros alheios
+    if (!fileKey.startsWith(`${userId}/`))
+      return NextResponse.json({ error: "Não autorizado" }, { status: 403 });
+
+    // Determinar o bucket pelo tipo de ficheiro
+    const ext = fileKey.toLowerCase();
+    const bucket =
+      ext.endsWith(".3mf") || ext.endsWith(".gcode") || ext.endsWith(".bgcode")
+        ? "models"
+        : "images";
+
+    await r2.send(new DeleteObjectCommand({ Bucket: bucket, Key: fileKey }));
+
+    return NextResponse.json({ success: true, fileKey });
+  } catch (err: any) {
+    console.error("[DELETE /api/upload/delete]", err);
+    return NextResponse.json(
+      { error: "Falha ao apagar ficheiro", details: err.message },
       { status: 500 },
     );
   }

@@ -248,7 +248,7 @@ function PlateCard({
             {totalG > 0 && (
               <span className="flex items-center gap-0.5">
                 <Layers size={9} />
-                {totalG}g
+                {Math.ceil(totalG)}g
               </span>
             )}
             {mins && (
@@ -339,7 +339,11 @@ function PlateCard({
                 type="number"
                 min="0"
                 placeholder="auto"
-                value={plateTotalG(plate) || plate.filamentUsed}
+                value={
+                  plateTotalG(plate)
+                    ? Math.ceil(plateTotalG(plate))
+                    : plate.filamentUsed
+                }
                 onChange={(e) => onChange({ filamentUsed: e.target.value })}
                 className="h-7 text-xs"
                 readOnly={plate.filaments.some((f) => Number(f.estimatedG) > 0)}
@@ -359,7 +363,7 @@ function PlateCard({
                 Filamentos
                 {totalG > 0 && (
                   <span className="ml-1 text-foreground font-medium">
-                    ({totalG}g)
+                    ({Math.ceil(totalG)}g)
                   </span>
                 )}
               </Label>
@@ -473,6 +477,7 @@ export function NewComponentModal({
   const globalFileRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [globalUploading, setGlobalUploading] = useState(false);
+  const uploadedKeys = useRef<Set<string>>(new Set());
 
   const [form, setForm] = useState({
     name: initialName,
@@ -529,6 +534,7 @@ export function NewComponentModal({
         body: file,
         headers: { "Content-Type": file.type || "application/octet-stream" },
       });
+      uploadedKeys.current.add(key);
 
       // Tentar extrair metadados e pré-preencher a placa
       try {
@@ -554,14 +560,16 @@ export function NewComponentModal({
             patch.printTimeM = String(extracted.printTime % 60);
           }
           if (extracted.filamentUsed) {
-            patch.filamentUsed = String(extracted.filamentUsed);
+            patch.filamentUsed = String(Math.ceil(extracted.filamentUsed));
           }
           if (extracted.filaments?.length > 0) {
             patch.filaments = extracted.filaments.map((f: any) => ({
               material: f.material ?? "",
               colorHex: f.colorHex ?? "#888888",
               colorName: f.colorName ?? "",
-              estimatedG: f.estimatedG ? String(f.estimatedG) : "",
+              estimatedG: f.estimatedG
+                ? String(Math.ceil(f.estimatedG * 100) / 100)
+                : "",
             }));
           }
           if (extracted.batchSize) {
@@ -619,6 +627,7 @@ export function NewComponentModal({
         headers: { "Content-Type": file.type || "application/octet-stream" },
       });
       setProfileFilePath(key);
+      uploadedKeys.current.add(key);
       if (!profileName) setProfileName(file.name.replace(/\.[^.]+$/, ""));
 
       const extractRes = await fetch("/api/components/extract", {
@@ -645,13 +654,16 @@ export function NewComponentModal({
                 p.printTimeH = String(Math.floor(ep.printTime / 60));
                 p.printTimeM = String(ep.printTime % 60);
               }
-              if (ep.filamentUsed) p.filamentUsed = String(ep.filamentUsed);
+              if (ep.filamentUsed)
+                p.filamentUsed = String(Math.ceil(ep.filamentUsed));
               if (ep.filaments?.length > 0) {
                 p.filaments = ep.filaments.map((f: any) => ({
                   material: f.material ?? "",
                   colorHex: f.colorHex ?? "#888888",
                   colorName: f.colorName ?? "",
-                  estimatedG: f.estimatedG ? String(f.estimatedG) : "",
+                  estimatedG: f.estimatedG
+                    ? String(Math.ceil(f.estimatedG * 100) / 100)
+                    : "",
                 }));
               }
               return p;
@@ -679,7 +691,7 @@ export function NewComponentModal({
               patch.printTimeM = String(pt % 60);
             }
             const fg = ep?.filamentUsed ?? extracted.filamentUsed;
-            if (fg) patch.filamentUsed = String(fg);
+            if (fg) patch.filamentUsed = String(Math.ceil(fg));
             if (extracted.batchSize)
               patch.batchSize = String(extracted.batchSize);
             const fils =
@@ -691,7 +703,9 @@ export function NewComponentModal({
                 material: f.material ?? "",
                 colorHex: f.colorHex ?? "#888888",
                 colorName: f.colorName ?? "",
-                estimatedG: f.estimatedG ? String(f.estimatedG) : "",
+                estimatedG: f.estimatedG
+                  ? String(Math.ceil(f.estimatedG * 100) / 100)
+                  : "",
               }));
             }
             return [{ ...first, ...patch }, ...prev.slice(1)];
@@ -716,6 +730,22 @@ export function NewComponentModal({
       setGlobalUploading(false);
       if (globalFileRef.current) globalFileRef.current.value = "";
     }
+  }
+
+  async function cleanupUploadedFiles() {
+    const keys = Array.from(uploadedKeys.current);
+    if (keys.length === 0) return;
+    keys.forEach((key) => {
+      fetch("/api/upload", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_MY_API_SECRET_KEY || "",
+        },
+        body: JSON.stringify({ fileKey: key }),
+      }).catch(() => {});
+    });
+    uploadedKeys.current.clear();
   }
 
   // ── Submit ─────────────────────────────────────────────────────────────────
@@ -842,6 +872,7 @@ export function NewComponentModal({
         createdEntries.forEach((entry) => onCreated(entry));
       }
 
+      uploadedKeys.current.clear();
       onClose();
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
@@ -851,6 +882,11 @@ export function NewComponentModal({
   }
 
   // ── JSX ────────────────────────────────────────────────────────────────────
+
+  function handleClose() {
+    cleanupUploadedFiles();
+    onClose();
+  }
 
   const totalPlates = plates.length;
   const totalTime = plates.reduce(
@@ -862,7 +898,7 @@ export function NewComponentModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40"
-      onClick={onClose}
+      onClick={handleClose}
     >
       <div
         className="bg-background border border-border rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[90vh] flex flex-col"
@@ -880,7 +916,7 @@ export function NewComponentModal({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="text-muted-foreground hover:text-foreground"
           >
             <X size={16} />
@@ -1018,7 +1054,7 @@ export function NewComponentModal({
                 {(totalGrams > 0 || totalTime > 0) && (
                   <p className="text-[10px] text-muted-foreground mt-0.5">
                     {totalPlates} mesa{totalPlates > 1 ? "s" : ""}
-                    {totalGrams > 0 && ` · ${totalGrams}g`}
+                    {totalGrams > 0 && ` · ${Math.ceil(totalGrams)}g`}
                     {totalTime > 0 && ` · ${fmtMinutes(totalTime)} total`}
                   </p>
                 )}
@@ -1059,7 +1095,7 @@ export function NewComponentModal({
 
         {/* Footer */}
         <div className="flex items-center justify-between p-4 border-t border-border flex-shrink-0 bg-background">
-          <Button variant="ghost" size="sm" onClick={onClose}>
+          <Button variant="ghost" size="sm" onClick={handleClose}>
             Cancelar
           </Button>
           <Button
